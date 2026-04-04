@@ -25,4 +25,11 @@ if [ -z "${REPO_ROOT:-}" ]; then
   fi
 fi
 
-exec "$REPO_ROOT/.specify/scripts/bash/update-agent-context.sh" opencode
+_target="${REPO_ROOT}/.specify/scripts/bash/update-agent-context.sh"
+if [ ! -x "$_target" ]; then
+  echo "update-context.sh: target script not found or not executable: $_target" >&2
+  echo "  REPO_ROOT=$REPO_ROOT" >&2
+  exit 1
+fi
+
+exec "$_target" opencode

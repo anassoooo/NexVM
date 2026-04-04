@@ -132,7 +132,7 @@
 
 ### Phase Dependencies
 
-```
+```text
 Phase 1 (Setup)
     ↓
 Phase 2 (Foundational) ← BLOCKS EVERYTHING

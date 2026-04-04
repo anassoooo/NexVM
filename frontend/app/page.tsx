@@ -59,7 +59,7 @@ export default function Home() {
           <Image
             aria-hidden
             src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
+            alt=""
             width={16}
             height={16}
           />
@@ -74,7 +74,7 @@ export default function Home() {
           <Image
             aria-hidden
             src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
+            alt=""
             width={16}
             height={16}
           />
@@ -89,7 +89,7 @@ export default function Home() {
           <Image
             aria-hidden
             src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
+            alt=""
             width={16}
             height={16}
           />

@@ -10,7 +10,7 @@ This contract defines what every authenticated backend request must carry, what 
 
 **Header**:
 
-```
+```http
 Authorization: Bearer <access_token>
 ```
 
