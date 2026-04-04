@@ -19,7 +19,7 @@
 **Purpose**: Create the physical directory layout and stub files so later tasks have clear targets. No logic — scaffolding only.
 
 - [x] T001 Create `backend/app/routes/`, `backend/app/services/`, `backend/app/models/`, `backend/app/utils/`, `backend/tests/` directories with empty `__init__.py` files
-- [x] T002 Initialize Next.js 14 project in `frontend/` via `npx create-next-app@14 frontend --typescript --tailwind --app --no-src-dir`
+- [x] T002 Initialize Next.js 14 project in `frontend/` via `npx create-next-app@14 frontend --typescript --tailwind --app`
 - [x] T003 Create `supabase/migrations/` directory at repo root
 - [x] T004 [P] Create `backend/requirements.txt` with: `fastapi`, `uvicorn[standard]`, `supabase`, `python-jose[cryptography]`, `pydantic-settings`, `httpx`, `groq`, `pytest`, `pytest-asyncio`
 - [x] T005 [P] Create `backend/.env.example` with keys: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `SUPABASE_JWT_SECRET`, `GROQ_API_KEY`, `FRONTEND_URL`, `VBOXMANAGE_PATH`
@@ -132,7 +132,7 @@
 
 ### Phase Dependencies
 
-```
+```text
 Phase 1 (Setup)
     ↓
 Phase 2 (Foundational) ← BLOCKS EVERYTHING

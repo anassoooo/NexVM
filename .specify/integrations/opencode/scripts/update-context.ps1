@@ -1,4 +1,4 @@
-# update-context.ps1 — opencode integration: create/update AGENTS.md
+# update-context.ps1 - opencode integration: create/update AGENTS.md
 #
 # Thin wrapper that delegates to the shared update-agent-context script.
 # Activated in Stage 7 when the shared script uses integration.json dispatch.
@@ -20,4 +20,10 @@ if (-not $repoRoot -or -not (Test-Path (Join-Path $repoRoot '.specify'))) {
     }
 }
 
-& "$repoRoot/.specify/scripts/powershell/update-agent-context.ps1" -AgentType opencode
+$targetScript = Join-Path $repoRoot '.specify/scripts/powershell/update-agent-context.ps1'
+if (-not (Test-Path $targetScript -PathType Leaf)) {
+    Write-Error "Target script not found: $targetScript (repoRoot: $repoRoot)"
+    exit 1
+}
+
+& $targetScript -AgentType opencode
