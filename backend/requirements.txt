@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+supabase
+python-jose[cryptography]
+pydantic-settings
+httpx
+groq
+pytest
+pytest-asyncio
