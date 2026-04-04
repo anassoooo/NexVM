@@ -110,7 +110,7 @@ Append-only audit log. Never updated after insert.
 | Column | Type | Default | Nullable | Notes |
 |---|---|---|---|---|
 | id | uuid | gen_random_uuid() | NO | PK |
-| user_id | uuid | — | YES | FK → auth.users.id (SET NULL on delete — preserve audit trail) |
+| user_id | uuid | — | YES | FK → auth.users.id (SET NULL on delete — preserve audit trail); if non-null, must reference an existing auth.users.id |
 | action | text | — | NO | Whitelisted action: create_vm / start_vm / stop_vm / delete_vm / login / ai_command |
 | target | text | — | NO | VM UUID string, or literal "ai", or "auth" for login events |
 | status | text | — | NO | "success" or "failure" |
@@ -134,7 +134,7 @@ Records every AI command interaction for analytics and abuse detection.
 | Column | Type | Default | Nullable | Notes |
 |---|---|---|---|---|
 | id | uuid | gen_random_uuid() | NO | PK |
-| user_id | uuid | — | YES | FK → auth.users.id (SET NULL on delete) |
+| user_id | uuid | — | YES | FK → auth.users.id (SET NULL on delete); if non-null, must reference an existing auth.users.id |
 | prompt | text | — | NO | Raw user prompt text |
 | response | text | — | NO | Structured JSON response from AI |
 | tokens | int | — | NO | Token count for the interaction |
