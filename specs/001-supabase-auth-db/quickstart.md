@@ -68,6 +68,10 @@ In your Supabase dashboard → **Settings** → **API**:
 
 ```bash
 cd backend
+python -m venv .venv
+# Activate the virtual environment:
+#   Windows: .venv\Scripts\Activate.ps1
+#   macOS/Linux: source .venv/bin/activate
 cp .env.example .env
 # Fill in SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY, SUPABASE_JWT_SECRET in .env
 
