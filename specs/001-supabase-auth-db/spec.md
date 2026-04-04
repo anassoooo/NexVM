@@ -3,7 +3,7 @@
 **Feature Branch**: `001-supabase-auth-db`  
 **Created**: 2026-04-04  
 **Status**: Draft  
-**Input**: User description: "Read docs/implementation-plan.md & according to the best GitHub's specifications create the first spec"
+**Input**: User description: "Read docs/implementation-plan.md & according to GitHub best practices create the first spec"
 
 ---
 

@@ -38,16 +38,6 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_user_own" ON public.profiles
     FOR ALL USING (auth.uid() = id);
 
--- Helper function to avoid infinite recursion in profiles RLS policy.
--- SECURITY DEFINER bypasses RLS when checking is_admin.
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean AS $$
-    SELECT EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND is_admin = true
-    );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
-
 CREATE POLICY "profiles_admin_all" ON public.profiles
     FOR ALL USING (public.is_admin());
 
