@@ -8,6 +8,19 @@
 -- auth.users table is managed by Supabase — not created here.
 -- ============================================================
 
+-- ============================================================
+-- HELPER FUNCTION: is_admin()
+-- SECURITY DEFINER to avoid RLS recursion on profiles table.
+-- Used by admin policies on all application tables.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND is_admin = true
+    );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 -- ------------------------------------------------------------
 -- TABLE: profiles
 -- 1:1 extension of auth.users; auto-created on signup via trigger.
@@ -25,13 +38,18 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_user_own" ON public.profiles
     FOR ALL USING (auth.uid() = id);
 
-CREATE POLICY "profiles_admin_all" ON public.profiles
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles p
-            WHERE p.id = auth.uid() AND p.is_admin = true
-        )
+-- Helper function to avoid infinite recursion in profiles RLS policy.
+-- SECURITY DEFINER bypasses RLS when checking is_admin.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND is_admin = true
     );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE POLICY "profiles_admin_all" ON public.profiles
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TABLE: vms
@@ -83,7 +101,8 @@ CREATE TABLE IF NOT EXISTS public.logs (
     created_at timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT logs_pkey          PRIMARY KEY (id),
-    CONSTRAINT logs_status_check  CHECK (status IN ('success', 'failure'))
+    CONSTRAINT logs_status_check  CHECK (status IN ('success', 'failure')),
+    CONSTRAINT logs_action_check  CHECK (action IN ('create_vm', 'start_vm', 'stop_vm', 'delete_vm', 'login', 'ai_command'))
 );
 
 CREATE INDEX IF NOT EXISTS logs_user_id_idx ON public.logs (user_id);
