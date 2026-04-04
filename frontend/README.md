@@ -2,7 +2,17 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, configure environment variables:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local and set:
+#   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+#   NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
