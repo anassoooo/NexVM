@@ -43,7 +43,7 @@ export default function SignupPage() {
     if (data.session) {
       router.push("/dashboard");
     } else {
-      setMessage("Check your email for a confirmation link to complete signup.");
+      setMessage("Account created successfully. Try signing in.");
     }
   };
 

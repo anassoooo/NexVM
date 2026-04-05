@@ -26,6 +26,7 @@ async def health_check():
         vboxmanage_version = "error: VBoxManage not found"
     except TimeoutError:
         proc.kill()
+        await proc.wait()
         vboxmanage_version = "error: timed out"
 
     return {
