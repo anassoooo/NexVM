@@ -1,5 +1,7 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from app.config import settings
@@ -14,8 +16,9 @@ async def ensure_profile_exists(user_id: str, supabase) -> None:
         supabase.table("profiles").insert({"id": user_id, "is_admin": False}).execute()
 
 
-async def get_current_user(token=Depends(bearer)) -> str:
-    supabase = get_supabase_client()
+async def get_current_user(
+    token: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+) -> str:
     try:
         payload = jwt.decode(
             token.credentials,
@@ -31,5 +34,6 @@ async def get_current_user(token=Depends(bearer)) -> str:
             status_code=401, detail="Invalid or expired token"
         ) from None
 
+    supabase = get_supabase_client()
     await ensure_profile_exists(user_id, supabase)
     return user_id

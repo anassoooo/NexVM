@@ -26,9 +26,7 @@ export default function LoginPage() {
     if (error) {
       setLoading(false);
       if (error.status === 429) {
-        setError(
-          "Too many login attempts. Please try again in 60 seconds."
-        );
+        setError("Too many login attempts. Please try again later.");
       } else {
         setError(error.message);
       }
