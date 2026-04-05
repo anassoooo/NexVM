@@ -52,24 +52,24 @@
 
 ### Backend
 
-- [ ] T013 Create `backend/app/dependencies.py` — implement `get_current_user(token = Depends(HTTPBearer())) -> str`: decode HS256 JWT with `python-jose`, validate `aud="authenticated"`, extract `sub` as `user_id`, call `ensure_profile_exists(user_id)`, raise `HTTPException(401)` on any failure. Implement `ensure_profile_exists(user_id)`: query `profiles` by `id`, insert `{id, is_admin: false}` if missing (idempotent fallback per research.md §2)
-- [ ] T014 [P] [US1] Create `backend/app/routes/health.py` — `GET /api/v1/health` returns `{"status": "ok", "vboxmanage": "<version or error>"}`. No auth required. Runs `VBoxManage --version` via subprocess (with 5s timeout) to confirm host tool is reachable.
-- [ ] T015 [US1] Create `backend/app/main.py` — FastAPI app with: `CORSMiddleware` allowing `settings.FRONTEND_URL` origin only, methods `GET`/`POST`; include health router under `/api/v1`; Supabase client initialized on startup via lifespan; `settings` imported from `config.py`
+- [x] T013 Create `backend/app/dependencies.py` — implement `get_current_user(token = Depends(HTTPBearer())) -> str`: decode HS256 JWT with `python-jose`, validate `aud="authenticated"`, extract `sub` as `user_id`, call `ensure_profile_exists(user_id)`, raise `HTTPException(401)` on any failure. Implement `ensure_profile_exists(user_id)`: query `profiles` by `id`, insert `{id, is_admin: false}` if missing (idempotent fallback per research.md §2)
+- [x] T014 [P] [US1] Create `backend/app/routes/health.py` — `GET /api/v1/health` returns `{"status": "ok", "vboxmanage": "<version or error>"}`. No auth required. Runs `VBoxManage --version` via subprocess (with 5s timeout) to confirm host tool is reachable.
+- [x] T015 [US1] Create `backend/app/main.py` — FastAPI app with: `CORSMiddleware` allowing `settings.FRONTEND_URL` origin only, methods `GET`/`POST`; include health router under `/api/v1`; Supabase client initialized on startup via lifespan; `settings` imported from `config.py`
 
 ### Frontend
 
-- [ ] T016 [P] [US1] Create `frontend/lib/supabase/client.ts` — export `createBrowserClient` instance using `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `@supabase/ssr`
-- [ ] T017 [P] [US1] Create `frontend/lib/supabase/server.ts` — export `createServerClient` factory using `cookies()` from `next/headers`, for use in Server Components and Route Handlers
-- [ ] T018 [US1] Create `frontend/middleware.ts` — use `createServerClient` to read session; if no session and route is not under `/(auth)`, redirect to `/login`; export `config.matcher` to cover all routes except `_next/static`, `_next/image`, and `favicon.ico`
-- [ ] T019 [P] [US1] Create `frontend/app/(auth)/signup/page.tsx` — form with email + password fields; client-side validation: password ≥ 8 chars + contains number (matches FR-017); on submit call `supabase.auth.signUp()`; on success redirect to `/dashboard`; on error display message
-- [ ] T020 [P] [US1] Create `frontend/app/(auth)/login/page.tsx` — form with email + password; on submit call `supabase.auth.signInWithPassword()`; on success redirect to `/dashboard`; on error display message including rate-limit error (HTTP 429) with retry time
-- [ ] T021 [US1] Create `frontend/app/layout.tsx` — root layout with Tailwind CSS globals; wrap children with any required providers; include `<Navbar />` stub (can be a simple div for now)
-- [ ] T022 [US1] Create `frontend/app/page.tsx` — server component; check session via `createServerClient`; redirect to `/dashboard` if authenticated, `/login` if not
-- [ ] T023 [US1] Create `frontend/app/dashboard/page.tsx` — protected server component; reads session via `createServerClient`; renders "Dashboard — welcome, {email}" placeholder; includes a logout button that calls `supabase.auth.signOut()` then redirects to `/login`
+- [x] T016 [P] [US1] Create `frontend/lib/supabase/client.ts` — export `createBrowserClient` instance using `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `@supabase/ssr`
+- [x] T017 [P] [US1] Create `frontend/lib/supabase/server.ts` — export `createServerClient` factory using `cookies()` from `next/headers`, for use in Server Components and Route Handlers
+- [x] T018 [US1] Create `frontend/middleware.ts` — use `createServerClient` to read session; if no session and route is not under `/(auth)`, redirect to `/login`; export `config.matcher` to cover all routes except `_next/static`, `_next/image`, and `favicon.ico`
+- [x] T019 [P] [US1] Create `frontend/app/(auth)/signup/page.tsx` — form with email + password fields; client-side validation: password ≥ 8 chars + contains number (matches FR-017); on submit call `supabase.auth.signUp()`; on success redirect to `/dashboard`; on error display message
+- [x] T020 [P] [US1] Create `frontend/app/(auth)/login/page.tsx` — form with email + password; on submit call `supabase.auth.signInWithPassword()`; on success redirect to `/dashboard`; on error display message including rate-limit error (HTTP 429) with retry time
+- [x] T021 [US1] Create `frontend/app/layout.tsx` — root layout with Tailwind CSS globals; wrap children with any required providers; include `<Navbar />` stub (can be a simple div for now)
+- [x] T022 [US1] Create `frontend/app/page.tsx` — server component; check session via `createServerClient`; redirect to `/dashboard` if authenticated, `/login` if not
+- [x] T023 [US1] Create `frontend/app/dashboard/page.tsx` — protected server component; reads session via `createServerClient`; renders "Dashboard — welcome, {email}" placeholder; includes a logout button that calls `supabase.auth.signOut()` then redirects to `/login`
 
 ### Backend Tests
 
-- [ ] T024 [US1] Create `backend/tests/test_auth.py` — three test cases using `pytest` + `httpx.AsyncClient`: (1) valid unexpired Supabase JWT returns 200 from a protected endpoint; (2) expired JWT returns 401; (3) missing `Authorization` header returns 401. Use `python-jose` to generate test JWTs signed with `SUPABASE_JWT_SECRET` from test env.
+- [x] T024 [US1] Create `backend/tests/test_auth.py` — three test cases using `pytest` + `httpx.AsyncClient`: (1) valid unexpired Supabase JWT returns 200 from a protected endpoint; (2) expired JWT returns 401; (3) missing `Authorization` header returns 401. Use `python-jose` to generate test JWTs signed with `SUPABASE_JWT_SECRET` from test env.
 
 **Checkpoint**: Registration, login, logout, and redirect all work end-to-end. `profiles` row appears after signup. `pytest backend/tests/test_auth.py` passes all three cases.
 
