@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const validate = () => {
@@ -21,6 +21,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setMessage(null);
 
     const validationError = validate();
     if (validationError) {
@@ -29,7 +30,7 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
 
     if (error) {
@@ -37,7 +38,11 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/dashboard");
+    if (data.session) {
+      window.location.href = "/dashboard";
+    } else {
+      setMessage("Account created successfully. Try signing in.");
+    }
   };
 
   return (
@@ -51,6 +56,12 @@ export default function SignupPage() {
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">
             {error}
+          </div>
+        )}
+
+        {message && (
+          <div className="bg-green-50 text-green-600 p-3 rounded mb-4 text-sm">
+            {message}
           </div>
         )}
 
@@ -86,9 +97,9 @@ export default function SignupPage() {
 
         <p className="text-sm text-center mt-4 text-gray-600">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <Link href="/login" className="text-blue-600 hover:underline">
             Log in
-          </a>
+          </Link>
         </p>
       </form>
     </div>
