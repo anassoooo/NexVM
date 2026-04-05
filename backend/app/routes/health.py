@@ -25,6 +25,7 @@ async def health_check():
     except FileNotFoundError:
         vboxmanage_version = "error: VBoxManage not found"
     except TimeoutError:
+        proc.kill()
         vboxmanage_version = "error: timed out"
 
     return {
