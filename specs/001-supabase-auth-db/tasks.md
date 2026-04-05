@@ -33,12 +33,12 @@
 
 **⚠️ CRITICAL**: Complete and verify every task in this phase before starting Phase 3.
 
-- [ ] T007 Copy `specs/001-supabase-auth-db/contracts/schema.sql` to `supabase/migrations/001_initial_schema.sql` — this is the canonical migration file
-- [ ] T008 Run `supabase/migrations/001_initial_schema.sql` in Supabase SQL Editor and verify: tables `profiles`, `vms`, `logs`, `ai_usage` exist; RLS enabled on all four; trigger `on_auth_user_created` exists under Database → Triggers
-- [ ] T009 Configure Supabase Auth settings in dashboard: JWT expiry = `86400`; minimum password length = `8`; password must contain a number; rate limit email sign-in = 10 per 900 seconds
-- [ ] T010 [P] Create `backend/app/config.py` — `Settings` class using `pydantic-settings` loading all vars from `.env`: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `SUPABASE_JWT_SECRET`, `GROQ_API_KEY`, `FRONTEND_URL`, `VBOXMANAGE_PATH`
-- [ ] T011 [P] Create `backend/app/models/enums.py` — `VMStatus` enum with values: `stopped`, `starting`, `running`, `stopping`, `error`; `LogStatus` enum with `success`, `failure`; `LogAction` enum with `create_vm`, `start_vm`, `stop_vm`, `delete_vm`, `login`, `ai_command`
-- [ ] T012 [P] Create `backend/app/utils/logger.py` — structured logger helper that outputs JSON lines with fields: `user_id`, `action`, `target`, `status`, `message`, `timestamp` (UTC ISO 8601)
+- [x] T007 Copy `specs/001-supabase-auth-db/contracts/schema.sql` to `supabase/migrations/001_initial_schema.sql` — this is the canonical migration file
+- [x] T008 Run `supabase/migrations/001_initial_schema.sql` in Supabase SQL Editor and verify: tables `profiles`, `vms`, `logs`, `ai_usage` exist; RLS enabled on all four; trigger `on_auth_user_created` exists under Database → Triggers
+- [x] T009 Configure Supabase Auth settings in dashboard: JWT expiry = `86400`; minimum password length = `8`; password must contain a number; rate limit email sign-in = 10 per 900 seconds
+- [x] T010 [P] Create `backend/app/config.py` — `Settings` class using `pydantic-settings` loading all vars from `.env`: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `SUPABASE_JWT_SECRET`, `GROQ_API_KEY`, `FRONTEND_URL`, `VBOXMANAGE_PATH`
+- [x] T011 [P] Create `backend/app/models/enums.py` — `VMStatus` enum with values: `stopped`, `starting`, `running`, `stopping`, `error`; `LogStatus` enum with `success`, `failure`; `LogAction` enum with `create_vm`, `start_vm`, `stop_vm`, `delete_vm`, `login`, `ai_command`
+- [x] T012 [P] Create `backend/app/utils/logger.py` — structured logger helper that outputs JSON lines with fields: `user_id`, `action`, `target`, `status`, `message`, `timestamp` (UTC ISO 8601)
 
 **Checkpoint**: Schema is live in Supabase, auth settings configured, backend config + enums ready. Run `SELECT * FROM profiles;` in SQL Editor — should return empty table with correct columns.
 
