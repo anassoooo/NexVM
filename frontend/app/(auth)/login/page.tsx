@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,13 +22,12 @@ export default function LoginPage() {
       email,
       password,
     });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       if (error.status === 429) {
-        const retryMs = 60000;
         setError(
-          `Too many login attempts. Please try again in ${Math.ceil(retryMs / 1000)} seconds.`
+          "Too many login attempts. Please try again in 60 seconds."
         );
       } else {
         setError(error.message);
@@ -35,7 +35,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    window.location.href = "/dashboard";
   };
 
   return (
@@ -84,9 +84,9 @@ export default function LoginPage() {
 
         <p className="text-sm text-center mt-4 text-gray-600">
           Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-blue-600 hover:underline">
+          <Link href="/signup" className="text-blue-600 hover:underline">
             Sign up
-          </a>
+          </Link>
         </p>
       </form>
     </div>
