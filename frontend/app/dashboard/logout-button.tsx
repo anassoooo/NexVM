@@ -3,13 +3,18 @@
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
+const supabase = createClient();
+
 export default function LogoutButton() {
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Logout failed:", error.message);
+      return;
+    }
+    window.location.href = "/login";
   };
 
   return (

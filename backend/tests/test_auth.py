@@ -1,11 +1,13 @@
-import time
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi import APIRouter, Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
 
 from app.config import settings
+from app.dependencies import get_current_user
 
 TEST_USER_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -37,34 +39,44 @@ def expired_token():
     return _make_token(exp_offset=-10)
 
 
-@pytest.mark.asyncio
-async def test_valid_jwt_returns_200(valid_token):
-    from app.main import app
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/api/v1/health",
-            headers={"Authorization": f"Bearer {valid_token}"},
-        )
-        assert response.status_code == 200
+@pytest.fixture
+def mock_supabase():
+    mock = MagicMock()
+    mock.table.return_value.select.return_value.eq.return_value.execute.return_value = (
+        MagicMock(data=[{"id": TEST_USER_ID}])
+    )
+    return mock
 
 
-@pytest.mark.asyncio
-async def test_expired_jwt_returns_401(expired_token):
-    from app.main import app
-    from app.dependencies import get_current_user
-    from fastapi import Depends, APIRouter
-
+@pytest.fixture
+def protected_app(mock_supabase):
+    test_app = FastAPI()
     test_router = APIRouter()
 
     @test_router.get("/test-protected")
     async def protected(user_id: str = Depends(get_current_user)):
         return {"user_id": user_id}
 
-    app.include_router(test_router, prefix="/api/v1")
+    test_app.include_router(test_router, prefix="/api/v1")
 
-    transport = ASGITransport(app=app)
+    with patch("app.dependencies.get_supabase_client", return_value=mock_supabase):
+        yield test_app
+
+
+@pytest.mark.asyncio
+async def test_valid_jwt_returns_200(valid_token, protected_app):
+    transport = ASGITransport(app=protected_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/api/v1/test-protected",
+            headers={"Authorization": f"Bearer {valid_token}"},
+        )
+        assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_expired_jwt_returns_401(expired_token, protected_app):
+    transport = ASGITransport(app=protected_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
             "/api/v1/test-protected",
@@ -74,20 +86,8 @@ async def test_expired_jwt_returns_401(expired_token):
 
 
 @pytest.mark.asyncio
-async def test_missing_authorization_returns_401():
-    from app.main import app
-    from app.dependencies import get_current_user
-    from fastapi import Depends, APIRouter
-
-    test_router = APIRouter()
-
-    @test_router.get("/test-protected-no-auth")
-    async def protected(user_id: str = Depends(get_current_user)):
-        return {"user_id": user_id}
-
-    app.include_router(test_router, prefix="/api/v1")
-
-    transport = ASGITransport(app=app)
+async def test_missing_authorization_returns_401(protected_app):
+    transport = ASGITransport(app=protected_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/v1/test-protected-no-auth")
+        response = await client.get("/api/v1/test-protected")
         assert response.status_code == 401
