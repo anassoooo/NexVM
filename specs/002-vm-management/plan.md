@@ -8,7 +8,7 @@
 
 ## Summary
 
-Build the complete VM lifecycle management layer for myVMS. This plan covers: a VirtualBox subprocess wrapper with timeout and error capture, a VM service layer implementing all CRUD operations and the state machine, a FastAPI route layer exposing seven endpoints, backend tests with mocked VBoxManage, and a frontend VMs page with VMCard/VMList components wired to the API.
+Build the complete VM lifecycle management layer for myVMS. This plan covers: a VirtualBox subprocess wrapper with timeout and error capture, a VM service layer implementing all CRUD operations and the state machine, a FastAPI route layer exposing six endpoints, backend tests with mocked VBoxManage, and a frontend VMs page with VMCard/VMList components wired to the API.
 
 No new database tables or migrations are needed — the `vms` and `logs` tables from spec 001 are the complete persistence layer for this feature.
 

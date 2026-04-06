@@ -9,27 +9,31 @@ export default async function VMsPage() {
   const supabase = await createClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   let initialVms: VM[] = [];
 
   try {
-    const res = await fetch(`${BASE_URL}/api/v1/vm/`, {
+    const res = await fetch(`${BASE_URL}/api/v1/vm`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
         "Content-Type": "application/json",
       },
     });
     if (res.ok) {
       initialVms = (await res.json()) as VM[];
     }
-  } catch {
-    // will show empty state; client will retry
+  } catch (err) {
+    console.error("Failed to fetch VMs:", err);
   }
 
   return (
