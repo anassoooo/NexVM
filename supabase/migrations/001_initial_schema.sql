@@ -160,3 +160,53 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
+-- RLS ISOLATION VERIFICATION (T030)
+-- ============================================================
+-- Run the following queries in Supabase SQL Editor to verify
+-- that Row Level Security enforces data isolation correctly.
+--
+-- PREREQUISITES:
+--   1. Create two test users (A and B) via Supabase Auth.
+--   2. Create an admin user and set is_admin = true on their profile.
+--   3. Insert VM records for each user:
+--        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_A_id>', 'A-VM', 'Ubuntu', 1024);
+--        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_B_id>', 'B-VM', 'Ubuntu', 1024);
+--
+-- TEST 1 — User isolation (run as user A):
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
+--   SELECT * FROM vms;
+--   EXPECTED: Only rows where user_id = <user_A_id> are returned.
+--   RESET ROLE;
+--
+-- TEST 2 — Cross-user blocked (run as user A):
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
+--   SELECT * FROM vms WHERE user_id = '<user_B_id>';
+--   EXPECTED: Empty result set.
+--   RESET ROLE;
+--
+-- TEST 3 — Admin sees all (run as admin user):
+--   First: UPDATE profiles SET is_admin = true WHERE id = '<admin_id>';
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
+--   SELECT * FROM vms;
+--   EXPECTED: All VM rows returned regardless of user_id.
+--   RESET ROLE;
+--
+-- TEST 4 — Admin check on profiles:
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
+--   SELECT * FROM profiles;
+--   EXPECTED: All profiles returned.
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
+--   SELECT * FROM profiles;
+--   EXPECTED: Only user A's own profile returned.
+--   RESET ROLE;
+--
+-- Repeat analogous tests for `logs` and `ai_usage` tables.
+--
+-- VERIFICATION STATUS: [ ] Passed  Date: ____
+-- ============================================================
