@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+function isSessionExpiryError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; status?: number };
+  if (err.name === "AuthSessionMissingError") return true;
+  if (err.status === 400 || err.status === 403) return true;
+  return false;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request: {
@@ -40,17 +48,23 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  const hasSessionCookie = request.cookies.getAll().some((c) =>
-    c.name.includes("-auth-token")
-  );
-
   if ((!user || error) && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    if (hasSessionCookie) {
+
+    const hadStaleSession =
+      request.cookies.getAll().some((c) => c.name.includes("-auth-token")) &&
+      isSessionExpiryError(error);
+
+    if (hadStaleSession) {
       url.searchParams.set("reason", "session_expired");
     }
+
     const redirectResponse = NextResponse.redirect(url);
+
+    const responseCookieNames = new Set(
+      supabaseResponse.cookies.getAll().map((c) => c.name)
+    );
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       if (cookie.name.includes("-auth-token")) {
         redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
@@ -58,6 +72,15 @@ export async function updateSession(request: NextRequest) {
         redirectResponse.cookies.set(cookie);
       }
     });
+    request.cookies.getAll().forEach((cookie) => {
+      if (
+        cookie.name.includes("-auth-token") &&
+        !responseCookieNames.has(cookie.name)
+      ) {
+        redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
+      }
+    });
+
     return redirectResponse;
   }
 

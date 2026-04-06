@@ -48,7 +48,7 @@ function LoginForm() {
         <h1 className="text-2xl font-bold mb-6 text-center">Log In</h1>
 
         {sessionExpired && (
-          <div className="bg-amber-50 text-amber-700 p-3 rounded mb-4 text-sm">
+          <div role="alert" aria-atomic="true" className="bg-amber-50 text-amber-700 p-3 rounded mb-4 text-sm">
             Your session has expired. Please log in again.
           </div>
         )}
