@@ -38,7 +38,13 @@ export default async function DashboardPage() {
           <LogoutButton />
         </div>
       </div>
-      <p className="text-gray-500">Your virtual machines will appear here.</p>
+      <p className="text-gray-500 mb-6">Your virtual machines will appear here.</p>
+      <Link
+        href="/vms"
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium inline-block"
+      >
+        Go to VMs
+      </Link>
     </div>
   );
 }

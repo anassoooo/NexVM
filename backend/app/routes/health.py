@@ -1,4 +1,5 @@
 import asyncio
+import subprocess
 
 from fastapi import APIRouter
 
@@ -7,28 +8,26 @@ from app.config import settings
 router = APIRouter()
 
 
+def _get_vbox_version() -> str:
+    try:
+        result = subprocess.run(
+            [settings.VBOXMANAGE_PATH or "VBoxManage", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return f"error: {result.stderr.strip()}"
+    except FileNotFoundError:
+        return "error: VBoxManage not found"
+    except subprocess.TimeoutExpired:
+        return "error: timed out"
+
+
 @router.get("/health")
 async def health_check():
-    vboxmanage_version = None
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            settings.VBOXMANAGE_PATH or "VBoxManage",
-            "--version",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5)
-        if proc.returncode == 0:
-            vboxmanage_version = stdout.decode().strip()
-        else:
-            vboxmanage_version = f"error: {stderr.decode().strip()}"
-    except FileNotFoundError:
-        vboxmanage_version = "error: VBoxManage not found"
-    except TimeoutError:
-        proc.kill()
-        await proc.wait()
-        vboxmanage_version = "error: timed out"
-
+    vboxmanage_version = await asyncio.to_thread(_get_vbox_version)
     return {
         "status": "ok",
         "vboxmanage": vboxmanage_version,

@@ -7,6 +7,7 @@ from supabase import create_client
 from app.config import settings
 from app import db
 from app.routes.health import router as health_router
+from app.routes.vm import router as vm_router
 
 
 @asynccontextmanager
@@ -29,3 +30,4 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(vm_router, prefix="/api/v1/vm", tags=["vm"])
