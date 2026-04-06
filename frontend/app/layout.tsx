@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -29,7 +30,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <nav className="border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-          <span className="font-bold text-lg">myVMS</span>
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="font-bold text-lg">myVMS</Link>
+            <Link href="/vms" className="text-sm font-medium text-gray-600 hover:text-gray-900">VMs</Link>
+          </div>
         </nav>
         {children}
       </body>
