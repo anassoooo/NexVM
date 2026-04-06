@@ -175,20 +175,36 @@ CREATE TRIGGER on_auth_user_created
 --        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_B_id>', 'B-VM', 'Ubuntu', 1024);
 --
 -- TEST 1 — User isolation (run as user A):
---   SET request.jwt.claims = '{"sub": "<user_A_id>"}';
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
 --   SELECT * FROM vms;
 --   EXPECTED: Only rows where user_id = <user_A_id> are returned.
+--   RESET ROLE;
 --
 -- TEST 2 — Cross-user blocked (run as user A):
---   SET request.jwt.claims = '{"sub": "<user_A_id>"}';
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
 --   SELECT * FROM vms WHERE user_id = '<user_B_id>';
 --   EXPECTED: Empty result set.
+--   RESET ROLE;
 --
 -- TEST 3 — Admin sees all (run as admin user):
 --   First: UPDATE profiles SET is_admin = true WHERE id = '<admin_id>';
---   SET request.jwt.claims = '{"sub": "<admin_id>"}';
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
 --   SELECT * FROM vms;
 --   EXPECTED: All VM rows returned regardless of user_id.
+--   RESET ROLE;
+--
+-- TEST 4 — Admin check on profiles:
+--   SET ROLE authenticated;
+--   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
+--   SELECT * FROM profiles;
+--   EXPECTED: All profiles returned.
+--   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
+--   SELECT * FROM profiles;
+--   EXPECTED: Only user A's own profile returned.
+--   RESET ROLE;
 --
 -- Repeat analogous tests for `logs` and `ai_usage` tables.
 --
