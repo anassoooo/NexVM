@@ -37,7 +37,7 @@ class VMResponse(BaseModel):
 
 
 class VMActionRequest(BaseModel):
-    vm_id: str
+    vm_id: uuid.UUID
 
 
 class LogResponse(BaseModel):
