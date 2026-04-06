@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+function isSessionExpiryError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; status?: number };
+  if (err.name === "AuthSessionMissingError") return true;
+  if (err.status === 400 || err.status === 403) return true;
+  return false;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request: {
@@ -33,19 +41,50 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  if (!user && !isAuthRoute) {
+  if ((!user || error) && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+
+    const hadStaleSession =
+      request.cookies.getAll().some((c) => c.name.includes("-auth-token")) &&
+      isSessionExpiryError(error);
+
+    if (hadStaleSession) {
+      url.searchParams.set("reason", "session_expired");
+    }
+
     const redirectResponse = NextResponse.redirect(url);
+
     supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie);
+      if (hadStaleSession && cookie.name.includes("-auth-token")) {
+        redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
+      } else {
+        redirectResponse.cookies.set(cookie);
+      }
     });
+
+    if (hadStaleSession) {
+      const responseCookieNames = new Set(
+        supabaseResponse.cookies.getAll().map((c) => c.name)
+      );
+      request.cookies.getAll().forEach((cookie) => {
+        if (
+          cookie.name.includes("-auth-token") &&
+          !responseCookieNames.has(cookie.name)
+        ) {
+          redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
+        }
+      });
+    }
+
     return redirectResponse;
   }
 
