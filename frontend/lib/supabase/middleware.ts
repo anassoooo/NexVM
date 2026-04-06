@@ -51,6 +51,7 @@ export async function updateSession(request: NextRequest) {
   if ((!user || error) && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
 
     const hadStaleSession =
       request.cookies.getAll().some((c) => c.name.includes("-auth-token")) &&
@@ -62,24 +63,27 @@ export async function updateSession(request: NextRequest) {
 
     const redirectResponse = NextResponse.redirect(url);
 
-    const responseCookieNames = new Set(
-      supabaseResponse.cookies.getAll().map((c) => c.name)
-    );
     supabaseResponse.cookies.getAll().forEach((cookie) => {
-      if (cookie.name.includes("-auth-token")) {
+      if (hadStaleSession && cookie.name.includes("-auth-token")) {
         redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
       } else {
         redirectResponse.cookies.set(cookie);
       }
     });
-    request.cookies.getAll().forEach((cookie) => {
-      if (
-        cookie.name.includes("-auth-token") &&
-        !responseCookieNames.has(cookie.name)
-      ) {
-        redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
-      }
-    });
+
+    if (hadStaleSession) {
+      const responseCookieNames = new Set(
+        supabaseResponse.cookies.getAll().map((c) => c.name)
+      );
+      request.cookies.getAll().forEach((cookie) => {
+        if (
+          cookie.name.includes("-auth-token") &&
+          !responseCookieNames.has(cookie.name)
+        ) {
+          redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
+        }
+      });
+    }
 
     return redirectResponse;
   }
