@@ -160,3 +160,37 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
+-- RLS ISOLATION VERIFICATION (T030)
+-- ============================================================
+-- Run the following queries in Supabase SQL Editor to verify
+-- that Row Level Security enforces data isolation correctly.
+--
+-- PREREQUISITES:
+--   1. Create two test users (A and B) via Supabase Auth.
+--   2. Create an admin user and set is_admin = true on their profile.
+--   3. Insert VM records for each user:
+--        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_A_id>', 'A-VM', 'Ubuntu', 1024);
+--        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_B_id>', 'B-VM', 'Ubuntu', 1024);
+--
+-- TEST 1 — User isolation (run as user A):
+--   SET request.jwt.claims = '{"sub": "<user_A_id>"}';
+--   SELECT * FROM vms;
+--   EXPECTED: Only rows where user_id = <user_A_id> are returned.
+--
+-- TEST 2 — Cross-user blocked (run as user A):
+--   SET request.jwt.claims = '{"sub": "<user_A_id>"}';
+--   SELECT * FROM vms WHERE user_id = '<user_B_id>';
+--   EXPECTED: Empty result set.
+--
+-- TEST 3 — Admin sees all (run as admin user):
+--   First: UPDATE profiles SET is_admin = true WHERE id = '<admin_id>';
+--   SET request.jwt.claims = '{"sub": "<admin_id>"}';
+--   SELECT * FROM vms;
+--   EXPECTED: All VM rows returned regardless of user_id.
+--
+-- Repeat analogous tests for `logs` and `ai_usage` tables.
+--
+-- VERIFICATION STATUS: [ ] Passed  Date: ____
+-- ============================================================

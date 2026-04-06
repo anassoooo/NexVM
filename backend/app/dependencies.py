@@ -37,3 +37,14 @@ async def get_current_user(
     supabase = get_supabase_client()
     await ensure_profile_exists(user_id, supabase)
     return user_id
+
+
+async def get_current_admin_user(
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> str:
+    supabase = get_supabase_client()
+    result = supabase.table("profiles").select("is_admin").eq("id", user_id).execute()
+    is_admin = result.data and result.data[0].get("is_admin") is True
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user_id
