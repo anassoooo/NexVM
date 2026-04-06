@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const sessionExpired = searchParams.get("reason") === "session_expired";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +46,12 @@ export default function LoginPage() {
         className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm"
       >
         <h1 className="text-2xl font-bold mb-6 text-center">Log In</h1>
+
+        {sessionExpired && (
+          <div className="bg-amber-50 text-amber-700 p-3 rounded mb-4 text-sm">
+            Your session has expired. Please log in again.
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">
@@ -88,5 +97,13 @@ export default function LoginPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -33,18 +33,30 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  if (!user && !isAuthRoute) {
+  const hasSessionCookie = request.cookies.getAll().some((c) =>
+    c.name.includes("-auth-token")
+  );
+
+  if ((!user || error) && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    if (hasSessionCookie) {
+      url.searchParams.set("reason", "session_expired");
+    }
     const redirectResponse = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie);
+      if (cookie.name.includes("-auth-token")) {
+        redirectResponse.cookies.set(cookie.name, "", { maxAge: 0 });
+      } else {
+        redirectResponse.cookies.set(cookie);
+      }
     });
     return redirectResponse;
   }
