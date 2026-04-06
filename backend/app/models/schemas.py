@@ -19,7 +19,7 @@ class VMCreate(BaseModel):
     def validate_name(cls, v: str) -> str:
         if not _VM_NAME_RE.match(v):
             raise ValueError(
-                "Name must be 1–50 characters: alphanumeric, hyphens, and spaces only"
+                "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
             )
         return v
 

@@ -19,12 +19,8 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
     e.preventDefault();
     setError(null);
 
-    if (name.length < 1 || name.length > 50) {
-      setError("Name must be 1–50 characters");
-      return;
-    }
     if (!/^[a-zA-Z0-9][a-zA-Z0-9 \-]{0,49}$/.test(name)) {
-      setError("Name: alphanumeric, hyphens, and spaces only");
+      setError("Name must be 1-50 characters: alphanumeric, hyphens, and spaces only");
       return;
     }
     if (!os.trim()) {
