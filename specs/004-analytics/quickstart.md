@@ -106,7 +106,7 @@ curl http://localhost:8000/api/v1/analytics/admin \
 curl http://localhost:8000/api/v1/analytics
 ```
 
-**Expected**: HTTP 403 (HTTPBearer rejects missing token)
+**Expected**: HTTP 401 (HTTPBearer returns 401 for missing token — matches `test_analytics_no_token_rejected`)
 
 ---
 
