@@ -126,6 +126,12 @@ def _validate_ai_response(raw_json: str) -> dict:
             detail="AI returned an invalid response — please rephrase your command",
         ) from None
 
+    if not isinstance(parsed, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="AI returned an invalid response — please rephrase your command",
+        )
+
     action = parsed.get("action")
 
     if action == "error":
