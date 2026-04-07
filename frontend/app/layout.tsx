@@ -33,6 +33,7 @@ export default function RootLayout({
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="font-bold text-lg">myVMS</Link>
             <Link href="/vms" className="text-sm font-medium text-gray-600 hover:text-gray-900">VMs</Link>
+            <Link href="/ai" className="text-sm font-medium text-gray-600 hover:text-gray-900">AI</Link>
           </div>
         </nav>
         {children}
