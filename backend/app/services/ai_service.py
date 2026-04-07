@@ -3,7 +3,7 @@ import threading
 import time
 
 from fastapi import HTTPException
-from groq import APIError, Groq
+from groq import APIError, APITimeoutError, Groq
 from pydantic import ValidationError
 
 from app.config import settings
@@ -21,6 +21,7 @@ from app.services import vm_service
 from app.utils.logger import logger
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_TIMEOUT_SECONDS = 30.0
 
 ALLOWED_ACTIONS = {"create_vm", "start_vm", "stop_vm", "delete_vm"}
 
@@ -108,7 +109,12 @@ def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:
             ],
             temperature=0,
             max_tokens=256,
+            timeout=GROQ_TIMEOUT_SECONDS,
         )
+    except APITimeoutError:
+        raise HTTPException(
+            status_code=504, detail="AI service timed out — please try again"
+        ) from None
     except APIError:
         raise HTTPException(status_code=503, detail="AI service unavailable") from None
 
