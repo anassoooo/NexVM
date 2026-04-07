@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from app.db import get_supabase_client
+from app.models.enums import VMStatus
 from app.models.schemas import AdminAnalytics, UserAnalytics
 
 
@@ -21,9 +22,9 @@ def get_user_analytics(user_id: str) -> UserAnalytics:
 
     return UserAnalytics(
         total_vms=len(vms),
-        running_vms=sum(1 for v in vms if v["status"] == "running"),
-        stopped_vms=sum(1 for v in vms if v["status"] == "stopped"),
-        error_vms=sum(1 for v in vms if v["status"] == "error"),
+        running_vms=sum(1 for v in vms if v["status"] == VMStatus.running),
+        stopped_vms=sum(1 for v in vms if v["status"] == VMStatus.stopped),
+        error_vms=sum(1 for v in vms if v["status"] == VMStatus.error),
         total_ai_commands=len(ai_result.data or []),
     )
 
@@ -43,8 +44,8 @@ def get_admin_analytics() -> AdminAnalytics:
     return AdminAnalytics(
         total_users=len(users_result.data or []),
         total_vms=len(vms),
-        running_vms=sum(1 for v in vms if v["status"] == "running"),
-        stopped_vms=sum(1 for v in vms if v["status"] == "stopped"),
-        error_vms=sum(1 for v in vms if v["status"] == "error"),
+        running_vms=sum(1 for v in vms if v["status"] == VMStatus.running),
+        stopped_vms=sum(1 for v in vms if v["status"] == VMStatus.stopped),
+        error_vms=sum(1 for v in vms if v["status"] == VMStatus.error),
         total_ai_commands=len(ai_result.data or []),
     )

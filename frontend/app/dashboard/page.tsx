@@ -4,7 +4,7 @@ import Link from "next/link";
 import LogoutButton from "./logout-button";
 import { UserAnalytics } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default async function DashboardPage() {
   const supabase = await createClient();

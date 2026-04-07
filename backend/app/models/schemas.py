@@ -121,10 +121,5 @@ class UserAnalytics(BaseModel):
     total_ai_commands: int
 
 
-class AdminAnalytics(BaseModel):
+class AdminAnalytics(UserAnalytics):
     total_users: int
-    total_vms: int
-    running_vms: int
-    stopped_vms: int
-    error_vms: int
-    total_ai_commands: int

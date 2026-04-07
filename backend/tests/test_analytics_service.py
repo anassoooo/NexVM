@@ -182,10 +182,11 @@ def test_admin_endpoint_rejects_non_admin(mock_get):
 
     mock_get.return_value = _make_supabase(vms=[], ai_rows=[], profile_rows=[])
 
+    def raise_admin_error():
+        raise HTTPException(status_code=403, detail="Admin access required")
+
     app.dependency_overrides[get_current_user] = lambda: USER_ID
-    app.dependency_overrides[get_current_admin_user] = lambda: (_ for _ in ()).throw(
-        HTTPException(status_code=403, detail="Admin access required")
-    )
+    app.dependency_overrides[get_current_admin_user] = raise_admin_error
     try:
         resp = client.get("/api/v1/analytics/admin")
         assert resp.status_code == 403

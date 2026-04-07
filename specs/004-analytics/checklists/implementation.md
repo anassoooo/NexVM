@@ -25,7 +25,7 @@
 - [x] All-zeros case covered
 - [x] Admin: total_users, VM counts, AI commands covered
 - [x] Non-admin → 403 covered
-- [x] No token → 403 covered
+- [x] No token → 401 covered
 - [x] `pytest tests/test_analytics_service.py -v` — all 8 pass
 - [x] `pytest -q` — all tests pass (no regressions)
 
