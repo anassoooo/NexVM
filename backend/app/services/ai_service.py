@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 
 from fastapi import HTTPException
@@ -56,8 +57,10 @@ If the request is unclear or not about VM management, respond:
 The user currently has these VMs:
 {vm_list_json}"""
 
-# In-memory rate limit store: user_id -> list of timestamps
+# In-memory rate limit store: user_id -> list of timestamps.
+# Single-process only — for multi-worker production, replace with Redis-backed store.
 _rate_limit_store: dict[str, list[float]] = {}
+_rate_limit_lock = threading.Lock()
 
 RATE_LIMIT_MAX = 10
 RATE_LIMIT_WINDOW = 60  # seconds
@@ -65,17 +68,18 @@ RATE_LIMIT_WINDOW = 60  # seconds
 
 def _check_rate_limit(user_id: str) -> None:
     now = time.time()
-    timestamps = _rate_limit_store.get(user_id, [])
-    timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+    with _rate_limit_lock:
+        timestamps = _rate_limit_store.get(user_id, [])
+        timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
 
-    if len(timestamps) >= RATE_LIMIT_MAX:
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded — max 10 AI commands per minute",
-        )
+        if len(timestamps) >= RATE_LIMIT_MAX:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded — max 10 AI commands per minute",
+            )
 
-    timestamps.append(now)
-    _rate_limit_store[user_id] = timestamps
+        timestamps.append(now)
+        _rate_limit_store[user_id] = timestamps
 
 
 def _build_system_prompt(user_id: str) -> str:
@@ -106,9 +110,7 @@ def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:
             max_tokens=256,
         )
     except APIError:
-        raise HTTPException(
-            status_code=503, detail="AI service unavailable"
-        ) from None
+        raise HTTPException(status_code=503, detail="AI service unavailable") from None
 
     raw_text = response.choices[0].message.content or ""
     tokens = response.usage.total_tokens if response.usage else 0
@@ -154,7 +156,9 @@ def _execute_action(validated: dict, user_id: str) -> str:
     action = validated["action"]
 
     if action == "create_vm":
-        data = VMCreate(name=validated["name"], os=validated["os"], ram=validated["ram"])
+        data = VMCreate(
+            name=validated["name"], os=validated["os"], ram=validated["ram"]
+        )
         vm = vm_service.create_vm(data, user_id)
         return f"Created VM '{vm.name}'"
 
@@ -175,9 +179,7 @@ def _execute_action(validated: dict, user_id: str) -> str:
     raise HTTPException(status_code=400, detail="Unknown action")
 
 
-def _log_ai_usage(
-    user_id: str, prompt: str, response: str, tokens: int
-) -> None:
+def _log_ai_usage(user_id: str, prompt: str, response: str, tokens: int) -> None:
     try:
         supabase = get_supabase_client()
         supabase.table("ai_usage").insert(
@@ -190,14 +192,15 @@ def _log_ai_usage(
         ).execute()
     except Exception as exc:  # noqa: BLE001
         logger.log(
-            LogAction.ai_command, "ai", LogStatus.failure,
-            f"ai_usage insert failed: {exc}", user_id,
+            LogAction.ai_command,
+            "ai",
+            LogStatus.failure,
+            f"ai_usage insert failed: {exc}",
+            user_id,
         )
 
 
-def _log_action(
-    user_id: str, target: str, status: LogStatus, message: str
-) -> None:
+def _log_action(user_id: str, target: str, status: LogStatus, message: str) -> None:
     try:
         supabase = get_supabase_client()
         supabase.table("logs").insert(
@@ -212,8 +215,11 @@ def _log_action(
         logger.log(LogAction.ai_command, target, status, message, user_id)
     except Exception as exc:  # noqa: BLE001
         logger.log(
-            LogAction.ai_command, target, LogStatus.failure,
-            f"Log insert failed: {exc}", user_id,
+            LogAction.ai_command,
+            target,
+            LogStatus.failure,
+            f"Log insert failed: {exc}",
+            user_id,
         )
 
 
@@ -232,7 +238,9 @@ def process_ai_command(prompt: str, user_id: str) -> AICommandResponse:
         raise
 
     _log_ai_usage(user_id, prompt, raw_response, tokens)
-    _log_action(user_id, validated.get("vm_id", "ai"), LogStatus.success, result_message)
+    _log_action(
+        user_id, validated.get("vm_id", "ai"), LogStatus.success, result_message
+    )
 
     return AICommandResponse(
         action=validated["action"],
