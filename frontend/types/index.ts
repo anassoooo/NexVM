@@ -46,3 +46,20 @@ export interface AICommandResponse {
   result: string;
   ai_response: Record<string, unknown>;
 }
+
+export interface UserAnalytics {
+  total_vms: number;
+  running_vms: number;
+  stopped_vms: number;
+  error_vms: number;
+  total_ai_commands: number;
+}
+
+export interface AdminAnalytics {
+  total_users: number;
+  total_vms: number;
+  running_vms: number;
+  stopped_vms: number;
+  error_vms: number;
+  total_ai_commands: number;
+}
