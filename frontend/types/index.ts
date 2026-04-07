@@ -40,3 +40,9 @@ export interface UserProfile {
   is_admin: boolean;
   created_at: string;
 }
+
+export interface AICommandResponse {
+  action: string;
+  result: string;
+  ai_response: Record<string, unknown>;
+}
