@@ -112,6 +112,9 @@ def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:
     except APIError:
         raise HTTPException(status_code=503, detail="AI service unavailable") from None
 
+    if not getattr(response, "choices", None):
+        raise HTTPException(status_code=503, detail="AI service unavailable")
+
     raw_text = response.choices[0].message.content or ""
     tokens = response.usage.total_tokens if response.usage else 0
     return raw_text, tokens
