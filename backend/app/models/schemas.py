@@ -108,3 +108,18 @@ class AIStopVM(BaseModel):
 class AIDeleteVM(BaseModel):
     action: Literal["delete_vm"]
     vm_id: uuid.UUID
+
+
+# --- Analytics schemas ---
+
+
+class UserAnalytics(BaseModel):
+    total_vms: int
+    running_vms: int
+    stopped_vms: int
+    error_vms: int
+    total_ai_commands: int
+
+
+class AdminAnalytics(UserAnalytics):
+    total_users: int

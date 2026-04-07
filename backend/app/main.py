@@ -7,6 +7,7 @@ from supabase import create_client
 from app.config import settings
 from app import db
 from app.routes.ai import router as ai_router
+from app.routes.analytics import router as analytics_router
 from app.routes.health import router as health_router
 from app.routes.vm import router as vm_router
 
@@ -33,3 +34,4 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(vm_router, prefix="/api/v1/vm", tags=["vm"])
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"])
