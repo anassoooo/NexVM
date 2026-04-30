@@ -73,3 +73,14 @@ VirtualBox VMs/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ─── AI & Editor Tools ───────────────────────────────────────────────────────
+.claude/
+.opencode/
+.cursor/
+.windsurf/
+.continue/
+.aider*
+.codeium/
+.copilot/
+.github/copilot*
