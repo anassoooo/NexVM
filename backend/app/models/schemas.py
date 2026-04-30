@@ -1,3 +1,4 @@
+import os
 import re
 import uuid
 from datetime import datetime
@@ -38,11 +39,41 @@ class VMResponse(BaseModel):
     vbox_id: str | None
     status: VMStatus
     error_message: str | None
+    iso_path: str | None
+    vrde_enabled: bool
+    vrde_port: int | None
     created_at: datetime
     updated_at: datetime
 
 
 class VMActionRequest(BaseModel):
+    vm_id: uuid.UUID
+
+
+class ISOAttachRequest(BaseModel):
+    vm_id: uuid.UUID
+    iso_path: str = Field(min_length=1)
+
+    @field_validator("iso_path")
+    @classmethod
+    def validate_iso_path(cls, v: str) -> str:
+        if not os.path.isabs(v):
+            raise ValueError("iso_path must be an absolute path")
+        if not v.lower().endswith(".iso"):
+            raise ValueError("iso_path must end with .iso")
+        return v
+
+
+class ISODetachRequest(BaseModel):
+    vm_id: uuid.UUID
+
+
+class VRDEEnableRequest(BaseModel):
+    vm_id: uuid.UUID
+    port: int = Field(ge=1024, le=65535)
+
+
+class VRDEDisableRequest(BaseModel):
     vm_id: uuid.UUID
 
 

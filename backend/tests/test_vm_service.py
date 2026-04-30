@@ -25,6 +25,9 @@ def _vm_row(**overrides):
         "vbox_id": None,
         "status": "stopped",
         "error_message": None,
+        "iso_path": None,
+        "vrde_enabled": False,
+        "vrde_port": None,
         "created_at": now,
         "updated_at": now,
     }

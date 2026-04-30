@@ -9,6 +9,9 @@ export interface VM {
   vbox_id: string | null;
   status: "stopped" | "starting" | "running" | "stopping" | "error";
   error_message: string | null;
+  iso_path: string | null;
+  vrde_enabled: boolean;
+  vrde_port: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { VM } from "@/types";
 import { api } from "@/lib/api";
 import VMList from "@/components/vm-list";
@@ -25,6 +25,15 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
     }
   }
 
+  useEffect(() => {
+    const hasTransitional = vms.some(
+      (v) => v.status === "starting" || v.status === "stopping"
+    );
+    if (!hasTransitional) return;
+    const id = setInterval(() => void refetch(), 5000);
+    return () => clearInterval(id);
+  }, [vms]);
+
   async function withLoading(fn: () => Promise<void>) {
     setLoading(true);
     setError(null);
@@ -37,13 +46,17 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
     }
   }
 
-  const handleStart  = (id: string) => withLoading(() => api.post("/api/v1/vm/start",  { vm_id: id }));
-  const handleStop   = (id: string) => withLoading(() => api.post("/api/v1/vm/stop",   { vm_id: id }));
-  const handleDelete = (id: string) => withLoading(() => api.post("/api/v1/vm/delete", { vm_id: id }));
-  const handleSync   = (id: string) => withLoading(async () => {
+  const handleStart     = (id: string) => withLoading(() => api.post("/api/v1/vm/start",  { vm_id: id }));
+  const handleStop      = (id: string) => withLoading(() => api.post("/api/v1/vm/stop",   { vm_id: id }));
+  const handleDelete    = (id: string) => withLoading(() => api.post("/api/v1/vm/delete", { vm_id: id }));
+  const handleSync      = (id: string) => withLoading(async () => {
     const updated = await api.post<VM>("/api/v1/vm/sync", { vm_id: id });
     setVms((prev) => prev.map((v) => (v.id === id ? updated : v)));
   });
+  const handleAttachISO  = (id: string, isoPath: string) => withLoading(() => api.post("/api/v1/vm/iso",  { vm_id: id, iso_path: isoPath }));
+  const handleDetachISO  = (id: string) => withLoading(() => api.delete("/api/v1/vm/iso",  { vm_id: id }));
+  const handleEnableVRDE = (id: string, port: number) => withLoading(() => api.post("/api/v1/vm/vrde", { vm_id: id, port }));
+  const handleDisableVRDE = (id: string) => withLoading(() => api.delete("/api/v1/vm/vrde", { vm_id: id }));
 
   return (
     <div>
@@ -79,6 +92,10 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
         onStop={handleStop}
         onDelete={handleDelete}
         onSync={handleSync}
+        onAttachISO={handleAttachISO}
+        onDetachISO={handleDetachISO}
+        onEnableVRDE={handleEnableVRDE}
+        onDisableVRDE={handleDisableVRDE}
       />
     </div>
   );

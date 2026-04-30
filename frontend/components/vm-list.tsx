@@ -11,11 +11,16 @@ interface VMListProps {
   onDelete: (vmId: string) => void;
   onSync: (vmId: string) => void;
   onForceReset?: (vmId: string) => void;
+  onAttachISO: (vmId: string, isoPath: string) => void;
+  onDetachISO: (vmId: string) => void;
+  onEnableVRDE: (vmId: string, port: number) => void;
+  onDisableVRDE: (vmId: string) => void;
   showOwner?: boolean;
 }
 
 export default function VMList({
-  vms, loading, onStart, onStop, onDelete, onSync, onForceReset, showOwner,
+  vms, loading, onStart, onStop, onDelete, onSync, onForceReset,
+  onAttachISO, onDetachISO, onEnableVRDE, onDisableVRDE, showOwner,
 }: VMListProps) {
   if (loading && vms.length === 0) {
     return (
@@ -47,6 +52,10 @@ export default function VMList({
           onDelete={() => onDelete(vm.id)}
           onSync={() => onSync(vm.id)}
           onForceReset={onForceReset ? () => onForceReset(vm.id) : undefined}
+          onAttachISO={(isoPath) => onAttachISO(vm.id, isoPath)}
+          onDetachISO={() => onDetachISO(vm.id)}
+          onEnableVRDE={(port) => onEnableVRDE(vm.id, port)}
+          onDisableVRDE={() => onDisableVRDE(vm.id)}
           showOwner={showOwner}
         />
       ))}

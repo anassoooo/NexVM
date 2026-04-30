@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { VM } from "@/types";
 
 const STATUS_COLOR: Record<VM["status"], string> = {
@@ -17,6 +18,10 @@ interface VMCardProps {
   onDelete: () => void;
   onSync: () => void;
   onForceReset?: () => void;
+  onAttachISO: (isoPath: string) => void;
+  onDetachISO: () => void;
+  onEnableVRDE: (port: number) => void;
+  onDisableVRDE: () => void;
   loading: boolean;
   showOwner?: boolean;
 }
@@ -29,11 +34,39 @@ function formatRam(mb: number): string {
   return mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`;
 }
 
+function basename(path: string): string {
+  return path.replace(/\\/g, "/").split("/").pop() ?? path;
+}
+
 export default function VMCard({
-  vm, onStart, onStop, onDelete, onSync, onForceReset, loading, showOwner,
+  vm, onStart, onStop, onDelete, onSync, onForceReset,
+  onAttachISO, onDetachISO, onEnableVRDE, onDisableVRDE,
+  loading, showOwner,
 }: VMCardProps) {
+  const [isoInputVisible, setIsoInputVisible] = useState(false);
+  const [isoInputValue, setIsoInputValue] = useState("");
+  const [vrdeInputVisible, setVrdeInputVisible] = useState(false);
+  const [vrdePortValue, setVrdePortValue] = useState("");
+
   const transitional = vm.status === "starting" || vm.status === "stopping";
+  const isStopped = vm.status === "stopped";
   const showForceReset = showOwner && onForceReset && (transitional || vm.status === "error");
+
+  function handleAttachISO() {
+    const path = isoInputValue.trim();
+    if (!path) return;
+    onAttachISO(path);
+    setIsoInputVisible(false);
+    setIsoInputValue("");
+  }
+
+  function handleEnableVRDE() {
+    const port = parseInt(vrdePortValue, 10);
+    if (!port || port < 1024 || port > 65535) return;
+    onEnableVRDE(port);
+    setVrdeInputVisible(false);
+    setVrdePortValue("");
+  }
 
   return (
     <div
@@ -64,6 +97,22 @@ export default function VMCard({
         <span>{formatDisk(vm.disk_size)} Disk</span>
       </div>
 
+      {/* ISO & VRDE badges */}
+      {(vm.iso_path || vm.vrde_enabled) && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {vm.iso_path && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(0,230,118,0.08)", color: "var(--accent)", border: "1px solid rgba(0,230,118,0.2)" }}>
+              ISO: {basename(vm.iso_path)}
+            </span>
+          )}
+          {vm.vrde_enabled && vm.vrde_port && (
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(100,180,255,0.08)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.2)" }}>
+              RDP :{vm.vrde_port}
+            </span>
+          )}
+        </div>
+      )}
+
       {showOwner && (
         <p className="text-xs mb-2 truncate" style={{ color: "rgba(122,158,138,0.5)" }}>
           {vm.user_id}
@@ -76,7 +125,53 @@ export default function VMCard({
         </p>
       )}
 
-      {/* Actions */}
+      {/* ISO attach inline input */}
+      {isoInputVisible && (
+        <div className="flex gap-2 mb-2">
+          <input
+            type="text"
+            value={isoInputValue}
+            onChange={(e) => setIsoInputValue(e.target.value)}
+            placeholder="C:\ISOs\ubuntu.iso"
+            className="flex-1 text-xs px-2 py-1 rounded"
+            style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(0,230,118,0.2)", outline: "none" }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAttachISO(); if (e.key === "Escape") setIsoInputVisible(false); }}
+            autoFocus
+          />
+          <button onClick={handleAttachISO} disabled={!isoInputValue.trim() || loading} className="text-xs font-semibold px-2 py-1 rounded" style={{ background: "rgba(0,230,118,0.15)", color: "var(--accent)" }}>
+            OK
+          </button>
+          <button onClick={() => setIsoInputVisible(false)} className="text-xs px-2 py-1 rounded" style={{ color: "var(--text-muted)" }}>
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* VRDE port inline input */}
+      {vrdeInputVisible && (
+        <div className="flex gap-2 mb-2">
+          <input
+            type="number"
+            value={vrdePortValue}
+            onChange={(e) => setVrdePortValue(e.target.value)}
+            placeholder="3389"
+            min={1024}
+            max={65535}
+            className="flex-1 text-xs px-2 py-1 rounded"
+            style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(100,180,255,0.2)", outline: "none" }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleEnableVRDE(); if (e.key === "Escape") setVrdeInputVisible(false); }}
+            autoFocus
+          />
+          <button onClick={handleEnableVRDE} disabled={!vrdePortValue || loading} className="text-xs font-semibold px-2 py-1 rounded" style={{ background: "rgba(100,180,255,0.15)", color: "#64b4ff" }}>
+            OK
+          </button>
+          <button onClick={() => setVrdeInputVisible(false)} className="text-xs px-2 py-1 rounded" style={{ color: "var(--text-muted)" }}>
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Primary actions */}
       <div className="flex gap-2 flex-wrap mt-1">
         <button
           onClick={onStart}
@@ -132,6 +227,61 @@ export default function VMCard({
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,50,50,0.12)"; }}
           >
             Force Reset
+          </button>
+        )}
+      </div>
+
+      {/* ISO & VRDE actions */}
+      <div className="flex gap-2 flex-wrap mt-2">
+        {!vm.iso_path && !isoInputVisible && (
+          <button
+            onClick={() => { setVrdeInputVisible(false); setIsoInputVisible(true); }}
+            disabled={loading || !isStopped}
+            className="text-xs font-semibold px-3 py-1 rounded-full transition-all"
+            style={{ background: "rgba(0,230,118,0.07)", color: "var(--accent)", border: "1px solid rgba(0,230,118,0.15)" }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,230,118,0.14)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,230,118,0.07)"; }}
+          >
+            Attach ISO
+          </button>
+        )}
+
+        {vm.iso_path && (
+          <button
+            onClick={onDetachISO}
+            disabled={loading || !isStopped}
+            className="text-xs font-semibold px-3 py-1 rounded-full transition-all"
+            style={{ background: "rgba(0,230,118,0.07)", color: "var(--text-muted)", border: "1px solid rgba(0,230,118,0.15)" }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,230,118,0.14)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,230,118,0.07)"; }}
+          >
+            Detach ISO
+          </button>
+        )}
+
+        {!vm.vrde_enabled && !vrdeInputVisible && (
+          <button
+            onClick={() => { setIsoInputVisible(false); setVrdeInputVisible(true); }}
+            disabled={loading || !isStopped}
+            className="text-xs font-semibold px-3 py-1 rounded-full transition-all"
+            style={{ background: "rgba(100,180,255,0.07)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.15)" }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.background = "rgba(100,180,255,0.14)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(100,180,255,0.07)"; }}
+          >
+            Enable RDP
+          </button>
+        )}
+
+        {vm.vrde_enabled && (
+          <button
+            onClick={onDisableVRDE}
+            disabled={loading || !isStopped}
+            className="text-xs font-semibold px-3 py-1 rounded-full transition-all"
+            style={{ background: "rgba(100,180,255,0.07)", color: "rgba(100,180,255,0.6)", border: "1px solid rgba(100,180,255,0.15)" }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLButtonElement).style.background = "rgba(100,180,255,0.14)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(100,180,255,0.07)"; }}
+          >
+            Disable RDP
           </button>
         )}
       </div>
