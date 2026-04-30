@@ -1,25 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import AIChat from "@/components/ai-chat";
+import BackgroundLayer from "@/components/background-layer";
 
-export default async function AIPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
+export default function AIPage() {
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">AI Assistant</h1>
-      <p className="text-gray-500 text-sm mb-6">
-        Describe what you want to do with your VMs in plain English.
-      </p>
-      <AIChat />
+    <div
+      className="relative flex flex-col"
+      style={{ minHeight: "calc(100vh - 56px)", background: "var(--bg)" }}
+    >
+      <BackgroundLayer />
+      <div className="relative z-10 flex-1 flex flex-col max-w-3xl mx-auto w-full px-4 py-6">
+        <AIChat />
+      </div>
     </div>
   );
 }

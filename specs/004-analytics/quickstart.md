@@ -8,7 +8,7 @@
 
 - Backend running: `cd backend && uvicorn app.main:app --reload`
 - Frontend running: `cd frontend && npm run dev`
-- At least one user account exists with some VMs (create via `/vms` if needed)
+- At least one user account exists with some VMs (create via AI chat if needed)
 - Admin user exists (`profiles.is_admin = true` set in Supabase)
 
 ---
@@ -80,15 +80,15 @@ curl http://localhost:8000/api/v1/analytics/admin \
 }
 ```
 
-### 4. Dashboard shows live counts
+### 4. AI chat greeting shows VM summary
 
-- Log in, navigate to `/dashboard`
-- **Expected**: Stat cards show Total VMs, Running, Stopped, Errors, AI Commands — matching the values from step 1
+- Log in as a regular user, navigate to `/ai`
+- **Expected**: AI opening message includes VM counts (Total, Running, Stopped, Errors) — matching the values from step 1
 
-### 5. Dashboard with no VMs
+### 5. AI chat greeting with no VMs
 
 - Log in as a new user with no VMs
-- **Expected**: All counts show 0 — page does not crash
+- **Expected**: AI greeting shows Total: 0 — no crash, fallback generic welcome if analytics API fails
 
 ### 6. Admin page shows system metrics
 
@@ -98,7 +98,7 @@ curl http://localhost:8000/api/v1/analytics/admin \
 ### 7. Non-admin redirected from admin page
 
 - Log in as non-admin, navigate to `/admin`
-- **Expected**: Redirect to `/dashboard`
+- **Expected**: Redirect to `/ai`
 
 ### 8. Unauthenticated API call
 

@@ -17,19 +17,19 @@ This is the **foundation layer** of myVMS. Before any VM control or AI features 
 
 ### User Story 1 - Register and Access the System (Priority: P1)
 
-A new user visits the application, creates an account with their email and password, and gains access to the dashboard. On successful registration, their profile is automatically created in the background — the user never has to set it up manually.
+A new user visits the application, creates an account with their email and password, and gains access to the AI chat interface. On successful registration, their profile is automatically created in the background — the user never has to set it up manually.
 
 **Why this priority**: Every other feature in myVMS requires an authenticated identity. Without this, nothing else can be built or tested. It is the single blocking dependency for the entire project.
 
-**Independent Test**: Can be fully tested by creating a new account, verifying the dashboard becomes accessible, and confirming the profile record exists — all without any VM or AI functionality present.
+**Independent Test**: Can be fully tested by creating a new account, verifying the AI chat (`/ai`) becomes accessible, and confirming the profile record exists — all without any VM or AI functionality present.
 
 **Acceptance Scenarios**:
 
-1. **Given** a new visitor on the signup page, **When** they submit a valid email and password, **Then** they are logged in and redirected to the dashboard, and a profile record is automatically created for them.
+1. **Given** a new visitor on the signup page, **When** they submit a valid email and password, **Then** they are logged in and redirected to `/ai` (regular user) or `/admin` (admin user), and a profile record is automatically created for them.
 2. **Given** a user attempting to register, **When** they submit an email address already in use, **Then** they receive a clear error message and the form remains on the signup page.
-3. **Given** a registered user on the login page, **When** they submit correct credentials, **Then** they are authenticated and redirected to the dashboard.
+3. **Given** a registered user on the login page, **When** they submit correct credentials, **Then** they are authenticated and redirected to `/ai` (regular user) or `/admin` (admin user).
 4. **Given** a registered user on the login page, **When** they submit incorrect credentials, **Then** they receive an error and are not granted access.
-5. **Given** an unauthenticated visitor, **When** they attempt to navigate directly to any protected page (e.g., `/dashboard`, `/vms`), **Then** they are redirected to the login page.
+5. **Given** an unauthenticated visitor, **When** they attempt to navigate directly to any protected page (e.g., `/ai`, `/admin`), **Then** they are redirected to the login page.
 
 ---
 
@@ -39,7 +39,7 @@ A logged-in user closes the browser tab and returns later. They expect to still 
 
 **Why this priority**: Without session persistence, every page refresh forces re-login, making the application unusable in practice. This is essential for baseline usability before any other feature is demonstrated.
 
-**Independent Test**: Can be tested by logging in, closing and reopening the browser, and verifying the user lands on the dashboard rather than the login page.
+**Independent Test**: Can be tested by logging in as a regular user, closing and reopening the browser, and verifying the user lands on `/ai` rather than the login page. For an admin user, verify they land on `/admin`.
 
 **Acceptance Scenarios**:
 
@@ -66,22 +66,23 @@ Each user can only see and interact with their own VMs, logs, and AI usage histo
 
 ### User Story 4 - Admin Role Recognition (Priority: P4)
 
-One specific user account can be designated as an admin. The admin sees additional views (analytics dashboard, all users' data) that regular users cannot access.
+One specific user account can be designated as an admin. After login, the admin is redirected to `/admin` (system-wide analytics) and also has access to `/admin/vms` (all users' VM list) and `/ai` (AI chat with system-wide query capability). Regular users cannot access any `/admin/*` routes.
 
 **Why this priority**: Admin access gates the analytics feature. It is a prerequisite for User Story 3 in the broader system but is lower priority than core auth since it requires a working base auth system first.
 
-**Independent Test**: Can be tested by manually setting the `is_admin` flag on a profile record, then verifying the admin user can access admin-only routes while a regular user cannot.
+**Independent Test**: Can be tested by manually setting the `is_admin` flag on a profile record, then verifying the admin user can access `/admin` and `/admin/vms` while a regular user is redirected away from both.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user with admin status, **When** they navigate to the admin dashboard, **Then** they can access it and see aggregated data across all users.
-2. **Given** a regular (non-admin) user, **When** they attempt to navigate to the admin dashboard, **Then** they are redirected or shown an access-denied response.
-3. **Given** a non-admin user's JWT token, **When** it is used to call admin-scoped data endpoints, **Then** the request is rejected and no cross-user data is returned.
+1. **Given** a user with admin status, **When** they log in, **Then** they are redirected to `/admin` and can also navigate to `/admin/vms` and `/ai`.
+2. **Given** a regular (non-admin) user, **When** they attempt to navigate to `/admin` or `/admin/vms`, **Then** they are redirected to `/ai`.
+3. **Given** a non-admin user's JWT token, **When** it is used to call admin-scoped endpoints (e.g., `GET /api/v1/analytics/admin`), **Then** the request is rejected with HTTP 403 and no cross-user data is returned.
 
 ---
 
 ### Edge Cases
 
+- **Authenticated non-admin accessing `/admin/*`**: A logged-in regular user navigating to `/admin` or `/admin/vms` MUST be redirected to `/ai` — not shown a 403 or an error page. The role check is a silent redirect, not an error state.
 - What happens when a user registers but the automatic profile creation fails? On the next login attempt, the system detects the missing profile and creates it automatically before granting access. The auth account is never deleted as a result of a profile creation failure.
 - What happens when a session token expires mid-session? The user should be cleanly redirected to login, not shown an obscure error.
 - What happens when the database is unavailable at login time? The user should receive a clear "service unavailable" message rather than a crash.
@@ -102,7 +103,7 @@ One specific user account can be designated as an admin. The admin sees addition
 - **FR-005**: System MUST maintain the user's authenticated session across page reloads and browser restarts for up to 24 hours from the time of login. Sessions MUST expire after 24 hours and require re-authentication.
 - **FR-006**: System MUST invalidate the session immediately when the user logs out. Logging out from one device or browser MUST NOT invalidate sessions on other devices.
 - **FR-006a**: System MUST allow the same user to maintain active sessions on multiple devices or browsers simultaneously.
-- **FR-007**: System MUST redirect unauthenticated users to the login page when they attempt to access any protected route.
+- **FR-007**: System MUST redirect unauthenticated users to the login page when they attempt to access any protected route. On successful login, the system MUST apply a role-aware redirect: regular users → `/ai`, admin users → `/admin`.
 - **FR-008**: System MUST enforce that each user can only read and modify their own VM records, logs, and AI usage history.
 - **FR-009**: System MUST allow designated admin users to read records belonging to all users across all data tables.
 - **FR-010**: System MUST persist VM records with the following attributes: name, operating system, RAM allocation, current lifecycle status, error message (when applicable), and timestamps for creation and last update.
@@ -128,7 +129,7 @@ One specific user account can be designated as an admin. The admin sees addition
 
 ### Measurable Outcomes
 
-- **SC-001**: A new user can complete registration and reach the dashboard in under 60 seconds from first visiting the signup page.
+- **SC-001**: A new user can complete registration and reach `/ai` in under 60 seconds from first visiting the signup page. An admin user reaches `/admin` after login.
 - **SC-002**: 100% of signup events result in a corresponding profile record — there are zero users without a profile after registration.
 - **SC-003**: A logged-in user's session survives browser close and reopen within a 24-hour window — 0 spurious logouts during active sessions. Sessions older than 24 hours require re-authentication.
 - **SC-004**: A user querying their own VM list receives only their own records — 0 cross-user data leaks in any query, verified by integration test with two distinct accounts.
@@ -152,6 +153,19 @@ One specific user account can be designated as an admin. The admin sees addition
 ---
 
 ## Clarifications
+
+### Session 2026-04-09
+
+- Q: Post-login redirect — where do regular users and admins land after login? → A: Role-aware redirect: regular users → `/ai` (AI chat); admin users → `/admin` (admin panel). FR-007 updated; User Story 1 & 2, SC-001 updated. `/dashboard` and `/vms` references removed.
+- Q: Do admins also have access to the AI chat (/ai)? → A: Yes — admins have access to both `/ai` and `/admin`. Landing page is `/admin` but AI chat is not restricted.
+- Q: When an admin uses the AI chat, should it call `/api/v1/analytics/admin` for system-wide queries? → A: Yes — AI detects admin role and calls the admin analytics endpoint for system-wide questions; user-scoped endpoint for personal VM questions (specs 003 and 004 updated).
+- Q: Should User Story 4 explicitly name admin routes? → A: Yes — updated to name `/admin` (analytics), `/admin/vms` (VM list), and `/ai` (AI chat with elevated queries). Acceptance scenarios updated.
+- Q: Should there be an explicit edge case for authenticated non-admin users accessing `/admin/*`? → A: Yes — authenticated non-admin accessing `/admin/*` is silently redirected to `/ai` (not shown a 403). Edge case added.
+
+### Session 2026-04-15
+
+- Q: Does the "Choose Your Role" landing screen (User/Admin cards) represent a real auth flow change? → A: Visual redesign only — both cards lead to the same Supabase login form. No separate auth paths. Role is determined by `is_admin` in the JWT post-login. Auth logic unchanged.
+- Q: Should the dark green prototype theme apply globally or per-page? → A: Global — dark background + green accent applied to all pages via `globals.css` and root `layout.tsx`. All routes (auth, admin, ai, vms) inherit the theme.
 
 ### Session 2026-04-04
 

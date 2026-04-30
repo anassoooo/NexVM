@@ -6,6 +6,54 @@
 
 ---
 
+## Modification Plan: Free Conversation Mode
+
+**Date**: 2026-04-15 | **Status**: Planned
+
+### What changes
+
+Users can now talk freely with the AI assistant. The AI determines intent and either executes a VM action (existing behavior) or responds conversationally — answering general questions, explaining concepts, providing guidance — without triggering any VM operation.
+
+### Approach
+
+Add a `chat` action to the existing JSON contract. The LLM returns `{"action": "chat", "message": "..."}` for non-VM requests. This preserves the JSON pipeline (§IV), the validation gate (§I/§3.2), and full observability (§III). No new endpoints, tables, or services.
+
+### Constitution re-check
+
+| Principle / Rule | Impact | Status |
+|---|---|---|
+| §I + §3.1 — No direct execution from AI | `chat` has no execution path | **PASS** |
+| §III — Full Observability | `chat` logged to `ai_usage` and `logs` | **PASS** |
+| §IV — Structured AI Output Contract | `chat` is a new validated JSON action type | **PASS** |
+| §3.3 — Whitelisted Actions | Whitelist extended to include `chat` | **PASS** |
+| §V — YAGNI | One schema class, one dispatch branch, zero new infrastructure | **PASS** |
+
+### Files to change
+
+```text
+backend/app/
+├── models/schemas.py           ADD  AIChat(action: Literal["chat"], message: str 1-2000)
+└── services/ai_service.py
+    ├── ALLOWED_ACTIONS          ADD  "chat"
+    ├── ACTION_SCHEMAS           ADD  "chat": AIChat
+    ├── SYSTEM_PROMPT            REWORK — use `chat` as default fallback; `error` only for unresolvable
+    ├── _execute_action()        ADD  "chat" branch → return validated["message"]
+    └── max_tokens               BUMP 256 → 512
+
+frontend/components/ai-chat.tsx
+    ├── action badge             HIDE badge for "chat" action (no action label needed for conversational replies)
+    └── character counter        UPDATE limit display from 500 → 2000
+```
+
+### Spec artifacts updated
+
+- `spec.md` — User Story 5 added; FR-004 updated (6 actions); FR-019 added; edge cases added
+- `research.md` — §7 added (free conversation mode design decisions)
+- `data-model.md` — `AIChat` schema added; data flow updated
+- `contracts/ai-api.md` — `chat` action shape added; `error` behaviour clarified
+
+---
+
 ## Summary
 
 Build the AI command interface for myVMS. This plan covers: Pydantic schemas for AI request/response and per-action validation, an AI service layer integrating Groq with rate limiting, system prompt engineering, JSON validation, and VM service dispatch, a FastAPI route exposing one endpoint, backend tests with mocked Groq API, and a frontend AI chat page.

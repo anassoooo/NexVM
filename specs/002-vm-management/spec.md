@@ -10,7 +10,12 @@
 
 ## Overview
 
-This is the **core operational feature** of myVMS. With auth established, users can now register, start, stop, and delete VirtualBox virtual machines through the web interface. This spec covers the complete VM lifecycle — from creation to deletion — including state transitions, VBoxManage integration, frontend controls, and audit logging for every action.
+This is the **core operational feature** of myVMS. With auth established, users can register, start, stop, and delete VirtualBox virtual machines through two access paths:
+
+- **Regular users** — interact exclusively through the AI chat interface (`/ai`). The AI assistant interprets natural language commands and calls the VM management API on the user's behalf.
+- **Admin users** — manage all users' VMs through the traditional admin panel (`/admin/vms`) with a structured VM list, status badges, and action controls.
+
+This spec covers the complete VM lifecycle — from creation to deletion — including state transitions, VBoxManage integration, audit logging, and the admin frontend. The AI chat UX is covered in spec 003.
 
 All VM operations execute synchronously within the HTTP request lifecycle. VBoxManage is invoked as a subprocess on the host machine running the backend.
 
@@ -20,15 +25,15 @@ All VM operations execute synchronously within the HTTP request lifecycle. VBoxM
 
 ### User Story 1 — Create and Register a VM (Priority: P1)
 
-A user wants to add a new virtual machine to the system. They provide a name, select an operating system label, and set a RAM allocation. The system registers the VM in VirtualBox and adds a record to the database.
+An authenticated user (via AI chat command or admin panel) submits a VM creation request with a name, OS label, and RAM allocation. The system validates the input, registers the VM in VirtualBox, and adds a record to the database.
 
 **Why this priority**: Every other VM action (start, stop, delete) requires an existing VM record. This is the entry point for the entire feature.
 
-**Independent Test**: Can be fully tested by submitting a create request and confirming the VM appears in the VMs page, the database record exists, and VBoxManage confirms the VM is registered — without starting or stopping it.
+**Independent Test**: Can be fully tested by submitting a create request (via API directly, AI command, or admin panel) and confirming the database record exists and VBoxManage confirms registration — without starting or stopping it.
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in user on the VMs page, **When** they submit a valid name, OS, and RAM, **Then** a VM record is created with status "stopped", VBoxManage registers the VM, and it appears in the VM list.
+1. **Given** an authenticated user submitting a valid name, OS, and RAM via API, **When** the request is received, **Then** a VM record is created with status "stopped", VBoxManage registers the VM, and the record is retrievable via `GET /api/v1/vms`.
 2. **Given** a user submitting a VM name, **When** the name is fewer than 1 or more than 50 characters, **Then** the request is rejected with a validation error before any VBoxManage call is made.
 3. **Given** a user submitting RAM, **When** the value is outside 512–16384 MB, **Then** the request is rejected with a validation error before any VBoxManage call is made.
 4. **Given** a user submitting a name, **When** that name is already registered in VirtualBox, **Then** the request is rejected with a clear conflict error and no duplicate DB record is created.
@@ -38,54 +43,54 @@ A user wants to add a new virtual machine to the system. They provide a name, se
 
 ### User Story 2 — Start and Stop a VM (Priority: P1)
 
-A user can start a VM that is stopped and stop a VM that is running. The status updates in the VM list. During transitional states, action buttons are disabled so the user cannot trigger concurrent operations.
+An authenticated user (via AI chat command or admin panel) submits a start or stop request for a VM they own. The system validates the current state, executes the VBoxManage command, and updates the status accordingly.
 
-**Why this priority**: Start and stop are the primary operational actions. Without them the VM list is a read-only display with no utility.
+**Why this priority**: Start and stop are the primary operational actions. Without them the VM service has no utility.
 
-**Independent Test**: Can be tested by creating a VM, clicking Start, verifying the status moves to "running", clicking Stop, and verifying the status returns to "stopped" — without requiring delete or AI features.
+**Independent Test**: Can be tested by creating a VM via API, issuing a start request, verifying status moves to "running", issuing a stop request, and verifying status returns to "stopped" — without requiring delete or AI features.
 
 **Acceptance Scenarios**:
 
-1. **Given** a VM in "stopped" status, **When** the user clicks Start, **Then** the status immediately moves to "starting", VBoxManage `startvm --type headless` is executed, and the status updates to "running" on success.
-2. **Given** a VM in "running" status, **When** the user clicks Stop, **Then** the status immediately moves to "stopping", VBoxManage `controlvm poweroff` is executed, and the status updates to "stopped" on success.
-3. **Given** a VM in "starting" or "stopping" status, **When** the user views the VM list, **Then** action buttons (Start, Stop, Delete) for that VM are visually disabled.
+1. **Given** a VM in "stopped" status, **When** a start request is received, **Then** the status immediately moves to "starting", VBoxManage `startvm --type headless` is executed, and the status updates to "running" on success.
+2. **Given** a VM in "running" status, **When** a stop request is received, **Then** the status immediately moves to "stopping", VBoxManage `controlvm poweroff` is executed, and the status updates to "stopped" on success.
+3. **Given** a VM in "starting" or "stopping" status, **When** a start or stop request is received, **Then** HTTP 409 Conflict is returned — no VBoxManage call is made. The admin panel disables action buttons visually for these states.
 4. **Given** VBoxManage failing during start or stop, **Then** the VM is set to "error" status, the stderr output is stored in `error_message`, the failure is logged, and an error response is returned.
 5. **Given** VBoxManage timing out (> 30 seconds), **Then** the VM is set to "error" status with message "Command timed out", the timeout is logged, and an error response is returned.
-6. **Given** a VM in "error" status, **When** the user clicks Start, **Then** the system treats it as a retry — status moves to "starting" and the start flow begins again.
+6. **Given** a VM in "error" status, **When** a start request is received, **Then** the system treats it as a retry — status moves to "starting" and the start flow begins again.
 
 ---
 
 ### User Story 3 — Delete a VM (Priority: P2)
 
-A user can permanently delete a VM they own. The VM is unregistered from VirtualBox (disk files deleted) and removed from the database.
+An authenticated user (via AI chat command or admin panel) submits a delete request for a VM they own. The VM is unregistered from VirtualBox (disk files deleted) and removed from the database.
 
 **Why this priority**: Delete is needed for cleanup and lifecycle completion, but it is not required to demonstrate core VM control. Create + Start + Stop covers the P1 MVP.
 
-**Independent Test**: Can be tested by stopping a running VM, clicking Delete, confirming it disappears from the VM list, and verifying VBoxManage no longer lists it.
+**Independent Test**: Can be tested by stopping a running VM via API, issuing a delete request, confirming the record is removed from the database, and verifying VBoxManage no longer lists it.
 
 **Acceptance Scenarios**:
 
-1. **Given** a VM in "stopped" status, **When** the user confirms deletion, **Then** VBoxManage `unregistervm --delete` is executed and the DB record is removed on success.
-2. **Given** a VM in "running", "starting", or "stopping" status, **When** the user attempts deletion, **Then** the request is rejected with HTTP 409 — only stopped VMs can be deleted.
-3. **Given** VBoxManage failing during deletion, **Then** the DB record is NOT removed, the failure is logged with error details, and the user receives an error message.
+1. **Given** a VM in "stopped" status, **When** a delete request is received, **Then** VBoxManage `unregistervm --delete` is executed and the DB record is removed on success.
+2. **Given** a VM in "running", "starting", or "stopping" status, **When** a delete request is received, **Then** the request is rejected with HTTP 409 — only "stopped" or "error" VMs can be deleted.
+3. **Given** VBoxManage failing during deletion, **Then** the DB record is NOT removed, the failure is logged with error details, and an error response is returned.
 4. **Given** a user who knows the UUID of another user's VM, **When** they attempt to delete it via the API, **Then** the request returns 404 — no existence is leaked and no action is taken.
 
 ---
 
-### User Story 4 — View VM List and Status (Priority: P1)
+### User Story 4 — Admin VM List and Status (Priority: P1)
 
-A user can see all their VMs with name, OS, RAM, and current status. Status badges are color-coded to communicate health at a glance. The list reflects the current state after any action.
+An admin can see all users' VMs at `/admin/vms` with name, OS, RAM, owner, and current status. Status badges are color-coded to communicate health at a glance. Regular users see their VM status exclusively through the AI chat interface.
 
-**Why this priority**: The VM list is the primary UI surface. All other actions are taken from it. It must work before any other story can be tested end-to-end.
+**Why this priority**: The admin VM list is the primary operational oversight surface. Admins need visibility across all VMs to manage the system.
 
-**Independent Test**: Can be tested by creating VMs via the API and verifying the VMs page renders each with correct status badges — no start/stop/delete required.
+**Independent Test**: Can be tested by creating VMs via the API and verifying the `/admin/vms` page renders each with correct status badges — no start/stop/delete required.
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in user with no VMs, **When** they visit `/vms`, **Then** an empty state message is shown.
-2. **Given** a logged-in user with VMs, **When** they visit `/vms`, **Then** each VM is shown with its name, OS, RAM, and a color-coded status badge.
-3. **Given** two users each with their own VMs, **When** User A views `/vms`, **Then** only User A's VMs appear — none of User B's.
-4. **Given** a VM whose status changed (e.g., from starting to running), **When** the user refreshes or triggers an action, **Then** the updated status is reflected.
+1. **Given** an admin with no VMs in the system, **When** they visit `/admin/vms`, **Then** an empty state message is shown.
+2. **Given** an admin visiting `/admin/vms`, **When** there are VMs from multiple users, **Then** all VMs are shown with name, OS, RAM, owner, and a color-coded status badge.
+3. **Given** a non-admin user, **When** they navigate to `/admin/vms`, **Then** they are redirected to `/ai` (existing admin guard — unchanged).
+4. **Given** a VM whose status changed (e.g., from starting to running), **When** the admin refreshes or triggers an action, **Then** the updated status is reflected.
 
 ---
 
@@ -93,6 +98,7 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 
 - **VBoxManage not installed**: `GET /api/v1/health` detects and reports this. VM create/start/stop/delete return `503 Service Unavailable` with message "VBoxManage not reachable" — no silent failures.
 - **Concurrent start on same VM**: The second request finds the VM already in "starting" state and returns HTTP 409 Conflict immediately — no duplicate VBoxManage calls.
+- **VM stuck in "starting" or "stopping"**: If VBoxManage exits unexpectedly without updating the DB, the VM remains indefinitely locked in a transitional state. Regular users cannot recover — they receive a 409 on any action. An admin must use the "force reset to stopped" action on `/admin/vms` to clear the state. No self-heal background job for MVP.
 - **VM name with special characters**: Names are validated at the API boundary (alphanumeric, hyphens, spaces only). The validated name is passed as a list argument to subprocess — no shell interpolation occurs.
 - **VBoxManage succeeds but DB write fails**: The VM exists in VirtualBox but the status update is lost. The VM stays in its previous DB state. The mismatch is logged. A future `showvminfo` call can reconcile.
 - **User deletes their account while a VM is running**: Cascade DELETE on the `vms` table removes all DB records. The VirtualBox VM continues running on the host until the admin manually cleans it up — this is a known limitation for single-tenant MVP.
@@ -104,7 +110,7 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 
 ### Functional Requirements
 
-- **FR-001**: System MUST allow authenticated users to create a VM by specifying a name (1–50 characters, alphanumeric + hyphens + spaces only), an operating system label (free text, required), and RAM in MB (integer, 512–16384 inclusive).
+- **FR-001**: System MUST allow authenticated users to create a VM by specifying a name (1–50 characters, alphanumeric + hyphens + spaces only), an operating system label (free text, required), and RAM in MB (integer, 512–16384 inclusive). Creation is rejected with HTTP 409 when the user already owns `VM_QUOTA_PER_USER` VMs (default: 5, configurable via env var). Quota is enforced before any VBoxManage call.
 - **FR-002**: System MUST register the VM in VirtualBox via `VBoxManage createvm --name <name> --register` on creation. If VBoxManage fails, no DB record is created.
 - **FR-003**: System MUST store the VM record in the database with `status = 'stopped'` after successful VBoxManage registration.
 - **FR-004**: System MUST reject VM creation when the name already exists in VirtualBox, returning HTTP 409 with message "A VM with this name already exists".
@@ -113,7 +119,7 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 - **FR-007**: System MUST allow authenticated users to stop a VM whose status is "running". The status MUST be set to "stopping" in the database before the VBoxManage call is made.
 - **FR-008**: System MUST execute `VBoxManage controlvm <name> poweroff` when stopping a VM. On success, set status to "stopped". On failure, set status to "error" and store stderr in `error_message`.
 - **FR-009**: System MUST reject start/stop actions on VMs in "starting" or "stopping" states with HTTP 409 Conflict.
-- **FR-010**: System MUST allow authenticated users to delete a VM only when its status is "stopped". Deletion requests on any other status MUST be rejected with HTTP 409.
+- **FR-010**: System MUST allow authenticated users to delete a VM only when its status is "stopped" OR "error". Deletion requests on any other status ("running", "starting", "stopping") MUST be rejected with HTTP 409.
 - **FR-011**: System MUST execute `VBoxManage unregistervm <name> --delete` on deletion. The DB record MUST be removed only after VBoxManage succeeds. On VBoxManage failure, the DB record is preserved and an error is returned.
 - **FR-012**: System MUST allow authenticated users to list all their own VMs, returning name, OS, RAM, status, error_message, created_at, and updated_at for each.
 - **FR-013**: System MUST enforce a 30-second timeout on every VBoxManage subprocess call. On timeout, set the VM to "error" status with `error_message = "Command timed out"`.
@@ -121,9 +127,11 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 - **FR-015**: System MUST enforce that each user can only read, modify, and delete their own VM records. Requests targeting another user's VM MUST return HTTP 404.
 - **FR-016**: System MUST validate VM name at the API boundary: 1–50 characters, alphanumeric, hyphens, and spaces only. Names failing this rule are rejected before any VBoxManage call.
 - **FR-017**: System MUST only invoke five whitelisted VBoxManage subcommands: `createvm`, `startvm`, `controlvm`, `unregistervm`, `showvminfo`. No other subcommands are permitted.
-- **FR-018**: System MUST display the VM list with color-coded status badges: green (running), grey (stopped), amber (starting/stopping), red (error).
-- **FR-019**: System MUST disable VM action buttons (Start, Stop, Delete) in the UI when the VM is in "starting" or "stopping" state.
-- **FR-020**: System MUST display VM `error_message` in the UI when a VM is in "error" state so the user knows what failed.
+- **FR-018**: The **admin panel** MUST display the VM list (all users' VMs) with color-coded status badges: green (running), grey (stopped), amber (starting/stopping), red (error). This page does NOT exist for regular users — they interact via the AI chat only.
+- **FR-019**: The **admin panel** VM list MUST disable action buttons (Start, Stop, Delete) when a VM is in "starting" or "stopping" state.
+- **FR-020**: The **admin panel** VM list MUST display `error_message` when a VM is in "error" state. For regular users, the AI assistant MUST relay the exact `error_message` content when describing a VM's error state — `error_message` is included in the AI's VM list context so it can surface actionable failure details conversationally.
+- **FR-021**: Admin users MUST be able to start, stop, and delete any user's VM from `/admin/vms`. Admin actions bypass the ownership check (FR-015) but still enforce all state-transition rules (FR-005, FR-007, FR-010) and logging (FR-014).
+- **FR-022**: Admin users MUST be able to "force reset" any VM to `"stopped"` status from `/admin/vms`, regardless of current state (including "starting", "stopping", or "error"). This action bypasses all state-transition guards, clears `error_message`, logs the action, and does NOT call VBoxManage (it is a DB-only status correction). It is not available to regular users.
 
 ### Key Entities
 
@@ -151,8 +159,8 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 ## Assumptions
 
 - VirtualBox is installed on the host machine running the FastAPI backend. `VBoxManage` is accessible via `PATH` or the `VBOXMANAGE_PATH` environment variable.
-- Single-tenant deployment: one VirtualBox host. No per-user VM quotas or resource limits for MVP.
-- VM creation configures **name and RAM only**. Disk storage, network adapters, and display configuration are out of scope for MVP. The VM is registered and can be started/stopped, but it will not be a fully configured guest OS until those are set up externally.
+- Single-tenant deployment: one VirtualBox host. Per-user VM quota defaults to 5, configurable via `VM_QUOTA_PER_USER` environment variable.
+- VM creation configures **name and RAM only**. Disk storage, network adapters, and display configuration are out of scope for MVP. The VM is registered and can be started/stopped, but it will not be a fully configured guest OS until those are set up externally. The AI assistant MUST append a post-create note informing the user they need to attach a boot disk via VirtualBox Manager before the VM can run a guest OS.
 - VM names must be unique across VirtualBox (not just per user), because VBoxManage enforces global uniqueness. The API reflects this by rejecting duplicate names with 409.
 - The `os` field is a free-text label (e.g., "Ubuntu 22.04"). It is not validated against VirtualBox's guest OS type list for MVP.
 - "Delete" is destructive: `--delete` removes the VM's disk files from the host. There is no soft delete or recycle bin.
@@ -163,6 +171,23 @@ A user can see all their VMs with name, OS, RAM, and current status. Status badg
 ---
 
 ## Clarifications
+
+### Session 2026-04-20
+
+- Q: When a VM gets stuck in "starting"/"stopping" with no recovery path, how should it be resolved? → A: Admin-only "force reset to stopped" button on /admin/vms (FR-022 added; no self-heal background job for MVP).
+- Q: Can a VM in "error" state be deleted directly, or must the user start it first? → A: Delete is allowed on "error" status VMs directly (FR-010 extended to "stopped" OR "error"; vm_service.py and AI system prompt updated).
+- Q: Should the AI relay the exact error_message to regular users when a VM is in error state? → A: Yes — error_message included in AI VM list context so it can surface exact failure details conversationally (FR-020 updated; _build_system_prompt updated).
+- Q: Should there be a per-user VM quota to prevent resource exhaustion? → A: Yes — soft limit of 5 VMs per user, configurable via VM_QUOTA_PER_USER env var (FR-001 updated; config.py and vm_service.py updated).
+- Q: Should users be warned that newly created VMs have no boot disk and can't run a guest OS? → A: Yes — AI appends a post-create note directing users to attach a boot disk via VirtualBox Manager (Assumptions updated; _execute_action updated).
+- Q: Should users be warned that newly created VMs have no boot disk and can't run a guest OS? → A: Yes — AI appends a post-create note directing users to attach a boot disk via VirtualBox Manager (Assumptions updated; _execute_action updated).
+
+### Session 2026-04-09
+
+- Q: Does the admin panel include a VM management page showing all users' VMs? → A: Yes — admin panel has a full VM list page with status badges and controls (FR-018–020 scoped to admin only; regular users have no /vms page).
+- Q: What route serves the admin VM management page? → A: `/admin/vms` — consistent with `/admin/*` namespace; User Story 4 updated.
+- Q: Should User Stories 1–3 be reframed as backend behavior (API-triggered, source-agnostic)? → A: Yes — stories describe backend behavior triggered by any API caller (AI assistant or admin panel); UI framing removed.
+- Q: Should the overview be updated to reflect AI chat (users) + admin panel (admins) access paths? → A: Yes — overview updated; spec 003 referenced for AI chat UX details.
+- Q: Should admins have full VM controls (start/stop/delete) on any user's VM from `/admin/vms`? → A: Yes — full controls; bypasses ownership check but enforces all state-transition rules and logging (FR-021 added).
 
 ### Session 2026-04-06
 

@@ -4,25 +4,9 @@
 -- Date:   2026-04-04
 -- File:   supabase/migrations/001_initial_schema.sql
 -- ============================================================
--- Run in Supabase SQL Editor or via Supabase CLI migration.
--- auth.users table is managed by Supabase — not created here.
--- ============================================================
-
--- ============================================================
--- HELPER FUNCTION: is_admin()
--- SECURITY DEFINER to avoid RLS recursion on profiles table.
--- Used by admin policies on all application tables.
--- ============================================================
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean AS $$
-    SELECT EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND is_admin = true
-    );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ------------------------------------------------------------
--- TABLE: profiles
+-- TABLE: profiles (created first — is_admin() depends on it)
 -- 1:1 extension of auth.users; auto-created on signup via trigger.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -32,6 +16,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
     CONSTRAINT profiles_pkey PRIMARY KEY (id)
 );
+
+-- ============================================================
+-- HELPER FUNCTION: is_admin()
+-- SECURITY DEFINER to avoid RLS recursion on profiles table.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND is_admin = true
+    );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
@@ -43,7 +39,6 @@ CREATE POLICY "profiles_admin_all" ON public.profiles
 
 -- ------------------------------------------------------------
 -- TABLE: vms
--- Tracks every virtual machine registered in the system.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.vms (
     id            uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -56,9 +51,9 @@ CREATE TABLE IF NOT EXISTS public.vms (
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT vms_pkey            PRIMARY KEY (id),
-    CONSTRAINT vms_status_check    CHECK (status IN ('stopped', 'starting', 'running', 'stopping', 'error')),
-    CONSTRAINT vms_ram_check       CHECK (ram >= 512 AND ram <= 16384)
+    CONSTRAINT vms_pkey         PRIMARY KEY (id),
+    CONSTRAINT vms_status_check CHECK (status IN ('stopped', 'starting', 'running', 'stopping', 'error')),
+    CONSTRAINT vms_ram_check    CHECK (ram >= 512 AND ram <= 16384)
 );
 
 CREATE INDEX IF NOT EXISTS vms_user_id_idx ON public.vms (user_id);
@@ -69,17 +64,10 @@ CREATE POLICY "vms_user_own" ON public.vms
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "vms_admin_all" ON public.vms
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TABLE: logs
--- Append-only audit trail. user_id SET NULL on user delete
--- to preserve audit records after account removal.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.logs (
     id         uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -90,9 +78,12 @@ CREATE TABLE IF NOT EXISTS public.logs (
     message    text        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT logs_pkey          PRIMARY KEY (id),
-    CONSTRAINT logs_status_check  CHECK (status IN ('success', 'failure')),
-    CONSTRAINT logs_action_check  CHECK (action IN ('create_vm', 'start_vm', 'stop_vm', 'delete_vm', 'login', 'ai_command'))
+    CONSTRAINT logs_pkey         PRIMARY KEY (id),
+    CONSTRAINT logs_status_check CHECK (status IN ('success', 'failure')),
+    CONSTRAINT logs_action_check CHECK (action IN (
+        'create_vm', 'start_vm', 'stop_vm', 'delete_vm',
+        'login', 'ai_command', 'force_reset_vm'
+    ))
 );
 
 CREATE INDEX IF NOT EXISTS logs_user_id_idx ON public.logs (user_id);
@@ -103,17 +94,10 @@ CREATE POLICY "logs_user_own" ON public.logs
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "logs_admin_all" ON public.logs
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TABLE: ai_usage
--- Records every AI command interaction.
--- user_id SET NULL on user delete to preserve analytics.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.ai_usage (
     id         uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -134,16 +118,10 @@ CREATE POLICY "ai_usage_user_own" ON public.ai_usage
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "ai_usage_admin_all" ON public.ai_usage
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TRIGGER: auto-create profile on user signup
--- ON CONFLICT DO NOTHING makes it idempotent (safe if called twice).
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -160,53 +138,3 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- ============================================================
--- RLS ISOLATION VERIFICATION (T030)
--- ============================================================
--- Run the following queries in Supabase SQL Editor to verify
--- that Row Level Security enforces data isolation correctly.
---
--- PREREQUISITES:
---   1. Create two test users (A and B) via Supabase Auth.
---   2. Create an admin user and set is_admin = true on their profile.
---   3. Insert VM records for each user:
---        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_A_id>', 'A-VM', 'Ubuntu', 1024);
---        INSERT INTO vms (user_id, name, os, ram) VALUES ('<user_B_id>', 'B-VM', 'Ubuntu', 1024);
---
--- TEST 1 — User isolation (run as user A):
---   SET ROLE authenticated;
---   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
---   SELECT * FROM vms;
---   EXPECTED: Only rows where user_id = <user_A_id> are returned.
---   RESET ROLE;
---
--- TEST 2 — Cross-user blocked (run as user A):
---   SET ROLE authenticated;
---   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
---   SELECT * FROM vms WHERE user_id = '<user_B_id>';
---   EXPECTED: Empty result set.
---   RESET ROLE;
---
--- TEST 3 — Admin sees all (run as admin user):
---   First: UPDATE profiles SET is_admin = true WHERE id = '<admin_id>';
---   SET ROLE authenticated;
---   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
---   SELECT * FROM vms;
---   EXPECTED: All VM rows returned regardless of user_id.
---   RESET ROLE;
---
--- TEST 4 — Admin check on profiles:
---   SET ROLE authenticated;
---   SET request.jwt.claims = '{"sub": "<admin_id>", "role": "authenticated"}';
---   SELECT * FROM profiles;
---   EXPECTED: All profiles returned.
---   SET request.jwt.claims = '{"sub": "<user_A_id>", "role": "authenticated"}';
---   SELECT * FROM profiles;
---   EXPECTED: Only user A's own profile returned.
---   RESET ROLE;
---
--- Repeat analogous tests for `logs` and `ai_usage` tables.
---
--- VERIFICATION STATUS: [ ] Passed  Date: ____
--- ============================================================

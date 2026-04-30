@@ -9,14 +9,19 @@ interface VMListProps {
   onStart: (vmId: string) => void;
   onStop: (vmId: string) => void;
   onDelete: (vmId: string) => void;
+  onSync: (vmId: string) => void;
+  onForceReset?: (vmId: string) => void;
+  showOwner?: boolean;
 }
 
-export default function VMList({ vms, loading, onStart, onStop, onDelete }: VMListProps) {
+export default function VMList({
+  vms, loading, onStart, onStop, onDelete, onSync, onForceReset, showOwner,
+}: VMListProps) {
   if (loading && vms.length === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="border rounded-lg p-4 h-40 animate-pulse bg-gray-100" />
+          <div key={i} className="glass animate-pulse h-40" style={{ opacity: 0.5 }} />
         ))}
       </div>
     );
@@ -24,7 +29,7 @@ export default function VMList({ vms, loading, onStart, onStop, onDelete }: VMLi
 
   if (vms.length === 0) {
     return (
-      <p className="text-gray-500 text-center py-12">
+      <p className="text-center py-16" style={{ color: "var(--text-muted)" }}>
         No VMs yet — create your first one
       </p>
     );
@@ -40,6 +45,9 @@ export default function VMList({ vms, loading, onStart, onStop, onDelete }: VMLi
           onStart={() => onStart(vm.id)}
           onStop={() => onStop(vm.id)}
           onDelete={() => onDelete(vm.id)}
+          onSync={() => onSync(vm.id)}
+          onForceReset={onForceReset ? () => onForceReset(vm.id) : undefined}
+          showOwner={showOwner}
         />
       ))}
     </div>

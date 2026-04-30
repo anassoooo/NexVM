@@ -8,7 +8,7 @@
 
 ## Summary
 
-Build the complete VM lifecycle management layer for myVMS. This plan covers: a VirtualBox subprocess wrapper with timeout and error capture, a VM service layer implementing all CRUD operations and the state machine, a FastAPI route layer exposing six endpoints, backend tests with mocked VBoxManage, and a frontend VMs page with VMCard/VMList components wired to the API.
+Build the complete VM lifecycle management layer for myVMS. This plan covers: a VirtualBox subprocess wrapper with timeout and error capture, a VM service layer implementing all CRUD operations and the state machine, a FastAPI route layer exposing six user endpoints plus admin endpoints that bypass ownership (FR-021), backend tests with mocked VBoxManage, and an admin VM list page at `/admin/vms` showing all users' VMs with full controls.
 
 No new database tables or migrations are needed — the `vms` and `logs` tables from spec 001 are the complete persistence layer for this feature.
 
@@ -18,9 +18,9 @@ No new database tables or migrations are needed — the `vms` and `logs` tables 
 
 **Language/Version**: Python 3.12 (backend), TypeScript 5.x (frontend)  
 **Primary Dependencies**: FastAPI, supabase-py, python-jose, uvicorn (backend); @supabase/ssr, Next.js 14, Tailwind CSS (frontend)  
-**New Backend Files**: `vbox_wrapper.py`, `vm_service.py`, `routes/vm.py` (+ update `main.py`)  
-**New Frontend Files**: `components/vm-card.tsx`, `components/vm-list.tsx`, `app/vms/page.tsx`  
-**Existing Reused Files**: `dependencies.py` (`get_current_user`), `models/schemas.py` (`VMCreate`, `VMResponse`), `models/enums.py` (`VMStatus`, `LogAction`)  
+**New Backend Files**: `vbox_wrapper.py`, `vm_service.py`, `routes/vm.py`, `routes/admin_vm.py` (+ update `main.py`)  
+**New Frontend Files**: `components/vm-card.tsx`, `components/vm-list.tsx`, `app/admin/vms/page.tsx`  
+**Existing Reused Files**: `dependencies.py` (`get_current_user`, `get_current_admin_user`), `models/schemas.py` (`VMCreate`, `VMResponse`), `models/enums.py` (`VMStatus`, `LogAction`)  
 **Storage**: Supabase PostgreSQL — `vms` table (state tracking), `logs` table (audit trail)  
 **Testing**: pytest + pytest-asyncio with `unittest.mock.patch` for VBoxManage subprocess  
 **Target Platform**: Render (backend), Vercel (frontend), VirtualBox host (local)  
@@ -37,7 +37,7 @@ No new database tables or migrations are needed — the `vms` and `logs` tables 
 | Principle / Rule | Requirement | Status | Notes |
 |---|---|---|---|
 | §II — Auth Before Everything | All VM endpoints protected by JWT | **PASS** | All 7 endpoints use `get_current_user` dependency from spec 001 |
-| §II — Admin routes check admin claim | No admin-only VM endpoints in this spec | **PASS** | All users access only their own VMs; admin can see all via RLS |
+| §II — Admin routes check admin claim | Admin VM routes must verify `is_admin` before cross-user access | **PASS** | `/api/v1/admin/vm/*` uses `get_current_admin_user`; FR-021 bypass still enforces state rules + logging |
 | §VI.1 — Schema Consistency | `vms` table used as-is from spec 001 | **PASS** | No schema changes; spec 001 contracts are read-only |
 | §VI.3 — No direct frontend DB writes | Frontend calls backend API for all VM operations | **PASS** | All writes go through FastAPI service layer |
 | §XI.1 — Auth Required | All 7 VM endpoints require valid JWT | **PASS** | No unauthenticated VM endpoints |
@@ -86,14 +86,33 @@ backend/
 
 frontend/
 ├── app/
-│   └── vms/
-│       └── page.tsx         CREATE — VM list page (server component)
+│   └── admin/
+│       └── vms/
+│           └── page.tsx     CREATE — admin VM list (server component, admin guard, shows all users' VMs)
 └── components/
-    ├── vm-card.tsx          CREATE — single VM display + action buttons
+    ├── vm-card.tsx          CREATE — single VM display + action buttons (includes owner field for admin view)
     └── vm-list.tsx          CREATE — grid of VMCards + loading/empty states
 ```
 
 **No database migrations required.** All tables, constraints, indexes, and RLS policies for this feature were created in `supabase/migrations/001_initial_schema.sql`.
+
+---
+
+## Amendment — 2026-04-20 (Clarification Session FR-001, FR-010, FR-022)
+
+**Changes already applied to code** (zero new tasks needed):
+- `vm_service.delete_vm` — accepts `"stopped" OR "error"` (FR-010 extended)
+- `ai_service._build_system_prompt` — includes `error_message` in VM context (FR-020)
+- `ai_service._execute_action` — post-create boot disk warning (Assumptions)
+- `config.py` — `VM_QUOTA_PER_USER: int = 5` env var
+- `vm_service.create_vm` — quota check before VBoxManage call (FR-001)
+- Test mocks updated for quota check (3 tests)
+
+**Still requires implementation** (Tasks T030–T033 added to Phase 9):
+- `force_reset_vm(vm_id, actor_id)` — DB-only status reset (FR-022)
+- Admin route `POST /api/v1/admin/vm/force-reset` (FR-022)
+- Frontend "Force Reset" button on `/admin/vms` vm-card (FR-022)
+- New tests: force-reset, error-state delete, quota-exceeded (coverage gap)
 
 ---
 

@@ -86,12 +86,14 @@ backend/
 frontend/
 ├── app/
 │   ├── layout.tsx
-│   ├── page.tsx             # Redirect: / → /dashboard (auth) or /login (unauth)
+│   ├── page.tsx             # Redirect: / → /ai (regular) or /admin (admin) or /login (unauth)
 │   ├── (auth)/
 │   │   ├── login/page.tsx
-│   │   └── signup/page.tsx
-│   └── dashboard/
-│       └── page.tsx         # Placeholder — first protected page
+│   │   ├── signup/page.tsx
+│   │   └── ai/
+│   │       └── page.tsx     # AI chat — first protected page for regular users
+│   └── admin/
+│       └── page.tsx         # Admin panel — landing page for admin users
 ├── lib/
 │   └── supabase/
 │       ├── client.ts        # createBrowserClient (browser-side)

@@ -25,64 +25,49 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
     }
   }
 
-  async function handleStart(vmId: string) {
+  async function withLoading(fn: () => Promise<void>) {
     setLoading(true);
     setError(null);
     try {
-      await api.post("/api/v1/vm/start", { vm_id: vmId });
+      await fn();
       await refetch();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to start VM");
+      setError(e instanceof Error ? e.message : "Operation failed");
       setLoading(false);
     }
   }
 
-  async function handleStop(vmId: string) {
-    setLoading(true);
-    setError(null);
-    try {
-      await api.post("/api/v1/vm/stop", { vm_id: vmId });
-      await refetch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to stop VM");
-      setLoading(false);
-    }
-  }
-
-  async function handleDelete(vmId: string) {
-    setLoading(true);
-    setError(null);
-    try {
-      await api.post("/api/v1/vm/delete", { vm_id: vmId });
-      await refetch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete VM");
-      setLoading(false);
-    }
-  }
+  const handleStart  = (id: string) => withLoading(() => api.post("/api/v1/vm/start",  { vm_id: id }));
+  const handleStop   = (id: string) => withLoading(() => api.post("/api/v1/vm/stop",   { vm_id: id }));
+  const handleDelete = (id: string) => withLoading(() => api.post("/api/v1/vm/delete", { vm_id: id }));
+  const handleSync   = (id: string) => withLoading(async () => {
+    const updated = await api.post<VM>("/api/v1/vm/sync", { vm_id: id });
+    setVms((prev) => prev.map((v) => (v.id === id ? updated : v)));
+  });
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Virtual Machines</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-        >
+        <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+          Virtual Machines
+        </h1>
+        <button onClick={() => setShowForm(true)} className="btn-primary" style={{ padding: "8px 20px" }}>
           Create VM
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded text-sm">{error}</div>
+        <div
+          className="mb-4 p-3 rounded text-sm"
+          style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
+        >
+          {error}
+        </div>
       )}
 
       {showForm && (
         <VMCreateForm
-          onSuccess={async () => {
-            setShowForm(false);
-            await refetch();
-          }}
+          onSuccess={async () => { setShowForm(false); await refetch(); }}
           onCancel={() => setShowForm(false)}
         />
       )}
@@ -93,6 +78,7 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
         onStart={handleStart}
         onStop={handleStop}
         onDelete={handleDelete}
+        onSync={handleSync}
       />
     </div>
   );

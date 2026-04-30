@@ -1,86 +1,86 @@
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { AdminAnalytics } from "@/types";
+import { AdminAnalytics, UserInfo } from "@/types";
+import BackgroundLayer from "@/components/background-layer";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const token = cookieStore.get("myvms_token")?.value;
+  const isAdmin = cookieStore.get("myvms_admin")?.value === "1";
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!token) redirect("/login");
+  if (!isAdmin) redirect("/ai");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const headers = { Authorization: `Bearer ${token}` };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  const [analyticsRes, meRes] = await Promise.allSettled([
+    fetch(`${BASE_URL}/api/v1/analytics/admin`, { headers }),
+    fetch(`${BASE_URL}/api/v1/auth/me`, { headers }),
+  ]);
 
-  if (!profile?.is_admin) {
-    redirect("/dashboard");
-  }
+  const analytics: AdminAnalytics | null =
+    analyticsRes.status === "fulfilled" && analyticsRes.value.ok
+      ? ((await analyticsRes.value.json()) as AdminAnalytics)
+      : null;
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  let analytics: AdminAnalytics | null = null;
-  try {
-    const res = await fetch(`${BASE_URL}/api/v1/analytics/admin`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-    });
-    if (res.ok) analytics = (await res.json()) as AdminAnalytics;
-  } catch {
-    // fall through — analytics stays null, UI shows "—"
-  }
+  const me: UserInfo | null =
+    meRes.status === "fulfilled" && meRes.value.ok
+      ? ((await meRes.value.json()) as UserInfo)
+      : null;
 
   const fmt = (n: number | undefined) => (n !== undefined ? String(n) : "—");
 
+  const summaryCards = [
+    { label: "Total Users",       value: fmt(analytics?.total_users) },
+    { label: "Total VMs",         value: fmt(analytics?.total_vms) },
+    { label: "Total AI Commands", value: fmt(analytics?.total_ai_commands) },
+  ];
+
+  const statusCards = [
+    { label: "Running", value: fmt(analytics?.running_vms), color: "var(--success)" },
+    { label: "Stopped", value: fmt(analytics?.stopped_vms), color: "var(--warning)" },
+    { label: "Error",   value: fmt(analytics?.error_vms),   color: "var(--warning)" },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard — {user.email}</h1>
+    <div className="relative min-h-screen" style={{ background: "var(--bg)" }}>
+      <BackgroundLayer />
 
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        System Summary
-      </h2>
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: "Total Users", value: fmt(analytics?.total_users) },
-          { label: "Total VMs", value: fmt(analytics?.total_vms) },
-          { label: "Total AI Commands", value: fmt(analytics?.total_ai_commands) },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm"
-          >
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-1">{label}</p>
-          </div>
-        ))}
-      </div>
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+            Admin Dashboard
+          </h1>
+          {me?.email && (
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{me.email}</p>
+          )}
+        </div>
 
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        VM Status
-      </h2>
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Running", value: fmt(analytics?.running_vms) },
-          { label: "Stopped", value: fmt(analytics?.stopped_vms) },
-          { label: "Error", value: fmt(analytics?.error_vms) },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm"
-          >
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-1">{label}</p>
-          </div>
-        ))}
+        <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
+          System Summary
+        </p>
+        <div className="grid grid-cols-3 gap-4 mb-10">
+          {summaryCards.map(({ label, value }) => (
+            <div key={label} className="glass text-center" style={{ padding: "1.5rem 1rem" }}>
+              <p className="text-3xl font-bold" style={{ color: "var(--accent)" }}>{value}</p>
+              <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
+          VM Status
+        </p>
+        <div className="grid grid-cols-3 gap-4">
+          {statusCards.map(({ label, value, color }) => (
+            <div key={label} className="glass text-center" style={{ padding: "1.5rem 1rem" }}>
+              <p className="text-3xl font-bold" style={{ color }}>{value}</p>
+              <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
