@@ -24,6 +24,9 @@ def _vm_response(**overrides) -> VMResponse:
         "vbox_id": None,
         "status": "stopped",
         "error_message": None,
+        "iso_path": None,
+        "vrde_enabled": False,
+        "vrde_port": None,
         "created_at": now,
         "updated_at": now,
     }

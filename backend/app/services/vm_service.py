@@ -1,3 +1,4 @@
+import os
 import subprocess
 from datetime import datetime, timezone
 from typing import Callable
@@ -380,6 +381,114 @@ def delete_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> N
     supabase = get_supabase_client()
     supabase.table("vms").delete().eq("id", vm_id).execute()
     _log_action(log_user, LogAction.delete_vm, vm_id, LogStatus.success, f"VM '{vm['name']}' deleted")
+
+
+def attach_iso(vm_id: str, iso_path: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot attach ISO — VM is '{vm['status']}' (must be stopped)")
+    if not os.path.exists(iso_path):
+        raise HTTPException(status_code=422, detail=f"ISO file not found: {iso_path}")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+
+    # Add IDE controller — swallow "already exists" (idempotent)
+    try:
+        ctl_result = run_vbox_command([vbox, "storagectl", vm_name, "--name", "IDE", "--add", "ide", "--controller", "PIIX4"])
+        if ctl_result.returncode != 0:
+            stderr = ctl_result.stderr.strip().lower()
+            if "already exists" not in stderr:
+                raise HTTPException(status_code=500, detail=f"VBoxManage error (storagectl): {ctl_result.stderr.strip()}")
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="VBoxManage command timed out") from None
+
+    _run_vbox(
+        [vbox, "storageattach", vm_name, "--storagectl", "IDE",
+         "--port", "0", "--device", "0", "--type", "dvddrive", "--medium", iso_path],
+        user_id, LogAction.attach_iso, "storageattach iso",
+    )
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"iso_path": iso_path, "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.attach_iso, vm_name, LogStatus.success, iso_path)
+    return _vm_row_to_response(updated.data[0])
+
+
+def detach_iso(vm_id: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot detach ISO — VM is '{vm['status']}' (must be stopped)")
+    if not vm.get("iso_path"):
+        raise HTTPException(status_code=409, detail="No ISO attached to this VM")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+
+    _run_vbox(
+        [vbox, "storageattach", vm_name, "--storagectl", "IDE",
+         "--port", "0", "--device", "0", "--type", "dvddrive", "--medium", "emptydrive"],
+        user_id, LogAction.detach_iso, "storageattach emptydrive",
+    )
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"iso_path": None, "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.detach_iso, vm_name, LogStatus.success, "detached")
+    return _vm_row_to_response(updated.data[0])
+
+
+def enable_vrde(vm_id: str, port: int, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot enable VRDE — VM is '{vm['status']}' (must be stopped)")
+
+    supabase = get_supabase_client()
+    conflict = supabase.table("vms").select("id").eq("vrde_port", port).neq("id", vm_id).execute()
+    if conflict.data:
+        raise HTTPException(status_code=409, detail=f"Port {port} is already in use by another VM")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+
+    _run_vbox(
+        [vbox, "modifyvm", vm_name, "--vrde", "on", "--vrdeport", str(port)],
+        user_id, LogAction.enable_vrde, "modifyvm vrde",
+    )
+
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update(
+        {"vrde_enabled": True, "vrde_port": port, "updated_at": now}
+    ).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.enable_vrde, vm_name, LogStatus.success, str(port))
+    return _vm_row_to_response(updated.data[0])
+
+
+def disable_vrde(vm_id: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot disable VRDE — VM is '{vm['status']}' (must be stopped)")
+    if not vm.get("vrde_enabled"):
+        raise HTTPException(status_code=409, detail="VRDE is already disabled on this VM")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+
+    _run_vbox(
+        [vbox, "modifyvm", vm_name, "--vrde", "off"],
+        user_id, LogAction.disable_vrde, "modifyvm vrde off",
+    )
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update(
+        {"vrde_enabled": False, "vrde_port": None, "updated_at": now}
+    ).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.disable_vrde, vm_name, LogStatus.success, "disabled")
+    return _vm_row_to_response(updated.data[0])
 
 
 def force_reset_vm(vm_id: str, actor_id: str) -> VMResponse:

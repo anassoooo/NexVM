@@ -22,3 +22,7 @@ class LogAction(str, Enum):
     login = "login"
     ai_command = "ai_command"
     force_reset_vm = "force_reset_vm"
+    attach_iso = "attach_iso"
+    detach_iso = "detach_iso"
+    enable_vrde = "enable_vrde"
+    disable_vrde = "disable_vrde"
