@@ -1,50 +1,106 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- TEMPLATE — fill all [PLACEHOLDER] tokens before use. Do not ship with tokens intact. -->
+# [PROJECT_NAME] Project Constitution
 
-## Core Principles
+**Version**: [CONSTITUTION_VERSION]
+**Ratification Date**: [RATIFICATION_DATE]
+**Last Amended**: [LAST_AMENDED_DATE]
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+---
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## §I — Project Identity
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+[PROJECT_IDENTITY_DESCRIPTION]
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+---
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## §II — [PRINCIPLE_2_NAME]
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+[PRINCIPLE_2_BODY]
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+---
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## §III — [PRINCIPLE_3_NAME]
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+[PRINCIPLE_3_BODY]
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+---
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+## §IV — [PRINCIPLE_4_NAME]
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+[PRINCIPLE_4_BODY]
+
+---
+
+## §V — [PRINCIPLE_5_NAME]
+
+[PRINCIPLE_5_BODY]
+
+---
+
+## §VI — Architecture Boundaries
+
+### §VI.1 — Separation of Concerns
+[ARCH_SEPARATION]
+
+### §VI.2 — API Versioning
+[ARCH_VERSIONING]
+
+### §VI.3 — No Direct Frontend DB Writes
+[ARCH_NO_DIRECT_DB]
+
+### §VI.4 — Environment Config
+[ARCH_ENV_CONFIG]
+
+---
+
+## §VII — Data Access Rules
+
+[DATA_ACCESS_RULES]
+
+---
+
+## §VIII — Frontend Conventions
+
+[FRONTEND_CONVENTIONS]
+
+---
+
+## §IX — Backend Conventions
+
+[BACKEND_CONVENTIONS]
+
+---
+
+## §X — Complexity Budget
+
+### §X.3 — Task Ceiling
+[COMPLEXITY_CEILING]
+
+---
+
+## §XI — Security Requirements
+
+### §XI.1 — Auth Required
+[SECURITY_AUTH]
+
+### §XI.2 — Input Validation
+[SECURITY_INPUT_VALIDATION]
+
+### §XI.3 — Command Whitelist
+[SECURITY_COMMAND_WHITELIST]
+
+---
+
+## §XII — Observability & Logging
+
+### §XII.1 — Mandatory Logging
+[LOGGING_STATE_CHANGES]
+
+### §XII.2 — AI Usage Tracking
+[LOGGING_AI_USAGE]
+
+---
+
+## §XIII — Governance
+
+[GOVERNANCE_AMENDMENT_PROCEDURE]

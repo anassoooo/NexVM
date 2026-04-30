@@ -102,10 +102,10 @@ Verify: `http://localhost:3000` redirects to `/login`.
 
 1. **Register**: Go to `/signup`, create an account with a valid email + password meeting policy (≥8 chars, ≥1 number)
 2. **Profile created**: In Supabase SQL Editor, run `SELECT * FROM profiles;` — one row should appear
-3. **Dashboard access**: After signup, you should land on `/dashboard`
+3. **Landing after signup**: Regular user lands on `/ai`; admin user (if `is_admin = true`) lands on `/admin`
 4. **Logout**: Click logout → redirected to `/login`
-5. **Login**: Re-enter credentials → back to `/dashboard`
-6. **Protected route**: While logged out, navigate to `/dashboard` → redirected to `/login`
+5. **Login**: Re-enter credentials → back to `/ai` (regular user) or `/admin` (admin user)
+6. **Protected route**: While logged out, navigate to `/ai` → redirected to `/login`
 7. **Auth check**: Wait for session to appear expired (or manually expire via Supabase) → protected routes redirect to login
 
 ---

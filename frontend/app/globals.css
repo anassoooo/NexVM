@@ -3,21 +3,93 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg: #0a0f0d;
+  --surface: rgba(255, 255, 255, 0.04);
+  --border: rgba(0, 255, 128, 0.12);
+  --accent: #00e676;
+  --success: #00c853;
+  --warning: #ff6d00;
+  --text-muted: #7a9e8a;
+  --text: #e8f5e9;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glass card pattern */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Dark input pattern */
+.input-dark {
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  border-bottom: 1px solid rgba(0, 255, 128, 0.2);
+  color: var(--text);
+  border-radius: 4px 4px 0 0;
+  outline: none;
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-bottom-color 0.2s;
+}
+.input-dark:focus {
+  border-bottom: 2px solid var(--accent);
+}
+.input-dark::placeholder {
+  color: var(--text-muted);
+}
+
+/* Primary gradient button */
+.btn-primary {
+  background: linear-gradient(135deg, var(--success), var(--accent));
+  color: var(--text);
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 10px 28px;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s, opacity 0.2s;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 24px rgba(0, 230, 118, 0.35);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Nav links — pure CSS hover, no JS event handlers */
+.nav-logo {
+  color: var(--accent);
+}
+.nav-link {
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+.nav-link:hover {
+  color: var(--accent);
+}
+
+/* Floating background icon animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-icon { animation: none !important; }
 }
 
 @layer utilities {
