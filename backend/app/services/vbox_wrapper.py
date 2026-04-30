@@ -14,6 +14,7 @@ VBOXMANAGE_COMMANDS = {
     "storagectl",
     "storageattach",
     "createmedium",
+    "snapshot",
 }
 
 # VirtualBox ostype IDs (VBoxManage list ostypes)
@@ -77,7 +78,7 @@ VBOX_STATE_MAP: dict[str, str] = {
     "running": "running",
     "poweroff": "stopped",
     "saved": "stopped",
-    "paused": "stopped",
+    "paused": "paused",
     "aborted": "error",
     "stuck": "error",
     "starting": "starting",

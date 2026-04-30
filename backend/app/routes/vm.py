@@ -1,11 +1,19 @@
+import uuid as uuid_lib
+
 from fastapi import APIRouter, Depends
 
 from app.dependencies import get_current_user
 from app.models.schemas import (
     ISOAttachRequest,
     ISODetachRequest,
+    PortFwdAddRequest,
+    PortFwdDeleteRequest,
+    SnapshotActionRequest,
+    SnapshotResponse,
+    SnapshotTakeRequest,
     VMActionRequest,
     VMCreate,
+    VMModifyRequest,
     VMResponse,
     VRDEDisableRequest,
     VRDEEnableRequest,
@@ -36,7 +44,6 @@ async def get_vm_status(
 async def sync_vm_status(
     body: VMActionRequest, current_user_id: str = Depends(get_current_user)
 ):
-    """Sync VM status from VirtualBox actual state."""
     return vm_service.sync_vm_status(str(body.vm_id), current_user_id)
 
 
@@ -93,3 +100,77 @@ async def disable_vrde(
     body: VRDEDisableRequest, current_user_id: str = Depends(get_current_user)
 ):
     return vm_service.disable_vrde(str(body.vm_id), current_user_id)
+
+
+# --- P2 routes ---
+
+@router.post("/modify", response_model=VMResponse)
+async def modify_vm(
+    body: VMModifyRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.modify_vm(str(body.vm_id), body.ram, body.cpu, current_user_id)
+
+
+@router.post("/pause", response_model=VMResponse)
+async def pause_vm(
+    body: VMActionRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.pause_vm(str(body.vm_id), current_user_id)
+
+
+@router.post("/resume", response_model=VMResponse)
+async def resume_vm(
+    body: VMActionRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.resume_vm(str(body.vm_id), current_user_id)
+
+
+@router.post("/savestate", response_model=VMResponse)
+async def save_state(
+    body: VMActionRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.save_state(str(body.vm_id), current_user_id)
+
+
+@router.post("/portfwd", response_model=VMResponse)
+async def add_port_rule(
+    body: PortFwdAddRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.add_port_rule(
+        str(body.vm_id), body.name, body.protocol, body.host_port, body.guest_port, current_user_id
+    )
+
+
+@router.delete("/portfwd", response_model=VMResponse)
+async def remove_port_rule(
+    body: PortFwdDeleteRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.remove_port_rule(str(body.vm_id), body.name, current_user_id)
+
+
+@router.get("/snapshots", response_model=list[SnapshotResponse])
+async def list_snapshots(
+    vm_id: uuid_lib.UUID, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.list_snapshots(str(vm_id), current_user_id)
+
+
+@router.post("/snapshot", response_model=SnapshotResponse, status_code=201)
+async def take_snapshot(
+    body: SnapshotTakeRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.take_snapshot(str(body.vm_id), body.name, body.description, current_user_id)
+
+
+@router.post("/snapshot/restore", response_model=VMResponse)
+async def restore_snapshot(
+    body: SnapshotActionRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.restore_snapshot(str(body.vm_id), body.name, current_user_id)
+
+
+@router.delete("/snapshot", status_code=204)
+async def delete_snapshot(
+    body: SnapshotActionRequest, current_user_id: str = Depends(get_current_user)
+):
+    vm_service.delete_snapshot(str(body.vm_id), body.name, current_user_id)

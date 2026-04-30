@@ -27,6 +27,7 @@ def _vm_response(**overrides) -> VMResponse:
         "iso_path": None,
         "vrde_enabled": False,
         "vrde_port": None,
+        "nat_rules": [],
         "created_at": now,
         "updated_at": now,
     }

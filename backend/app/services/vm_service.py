@@ -8,7 +8,9 @@ from fastapi import HTTPException
 from app.config import settings
 from app.db import get_supabase_client
 from app.models.enums import LogAction, LogStatus
-from app.models.schemas import VMCreate, VMResponse
+import json
+
+from app.models.schemas import SnapshotResponse, VMCreate, VMResponse
 from app.services.vbox_wrapper import (
     VBOX_STATE_MAP,
     build_vbox_path,
@@ -512,3 +514,229 @@ def force_reset_vm(vm_id: str, actor_id: str) -> VMResponse:
     )
     _log_action(actor_id, LogAction.force_reset_vm, vm_id, LogStatus.success, "Force-poweroff and reset to stopped")
     return _vm_row_to_response(updated.data[0])
+
+
+# ---------------------------------------------------------------------------
+# P2 — Lifecycle features
+# ---------------------------------------------------------------------------
+
+def modify_vm(vm_id: str, ram: int | None, cpu: int | None, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot modify VM in '{vm['status']}' state (must be stopped)")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+    args: list[str] = []
+    if ram is not None:
+        args += ["--memory", str(ram)]
+    if cpu is not None:
+        args += ["--cpus", str(cpu)]
+
+    _run_vbox([vbox, "modifyvm", vm_name, *args], user_id, LogAction.modify_vm, "modifyvm modify")
+
+    updates: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if ram is not None:
+        updates["ram"] = ram
+    if cpu is not None:
+        updates["cpu"] = cpu
+
+    supabase = get_supabase_client()
+    updated = supabase.table("vms").update(updates).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.modify_vm, vm_name, LogStatus.success, f"ram={ram} cpu={cpu}")
+    return _vm_row_to_response(updated.data[0])
+
+
+def pause_vm(vm_id: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "running":
+        raise HTTPException(status_code=409, detail=f"Cannot pause VM in '{vm['status']}' state (must be running)")
+
+    vbox = build_vbox_path()
+    try:
+        result = run_vbox_command([vbox, "controlvm", vm["name"], "pause"])
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="VBoxManage command timed out") from None
+
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"VBoxManage failed: {result.stderr.strip()}")
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"status": "paused", "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.pause_vm, vm_id, LogStatus.success, f"VM '{vm['name']}' paused")
+    return _vm_row_to_response(updated.data[0])
+
+
+def resume_vm(vm_id: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "paused":
+        raise HTTPException(status_code=409, detail=f"Cannot resume VM in '{vm['status']}' state (must be paused)")
+
+    vbox = build_vbox_path()
+    try:
+        result = run_vbox_command([vbox, "controlvm", vm["name"], "resume"])
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="VBoxManage command timed out") from None
+
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"VBoxManage failed: {result.stderr.strip()}")
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"status": "running", "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.resume_vm, vm_id, LogStatus.success, f"VM '{vm['name']}' resumed")
+    return _vm_row_to_response(updated.data[0])
+
+
+def save_state(vm_id: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "running":
+        raise HTTPException(status_code=409, detail=f"Cannot save state of VM in '{vm['status']}' state (must be running)")
+
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    supabase.table("vms").update({"status": "stopping", "updated_at": now}).eq("id", vm_id).execute()
+
+    vbox = build_vbox_path()
+    try:
+        result = run_vbox_command([vbox, "controlvm", vm["name"], "savestate"])
+    except FileNotFoundError:
+        _update_vm_error(vm_id, "VBoxManage not reachable", user_id, LogAction.save_state)
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        _update_vm_error(vm_id, "Command timed out", user_id, LogAction.save_state)
+        raise HTTPException(status_code=500, detail="VBoxManage command timed out") from None
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        _update_vm_error(vm_id, stderr, user_id, LogAction.save_state)
+        raise HTTPException(status_code=500, detail=f"VBoxManage failed: {stderr}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"status": "stopped", "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.save_state, vm_id, LogStatus.success, f"VM '{vm['name']}' state saved")
+    return _vm_row_to_response(updated.data[0])
+
+
+def add_port_rule(
+    vm_id: str, name: str, protocol: str, host_port: int, guest_port: int, user_id: str
+) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot modify port rules — VM is '{vm['status']}' (must be stopped)")
+
+    existing: list[dict] = vm.get("nat_rules") or []
+    if any(r["name"] == name for r in existing):
+        raise HTTPException(status_code=409, detail=f"Port rule '{name}' already exists on this VM")
+
+    _run_vbox(
+        [build_vbox_path(), "modifyvm", vm["name"], "--natpf1", f"{name},{protocol},,{host_port},,{guest_port}"],
+        user_id, LogAction.add_port_rule, "modifyvm natpf1",
+    )
+
+    new_rules = existing + [{"name": name, "protocol": protocol, "host_port": host_port, "guest_port": guest_port}]
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"nat_rules": json.dumps(new_rules), "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.add_port_rule, vm["name"], LogStatus.success, f"{name}:{host_port}->{guest_port}")
+    return _vm_row_to_response(updated.data[0])
+
+
+def remove_port_rule(vm_id: str, name: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot modify port rules — VM is '{vm['status']}' (must be stopped)")
+
+    existing: list[dict] = vm.get("nat_rules") or []
+    if not any(r["name"] == name for r in existing):
+        raise HTTPException(status_code=404, detail=f"Port rule '{name}' not found on this VM")
+
+    _run_vbox(
+        [build_vbox_path(), "modifyvm", vm["name"], "--natpf1", f"delete {name}"],
+        user_id, LogAction.remove_port_rule, "modifyvm natpf1 delete",
+    )
+
+    new_rules = [r for r in existing if r["name"] != name]
+    supabase = get_supabase_client()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = supabase.table("vms").update({"nat_rules": json.dumps(new_rules), "updated_at": now}).eq("id", vm_id).execute()
+    _log_action(user_id, LogAction.remove_port_rule, vm["name"], LogStatus.success, name)
+    return _vm_row_to_response(updated.data[0])
+
+
+def take_snapshot(vm_id: str, name: str, description: str, user_id: str) -> SnapshotResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot take snapshot — VM is '{vm['status']}' (must be stopped)")
+
+    supabase = get_supabase_client()
+    existing = supabase.table("vm_snapshots").select("id").eq("vm_id", vm_id).eq("name", name).execute()
+    if existing.data:
+        raise HTTPException(status_code=409, detail=f"Snapshot '{name}' already exists on this VM")
+
+    _run_vbox(
+        [build_vbox_path(), "snapshot", vm["name"], "take", name, "--description", description],
+        user_id, LogAction.take_snapshot, "snapshot take",
+    )
+
+    inserted = supabase.table("vm_snapshots").insert(
+        {"vm_id": vm_id, "name": name, "description": description or None}
+    ).execute()
+    _log_action(user_id, LogAction.take_snapshot, vm["name"], LogStatus.success, name)
+    return SnapshotResponse(**inserted.data[0])
+
+
+def restore_snapshot(vm_id: str, name: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot restore snapshot — VM is '{vm['status']}' (must be stopped)")
+
+    supabase = get_supabase_client()
+    existing = supabase.table("vm_snapshots").select("id").eq("vm_id", vm_id).eq("name", name).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail=f"Snapshot '{name}' not found on this VM")
+
+    _run_vbox(
+        [build_vbox_path(), "snapshot", vm["name"], "restore", name],
+        user_id, LogAction.restore_snapshot, "snapshot restore",
+    )
+
+    _log_action(user_id, LogAction.restore_snapshot, vm["name"], LogStatus.success, name)
+    return _vm_row_to_response(vm)
+
+
+def delete_snapshot(vm_id: str, name: str, user_id: str) -> None:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(status_code=409, detail=f"Cannot delete snapshot — VM is '{vm['status']}' (must be stopped)")
+
+    supabase = get_supabase_client()
+    existing = supabase.table("vm_snapshots").select("id").eq("vm_id", vm_id).eq("name", name).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail=f"Snapshot '{name}' not found on this VM")
+
+    _run_vbox(
+        [build_vbox_path(), "snapshot", vm["name"], "delete", name],
+        user_id, LogAction.delete_snapshot, "snapshot delete",
+    )
+
+    supabase.table("vm_snapshots").delete().eq("vm_id", vm_id).eq("name", name).execute()
+    _log_action(user_id, LogAction.delete_snapshot, vm["name"], LogStatus.success, name)
+
+
+def list_snapshots(vm_id: str, user_id: str) -> list[SnapshotResponse]:
+    _get_vm_or_404(vm_id, user_id)
+    supabase = get_supabase_client()
+    result = (
+        supabase.table("vm_snapshots")
+        .select("*")
+        .eq("vm_id", vm_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return [SnapshotResponse(**row) for row in result.data]

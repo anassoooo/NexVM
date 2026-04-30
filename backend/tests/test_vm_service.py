@@ -28,6 +28,7 @@ def _vm_row(**overrides):
         "iso_path": None,
         "vrde_enabled": False,
         "vrde_port": None,
+        "nat_rules": [],
         "created_at": now,
         "updated_at": now,
     }

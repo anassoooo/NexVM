@@ -15,12 +15,25 @@ interface VMListProps {
   onDetachISO: (vmId: string) => void;
   onEnableVRDE: (vmId: string, port: number) => void;
   onDisableVRDE: (vmId: string) => void;
+  onPause: (vmId: string) => void;
+  onResume: (vmId: string) => void;
+  onSaveState: (vmId: string) => void;
+  onModify: (vmId: string, ram: number | null, cpu: number | null) => void;
+  onAddPortRule: (vmId: string, name: string, proto: "tcp" | "udp", hp: number, gp: number) => void;
+  onRemovePortRule: (vmId: string, name: string) => void;
+  onTakeSnapshot: (vmId: string, name: string, desc: string) => void;
+  onRestoreSnapshot: (vmId: string, name: string) => void;
+  onDeleteSnapshot: (vmId: string, name: string) => void;
   showOwner?: boolean;
 }
 
 export default function VMList({
   vms, loading, onStart, onStop, onDelete, onSync, onForceReset,
-  onAttachISO, onDetachISO, onEnableVRDE, onDisableVRDE, showOwner,
+  onAttachISO, onDetachISO, onEnableVRDE, onDisableVRDE,
+  onPause, onResume, onSaveState, onModify,
+  onAddPortRule, onRemovePortRule,
+  onTakeSnapshot, onRestoreSnapshot, onDeleteSnapshot,
+  showOwner,
 }: VMListProps) {
   if (loading && vms.length === 0) {
     return (
@@ -56,6 +69,15 @@ export default function VMList({
           onDetachISO={() => onDetachISO(vm.id)}
           onEnableVRDE={(port) => onEnableVRDE(vm.id, port)}
           onDisableVRDE={() => onDisableVRDE(vm.id)}
+          onPause={() => onPause(vm.id)}
+          onResume={() => onResume(vm.id)}
+          onSaveState={() => onSaveState(vm.id)}
+          onModify={(ram, cpu) => onModify(vm.id, ram, cpu)}
+          onAddPortRule={(name, proto, hp, gp) => onAddPortRule(vm.id, name, proto, hp, gp)}
+          onRemovePortRule={(name) => onRemovePortRule(vm.id, name)}
+          onTakeSnapshot={(name, desc) => onTakeSnapshot(vm.id, name, desc)}
+          onRestoreSnapshot={(name) => onRestoreSnapshot(vm.id, name)}
+          onDeleteSnapshot={(name) => onDeleteSnapshot(vm.id, name)}
           showOwner={showOwner}
         />
       ))}
