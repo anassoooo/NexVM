@@ -43,6 +43,9 @@ export default function RootLayout({
             <Link href="/ai" className="text-sm font-medium nav-link">
               AI
             </Link>
+            <Link href="/logs" className="text-sm font-medium nav-link">
+              Logs
+            </Link>
           </div>
           <LogoutButton />
         </nav>

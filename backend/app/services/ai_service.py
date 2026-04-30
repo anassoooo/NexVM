@@ -158,6 +158,8 @@ def _build_system_prompt(user_id: str) -> str:
             "status": vm.status.value,
             "os": vm.os,
             "ram": vm.ram,
+            "cpu": vm.cpu,
+            "disk_size": vm.disk_size,
             **({"error_message": vm.error_message} if vm.error_message else {}),
         }
         for vm in vms

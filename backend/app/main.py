@@ -14,6 +14,7 @@ from app.routes.ai import router as ai_router
 from app.routes.analytics import router as analytics_router
 from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
+from app.routes.logs import router as logs_router
 from app.routes.vm import router as vm_router
 
 # --- Logging setup (dev mode) ---
@@ -49,7 +50,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -68,6 +69,7 @@ app.include_router(vm_router, prefix="/api/v1/vm", tags=["vm"])
 app.include_router(admin_vm_router, prefix="/api/v1/admin/vm", tags=["admin-vm"])
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(logs_router, prefix="/api/v1/logs", tags=["logs"])
 
 
 if __name__ == "__main__":
