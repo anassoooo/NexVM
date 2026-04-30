@@ -4,25 +4,9 @@
 -- Date:   2026-04-04
 -- File:   supabase/migrations/001_initial_schema.sql
 -- ============================================================
--- Run in Supabase SQL Editor or via Supabase CLI migration.
--- auth.users table is managed by Supabase — not created here.
--- ============================================================
-
--- ============================================================
--- HELPER FUNCTION: is_admin()
--- SECURITY DEFINER to avoid RLS recursion on profiles table.
--- Used by admin policies on all application tables.
--- ============================================================
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean AS $$
-    SELECT EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND is_admin = true
-    );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ------------------------------------------------------------
--- TABLE: profiles
+-- TABLE: profiles (created first — is_admin() depends on it)
 -- 1:1 extension of auth.users; auto-created on signup via trigger.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -32,6 +16,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
     CONSTRAINT profiles_pkey PRIMARY KEY (id)
 );
+
+-- ============================================================
+-- HELPER FUNCTION: is_admin()
+-- SECURITY DEFINER to avoid RLS recursion on profiles table.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND is_admin = true
+    );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
@@ -43,7 +39,6 @@ CREATE POLICY "profiles_admin_all" ON public.profiles
 
 -- ------------------------------------------------------------
 -- TABLE: vms
--- Tracks every virtual machine registered in the system.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.vms (
     id            uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -56,9 +51,9 @@ CREATE TABLE IF NOT EXISTS public.vms (
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT vms_pkey            PRIMARY KEY (id),
-    CONSTRAINT vms_status_check    CHECK (status IN ('stopped', 'starting', 'running', 'stopping', 'error')),
-    CONSTRAINT vms_ram_check       CHECK (ram >= 512 AND ram <= 16384)
+    CONSTRAINT vms_pkey         PRIMARY KEY (id),
+    CONSTRAINT vms_status_check CHECK (status IN ('stopped', 'starting', 'running', 'stopping', 'error')),
+    CONSTRAINT vms_ram_check    CHECK (ram >= 512 AND ram <= 16384)
 );
 
 CREATE INDEX IF NOT EXISTS vms_user_id_idx ON public.vms (user_id);
@@ -69,17 +64,10 @@ CREATE POLICY "vms_user_own" ON public.vms
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "vms_admin_all" ON public.vms
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TABLE: logs
--- Append-only audit trail. user_id SET NULL on user delete
--- to preserve audit records after account removal.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.logs (
     id         uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -90,9 +78,12 @@ CREATE TABLE IF NOT EXISTS public.logs (
     message    text        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
 
-    CONSTRAINT logs_pkey          PRIMARY KEY (id),
-    CONSTRAINT logs_status_check  CHECK (status IN ('success', 'failure')),
-    CONSTRAINT logs_action_check  CHECK (action IN ('create_vm', 'start_vm', 'stop_vm', 'delete_vm', 'login', 'ai_command'))
+    CONSTRAINT logs_pkey         PRIMARY KEY (id),
+    CONSTRAINT logs_status_check CHECK (status IN ('success', 'failure')),
+    CONSTRAINT logs_action_check CHECK (action IN (
+        'create_vm', 'start_vm', 'stop_vm', 'delete_vm',
+        'login', 'ai_command', 'force_reset_vm'
+    ))
 );
 
 CREATE INDEX IF NOT EXISTS logs_user_id_idx ON public.logs (user_id);
@@ -103,17 +94,10 @@ CREATE POLICY "logs_user_own" ON public.logs
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "logs_admin_all" ON public.logs
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TABLE: ai_usage
--- Records every AI command interaction.
--- user_id SET NULL on user delete to preserve analytics.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.ai_usage (
     id         uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -134,16 +118,10 @@ CREATE POLICY "ai_usage_user_own" ON public.ai_usage
     FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "ai_usage_admin_all" ON public.ai_usage
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND is_admin = true
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 -- ------------------------------------------------------------
 -- TRIGGER: auto-create profile on user signup
--- ON CONFLICT DO NOTHING makes it idempotent (safe if called twice).
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$

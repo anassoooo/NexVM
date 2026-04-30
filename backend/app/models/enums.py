@@ -21,3 +21,4 @@ class LogAction(str, Enum):
     delete_vm = "delete_vm"
     login = "login"
     ai_command = "ai_command"
+    force_reset_vm = "force_reset_vm"
