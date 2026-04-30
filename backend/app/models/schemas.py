@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import LogAction, LogStatus, VMStatus
 
@@ -28,6 +28,13 @@ class VMCreate(BaseModel):
         return v
 
 
+class PortFwdRule(BaseModel):
+    name: str
+    protocol: Literal["tcp", "udp"]
+    host_port: int
+    guest_port: int
+
+
 class VMResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
@@ -42,6 +49,7 @@ class VMResponse(BaseModel):
     iso_path: str | None
     vrde_enabled: bool
     vrde_port: int | None
+    nat_rules: list[PortFwdRule]
     created_at: datetime
     updated_at: datetime
 
@@ -75,6 +83,50 @@ class VRDEEnableRequest(BaseModel):
 
 class VRDEDisableRequest(BaseModel):
     vm_id: uuid.UUID
+
+
+class VMModifyRequest(BaseModel):
+    vm_id: uuid.UUID
+    ram: int | None = Field(default=None, ge=512, le=16384)
+    cpu: int | None = Field(default=None, ge=1, le=32)
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> "VMModifyRequest":
+        if self.ram is None and self.cpu is None:
+            raise ValueError("At least one of ram or cpu must be provided")
+        return self
+
+
+class PortFwdAddRequest(BaseModel):
+    vm_id: uuid.UUID
+    name: str = Field(min_length=1, max_length=50)
+    protocol: Literal["tcp", "udp"]
+    host_port: int = Field(ge=1024, le=65535)
+    guest_port: int = Field(ge=1, le=65535)
+
+
+class PortFwdDeleteRequest(BaseModel):
+    vm_id: uuid.UUID
+    name: str = Field(min_length=1)
+
+
+class SnapshotTakeRequest(BaseModel):
+    vm_id: uuid.UUID
+    name: str = Field(min_length=1, max_length=50)
+    description: str = Field(default="", max_length=200)
+
+
+class SnapshotActionRequest(BaseModel):
+    vm_id: uuid.UUID
+    name: str = Field(min_length=1)
+
+
+class SnapshotResponse(BaseModel):
+    id: uuid.UUID
+    vm_id: uuid.UUID
+    name: str
+    description: str | None
+    created_at: datetime
 
 
 class LogResponse(BaseModel):

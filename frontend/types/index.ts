@@ -1,3 +1,18 @@
+export interface PortFwdRule {
+  name: string;
+  protocol: "tcp" | "udp";
+  host_port: number;
+  guest_port: number;
+}
+
+export interface Snapshot {
+  id: string;
+  vm_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
 export interface VM {
   id: string;
   user_id: string;
@@ -7,11 +22,12 @@ export interface VM {
   cpu: number;
   disk_size: number;
   vbox_id: string | null;
-  status: "stopped" | "starting" | "running" | "stopping" | "error";
+  status: "stopped" | "starting" | "running" | "stopping" | "paused" | "error";
   error_message: string | null;
   iso_path: string | null;
   vrde_enabled: boolean;
   vrde_port: number | null;
+  nat_rules: PortFwdRule[];
   created_at: string;
   updated_at: string;
 }
