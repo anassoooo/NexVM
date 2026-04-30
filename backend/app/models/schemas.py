@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.enums import LogAction, LogStatus, VMStatus
 
@@ -12,8 +12,10 @@ _VM_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 \-]{0,49}$")
 
 class VMCreate(BaseModel):
     name: str = Field(min_length=1, max_length=50)
-    os: str
+    os: str = Field(min_length=1)
     ram: int = Field(ge=512, le=16384)
+    cpu: int = Field(ge=1, le=32, default=2)
+    disk_size: int = Field(ge=5120, le=512000, default=20480)
 
     @field_validator("name")
     @classmethod
@@ -31,6 +33,9 @@ class VMResponse(BaseModel):
     name: str
     os: str
     ram: int
+    cpu: int
+    disk_size: int
+    vbox_id: str | None
     status: VMStatus
     error_message: str | None
     created_at: datetime
@@ -70,7 +75,7 @@ class UserProfile(BaseModel):
 
 
 class AICommandRequest(BaseModel):
-    prompt: str = Field(min_length=1, max_length=500)
+    prompt: str = Field(min_length=1, max_length=2000)
 
 
 class AICommandResponse(BaseModel):
@@ -84,6 +89,8 @@ class AICreateVM(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     os: str = Field(min_length=1)
     ram: int = Field(ge=512, le=16384)
+    cpu: int = Field(ge=1, le=32, default=2)
+    disk_size: int = Field(ge=5120, le=512000, default=20480)
 
     @field_validator("name")
     @classmethod
@@ -110,6 +117,20 @@ class AIDeleteVM(BaseModel):
     vm_id: uuid.UUID
 
 
+class AIListVMs(BaseModel):
+    action: Literal["list_vms"]
+
+
+class AIQueryAnalytics(BaseModel):
+    action: Literal["query_analytics"]
+    message: str = Field(min_length=1, max_length=2000)
+
+
+class AIChat(BaseModel):
+    action: Literal["chat"]
+    message: str = Field(min_length=1, max_length=2000)
+
+
 # --- Analytics schemas ---
 
 
@@ -123,3 +144,35 @@ class UserAnalytics(BaseModel):
 
 class AdminAnalytics(UserAnalytics):
     total_users: int
+
+
+# --- Auth schemas ---
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+
+class UserInfo(BaseModel):
+    id: uuid.UUID
+    email: str
+    is_admin: bool
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserInfo
+
+
+class SignupResponse(BaseModel):
+    message: str
+    user: UserInfo
+    access_token: str | None = None
+    token_type: str = "bearer"

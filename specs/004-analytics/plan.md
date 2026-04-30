@@ -16,7 +16,7 @@ Add read-only analytics to myVMS. Two new backend endpoints query existing table
 
 **Language/Version**: Python 3.12 (backend), TypeScript 5.x (frontend)  
 **New Backend Files**: `services/analytics_service.py`, `routes/analytics.py` (+ update `main.py`, `models/schemas.py`)  
-**New Frontend Files**: none (+ update `types/index.ts`, `app/dashboard/page.tsx`, `app/admin/page.tsx`)  
+**New Frontend Files**: none (+ update `types/index.ts`, `app/admin/page.tsx`)  
 **Existing Reused Files**: `dependencies.py` (`get_current_user`, `get_current_admin_user`), `db.py` (`get_supabase_client`)  
 **Storage**: Supabase PostgreSQL — `vms`, `ai_usage`, `profiles` tables (read-only queries)  
 **Testing**: pytest + unittest.mock.patch for Supabase client  
@@ -75,8 +75,8 @@ backend/
 
 frontend/
 ├── app/
-│   ├── dashboard/
-│   │   └── page.tsx                 MODIFY — replace filler text with stat cards
+│   ├── ai/
+│   │   └── page.tsx                 MODIFY — auto-call analytics on session start for AI greeting
 │   └── admin/
 │       └── page.tsx                 MODIFY — replace [placeholder] with system metrics
 └── types/

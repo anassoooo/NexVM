@@ -32,9 +32,9 @@ Submit a natural language command. The system interprets it via Groq LLM, valida
 }
 ```
 
-| Field  | Type   | Required | Constraints      |
-|--------|--------|----------|------------------|
-| prompt | string | YES      | 1–500 characters |
+| Field  | Type   | Required | Constraints       |
+|--------|--------|----------|-------------------|
+| prompt | string | YES      | 1–2000 characters |
 
 **Success response** — HTTP 200:
 
@@ -65,18 +65,27 @@ Submit a natural language command. The system interprets it via Groq LLM, valida
 
 // start_vm / stop_vm / delete_vm
 { "action": "start_vm", "vm_id": "uuid-string" }
+
+// query_analytics
+{ "action": "query_analytics", "scope": "user" }
+{ "action": "query_analytics", "scope": "admin" }
+
+// chat — general conversation or question answered without VM action
+{ "action": "chat", "message": "Here is the answer to your question..." }
 ```
+
+For `chat` actions the `result` field in the top-level response body contains the same text as `ai_response.message`. The frontend should display `result` as the AI reply regardless of action type.
 
 **Error responses**:
 
 | Scenario                            | Status | Body                                                                    |
 |-------------------------------------|--------|-------------------------------------------------------------------------|
 | Missing/invalid JWT                 | 401    | `{"detail": "Invalid or expired token"}`                                |
-| Empty prompt or prompt > 500 chars  | 422    | Pydantic validation error body                                          |
+| Empty prompt or prompt > 2000 chars | 422    | Pydantic validation error body                                          |
 | Rate limit exceeded                 | 429    | `{"detail": "Rate limit exceeded — max 10 AI commands per minute"}`     |
 | AI returned non-JSON                | 400    | `{"detail": "AI returned an invalid response — please rephrase your command"}` |
 | AI returned unknown action          | 400    | `{"detail": "AI returned an invalid response — please rephrase your command"}` |
-| AI returned error action            | 400    | `{"detail": "<AI's explanation message>"}`                              |
+| AI returned error action            | 400    | `{"detail": "<AI's explanation message>"}` — only for truly unresolvable inputs; general questions now return HTTP 200 with a `chat` action instead |
 | AI returned invalid parameters      | 400    | `{"detail": "AI returned invalid parameters — please rephrase your command"}` |
 | Groq API unavailable                | 503    | `{"detail": "AI service unavailable"}`                                  |
 | VM not found (passthrough)          | 404    | `{"detail": "VM not found"}`                                            |

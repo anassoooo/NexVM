@@ -39,7 +39,7 @@ All AI commands produce a log entry with `action = 'ai_command'`. The `target` f
 
 ```python
 class AICommandRequest(BaseModel):
-    prompt: str = Field(min_length=1, max_length=500)
+    prompt: str = Field(min_length=1, max_length=2000)
 
 class AICommandResponse(BaseModel):
     action: str                    # e.g. "create_vm"
@@ -67,9 +67,17 @@ class AIStopVM(BaseModel):
 class AIDeleteVM(BaseModel):
     action: Literal["delete_vm"]
     vm_id: uuid.UUID
+
+class AIChat(BaseModel):
+    action: Literal["chat"]
+    message: str = Field(min_length=1, max_length=2000)
 ```
 
-All four use `model_dump(mode="json")` to produce JSON-serializable dicts (UUIDs → strings).
+All schemas use `model_dump(mode="json")` to produce JSON-serializable dicts (UUIDs → strings).
+
+**`AIChat` notes**:
+- `max_length=2000` — generous ceiling so the LLM is never truncated mid-sentence, while still bounding the field.
+- The `message` value is returned directly to the frontend as the AI's reply; it is never passed to any VM service or execution layer.
 
 ---
 
@@ -125,7 +133,9 @@ _validate_ai_response(raw_text)
     │
     ▼
 _execute_action(validated, user_id)
-  └─ dispatches to vm_service.create_vm / start_vm / stop_vm / delete_vm
+  └─ "create_vm" / "start_vm" / "stop_vm" / "delete_vm" → vm_service
+  └─ "query_analytics" → analytics_service
+  └─ "chat" → return validated["message"] directly (no VM service call)
   └─ returns result_message: str
     │
     ▼

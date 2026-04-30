@@ -20,6 +20,9 @@ def _vm_row(**overrides):
         "name": "test-vm",
         "os": "Ubuntu 22.04",
         "ram": 1024,
+        "cpu": 2,
+        "disk_size": 20480,
+        "vbox_id": None,
         "status": "stopped",
         "error_message": None,
         "created_at": now,
@@ -60,13 +63,19 @@ def _setup_select_vm(mock_sb, row=None):
     return row
 
 
+def _setup_quota_check(mock_sb, count=0):
+    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.count = count
+
+
 # ── create_vm ──────────────────────────────────────────────
 
 
 def test_create_vm_success(_patch_supabase):
+    _setup_quota_check(_patch_supabase, count=0)
     mock_proc = MagicMock()
     mock_proc.returncode = 0
     mock_proc.stderr = ""
+    mock_proc.stdout = "Virtual machine 'test-vm' is created and registered. UUID: 12345678-1234-1234-1234-123456789012"
 
     _patch_supabase.table.return_value.insert.return_value.execute.return_value = (
         MagicMock(data=[_vm_row()])
@@ -83,6 +92,7 @@ def test_create_vm_success(_patch_supabase):
 
 
 def test_create_vm_name_conflict_409(_patch_supabase):
+    _setup_quota_check(_patch_supabase, count=0)
     mock_proc = MagicMock()
     mock_proc.returncode = 1
     mock_proc.stderr = "VirtualBox error: Machine settings file already exists"
@@ -94,6 +104,7 @@ def test_create_vm_name_conflict_409(_patch_supabase):
 
 
 def test_create_vm_generic_failure_500(_patch_supabase):
+    _setup_quota_check(_patch_supabase, count=0)
     mock_proc = MagicMock()
     mock_proc.returncode = 1
     mock_proc.stderr = "some internal error"
@@ -286,3 +297,53 @@ def test_get_vm_not_found(_patch_supabase):
     with pytest.raises(Exception) as exc_info:
         vm_service.get_vm_status("00000000-0000-0000-0000-999999999999", USER_ID)
     assert exc_info.value.status_code == 404
+
+
+# ── force_reset_vm (FR-022) ────────────────────────────────
+
+
+def test_force_reset_vm_sets_stopped(_patch_supabase):
+    _setup_select_vm(_patch_supabase, _vm_row(status="starting"))
+    reset_row = _vm_row(status="stopped", error_message=None)
+    _patch_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+        data=[reset_row]
+    )
+
+    mock_proc = MagicMock(returncode=0, stderr="")
+
+    with patch("app.services.vm_service.run_vbox_command", return_value=mock_proc) as mock_vbox:
+        result = vm_service.force_reset_vm(VM_ID, actor_id=USER_ID)
+
+    assert result.status == "stopped"
+    assert result.error_message is None
+    mock_vbox.assert_called_once()
+    _patch_supabase.table.assert_any_call("logs")
+
+
+# ── delete_vm on error state (FR-010 extended) ────────────
+
+
+def test_delete_vm_error_state_success(_patch_supabase):
+    _setup_select_vm(_patch_supabase, _vm_row(status="error"))
+    mock_proc = MagicMock(returncode=0, stderr="")
+
+    with patch("app.services.vm_service.run_vbox_command", return_value=mock_proc):
+        vm_service.delete_vm(VM_ID, USER_ID)
+
+    _patch_supabase.table.assert_any_call("logs")
+
+
+# ── create_vm quota exceeded (FR-001) ─────────────────────
+
+
+def test_create_vm_quota_exceeded_409(_patch_supabase):
+    from app.config import settings
+    _setup_quota_check(_patch_supabase, count=settings.VM_QUOTA_PER_USER)
+
+    with patch("app.services.vm_service.run_vbox_command") as mock_vbox:
+        with pytest.raises(Exception) as exc_info:
+            vm_service.create_vm(VMCreate(name="over-quota", os="Ubuntu", ram=512), USER_ID)
+        assert exc_info.value.status_code == 409
+        assert "quota" in exc_info.value.detail.lower()
+
+    mock_vbox.assert_not_called()

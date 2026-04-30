@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     FRONTEND_URL: str = "http://localhost:3000"
     VBOXMANAGE_PATH: str = ""
+    VM_STORAGE_PATH: str = ""
+    VM_QUOTA_PER_USER: int = 5
 
     model_config = {
         "env_file": str(_BACKEND_DIR / ".env"),

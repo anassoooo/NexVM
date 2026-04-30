@@ -4,6 +4,9 @@ export interface VM {
   name: string;
   os: string;
   ram: number;
+  cpu: number;
+  disk_size: number;
+  vbox_id: string | null;
   status: "stopped" | "starting" | "running" | "stopping" | "error";
   error_message: string | null;
   created_at: string;
@@ -39,6 +42,12 @@ export interface UserProfile {
   id: string;
   is_admin: boolean;
   created_at: string;
+}
+
+export interface UserInfo {
+  id: string;
+  email: string;
+  is_admin: boolean;
 }
 
 export interface AICommandResponse {

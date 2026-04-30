@@ -1,6 +1,7 @@
 # Research: AI Command Processing
 
-**Branch**: `003-ai-command-processing` | **Date**: 2026-04-07
+**Branch**: `003-ai-command-processing` | **Date**: 2026-04-07  
+**Last amended**: 2026-04-15 — §7 added for free conversation mode modification
 
 ---
 
@@ -155,3 +156,35 @@ interface Message {
 **Alternatives considered**:
 - Server component with form actions — simpler but no loading state or local history without client JS. Rejected.
 - Persisted history via `GET /api/v1/ai/history` — deferred. `ai_usage` table exists but no route for MVP.
+
+---
+
+## 7. Free Conversation Mode (Modification — 2026-04-15)
+
+**Context**: The original spec treats all non-VM messages as `{"action": "error", ...}`, forcing an HTTP 400. Users had no way to ask general questions, get help, or hold a natural conversation. The modification extends the AI to respond conversationally when no VM action is needed.
+
+**Decision**: Add a `chat` action to the JSON contract. When the user's intent is not a VM operation, the LLM returns:
+
+```json
+{"action": "chat", "message": "<free-form natural language response>"}
+```
+
+The `message` field is displayed in the chat as the AI's reply. The JSON wrapper is validated by a `AIChat` Pydantic schema (`action: Literal["chat"]`, `message: str`) before the message reaches the frontend — no string escapes validation.
+
+**Rationale**:
+- Constitution §IV requires JSON-only output; this preserves the contract while enabling free-form text inside a validated field.
+- Constitution §I prohibits free-form strings reaching any execution layer; `chat` has no execution path — the service reads `message` and returns it as-is.
+- No new database tables, endpoints, or services are required — fully additive on top of the existing pipeline.
+
+**Impact on `error` action**: The `error` action is retained for truly unresolvable requests (e.g., adversarial inputs, ambiguous multi-intent prompts). However, the system prompt is updated so the LLM uses `chat` as the default for general conversation and reserves `error` only for requests it genuinely cannot respond to safely.
+
+**Token budget**: The current `max_tokens=256` is tight for conversational responses that may span several sentences. Bumped to `512`. JSON action schemas (the largest being `create_vm` at ~80 tokens) are unaffected; the increase only benefits `chat` responses.
+
+**Rate limiting**: `chat` actions pass through the same 10-per-minute rate limiter. Conversational turns still invoke the Groq API and should be subject to the same abuse protection.
+
+**Logging**: `chat` calls are logged to `ai_usage` (prompt + response + tokens) for observability. A `logs` entry with `target="ai"` and `status=success` is written. This keeps the audit trail consistent with all other AI actions.
+
+**Alternatives considered**:
+- Relaxing the JSON requirement (allow free-form LLM output) — rejected; violates §IV of the constitution. No exception path.
+- Separate `/api/v1/ai/chat` endpoint — rejected; YAGNI. Adds a route, a new service branch, and splits concerns that the single-dispatch pipeline already handles cleanly.
+- Discriminated union with `Union[AIAction, AIChat]` — considered but the explicit `action` dispatch table already in place is simpler. Adding `chat` to the existing dict requires one schema class and one line in `_execute_action`.
