@@ -7,6 +7,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from supabase import ClientOptions, create_client
 
 from app.config import settings
@@ -62,21 +63,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="myVMS API", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["*"],
-)
 
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def _log_requests(request: Request, call_next):
     logger.debug(">> %s %s", request.method, request.url.path)
     response = await call_next(request)
     logger.debug("<< %s %s %d", request.method, request.url.path, response.status_code)
     return response
+
+
+# Logging middleware added FIRST (becomes inner) so CORS stays outermost.
+app.add_middleware(BaseHTTPMiddleware, dispatch=_log_requests)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
 app.include_router(health_router, prefix="/api/v1")
