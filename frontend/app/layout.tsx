@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import LogoutButton from "./dashboard/logout-button";
+import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${spaceGrotesk.variable} antialiased`} style={{ background: "var(--bg)", color: "var(--text)" }}>
+        <ToastProvider>
         <nav
           className="flex items-center justify-between px-6"
           style={{
@@ -53,6 +55,7 @@ export default function RootLayout({
           <LogoutButton />
         </nav>
         {children}
+        </ToastProvider>
       </body>
     </html>
   );
