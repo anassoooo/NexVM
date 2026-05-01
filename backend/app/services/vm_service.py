@@ -444,6 +444,12 @@ def attach_iso(vm_id: str, iso_path: str, user_id: str) -> VMResponse:
         user_id, LogAction.attach_iso, "storageattach iso",
     )
 
+    # Boot from DVD first so the ISO is used before the (empty) hard disk
+    _run_vbox(
+        [vbox, "modifyvm", vm_name, "--boot1", "dvd", "--boot2", "disk", "--boot3", "none"],
+        user_id, LogAction.attach_iso, "modifyvm boot order",
+    )
+
     supabase = get_supabase_client()
     now = datetime.now(timezone.utc).isoformat()
     updated = supabase.table("vms").update({"iso_path": iso_path, "updated_at": now}).eq("id", vm_id).execute()
@@ -465,6 +471,12 @@ def detach_iso(vm_id: str, user_id: str) -> VMResponse:
         [vbox, "storageattach", vm_name, "--storagectl", "IDE",
          "--port", "0", "--device", "0", "--type", "dvddrive", "--medium", "emptydrive"],
         user_id, LogAction.detach_iso, "storageattach emptydrive",
+    )
+
+    # Restore disk-first boot order now that the ISO is gone
+    _run_vbox(
+        [vbox, "modifyvm", vm_name, "--boot1", "disk", "--boot2", "none", "--boot3", "none"],
+        user_id, LogAction.detach_iso, "modifyvm boot order",
     )
 
     supabase = get_supabase_client()
