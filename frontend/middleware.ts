@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("myvms_token")?.value;
+  const token = request.cookies.get("nexvm_token")?.value;
   const isAuthenticated = !!token && token.length > 0;
-  const isAdmin = request.cookies.get("myvms_admin")?.value === "1";
+  const isAdmin = request.cookies.get("nexvm_admin")?.value === "1";
   const { pathname } = request.nextUrl;
 
   const isAuthRoute = pathname === "/login" || pathname === "/signup";

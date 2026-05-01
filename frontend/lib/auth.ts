@@ -1,5 +1,5 @@
-const TOKEN_KEY = "myvms_token";
-const ADMIN_KEY = "myvms_admin";
+const TOKEN_KEY = "nexvm_token";
+const ADMIN_KEY = "nexvm_admin";
 const MAX_AGE = 86400; // 24h — matches Supabase JWT expiry
 
 export function setAuth(token: string, isAdmin: boolean): void {

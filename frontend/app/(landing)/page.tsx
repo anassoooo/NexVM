@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import BackgroundLayer from "@/components/background-layer";
 
@@ -10,22 +11,9 @@ export default function LandingPage() {
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "calc(100vh - 56px)" }}>
         <div
           className="mb-6"
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: "18px",
-            background: "rgba(0,230,118,0.1)",
-            border: "1px solid rgba(0,230,118,0.2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          style={{ width: 88, height: 88, borderRadius: "22px", overflow: "hidden", border: "1px solid rgba(0,230,118,0.2)" }}
         >
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00e676" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
+          <Image src="/logo.png" alt="NexVM" width={88} height={88} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
         </div>
 
         <h1 className="text-5xl md:text-6xl font-bold mb-4 text-balance" style={{ color: "var(--text)" }}>
@@ -164,7 +152,7 @@ export default function LandingPage() {
           What Can You Do?
         </h2>
         <p className="text-center mb-12 max-w-xl mx-auto" style={{ color: "var(--text-muted)" }}>
-          myVMS gives you full control over your VirtualBox infrastructure.
+          NexVM gives you full control over your VirtualBox infrastructure.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -208,7 +196,7 @@ export default function LandingPage() {
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          myVMS — Virtual Machine Management Platform
+          NexVM — Virtual Machine Management Platform
         </p>
       </footer>
     </div>

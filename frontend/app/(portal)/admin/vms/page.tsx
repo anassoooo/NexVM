@@ -8,8 +8,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function AdminVMsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("myvms_token")?.value;
-  const isAdmin = cookieStore.get("myvms_admin")?.value === "1";
+  const token = cookieStore.get("nexvm_token")?.value;
+  const isAdmin = cookieStore.get("nexvm_admin")?.value === "1";
 
   if (!token) redirect("/login");
   if (!isAdmin) redirect("/ai");

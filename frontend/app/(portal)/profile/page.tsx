@@ -8,7 +8,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("myvms_token")?.value;
+  const token = cookieStore.get("nexvm_token")?.value;
 
   if (!token) redirect("/login");
 

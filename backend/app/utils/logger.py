@@ -40,4 +40,4 @@ class StructuredLogger:
         self.log(action, target, "failure", message, user_id)
 
 
-logger = StructuredLogger("myvms")
+logger = StructuredLogger("nexvm")
