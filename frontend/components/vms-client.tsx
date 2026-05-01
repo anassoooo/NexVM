@@ -36,13 +36,22 @@ export default function VMsClient({
     }
   }
 
-  // Fast poll (5 s) while any VM is transitional
+  // Fast poll (5 s) while any VM is transitional — syncs against VBoxManage directly
   useEffect(() => {
-    const hasTransitional = vms.some(
+    const transitional = vms.filter(
       (v) => v.status === "starting" || v.status === "stopping"
     );
-    if (!hasTransitional) return;
-    const id = setInterval(() => void refetch(), 5000);
+    if (transitional.length === 0) return;
+    const id = setInterval(async () => {
+      for (const v of transitional) {
+        try {
+          const updated = await api.post<VM>("/api/v1/vm/sync", { vm_id: v.id });
+          setVms((prev) => prev.map((vm) => (vm.id === v.id ? updated : vm)));
+        } catch {
+          // ignore — will retry next tick
+        }
+      }
+    }, 5000);
     return () => clearInterval(id);
   }, [vms]);
 

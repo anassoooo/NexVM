@@ -250,6 +250,32 @@ export default function VMCard({
         </div>
       )}
 
+      {/* ISO boot indicator — shown while VM is on and an ISO is attached */}
+      {vm.iso_path && (isRunning || transitional) && (
+        <div style={{
+          background: "rgba(255,200,0,0.06)",
+          border: "1px solid rgba(255,200,0,0.22)",
+          borderRadius: "8px",
+          padding: "0.55rem 0.8rem",
+          marginBottom: "0.7rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span className="animate-pulse" style={{ color: "#ffc800", fontSize: "13px", flexShrink: 0 }}>◉</span>
+          <div>
+            <p style={{ color: "#ffc800", fontSize: "11px", fontWeight: 700, marginBottom: "1px" }}>
+              Booting from ISO
+            </p>
+            <p style={{ color: "rgba(255,200,0,0.6)", fontSize: "10px", lineHeight: 1.4 }}>
+              {vm.status === "starting"
+                ? "Starting the virtual machine…"
+                : "OS is loading — this can take several minutes. Watch VirtualBox for progress."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {stopConfirm && (
         <Modal
           title="Stop VM — RDP Warning"

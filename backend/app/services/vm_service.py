@@ -321,10 +321,14 @@ def start_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VM
         _update_vm_error(vm_id, stderr, log_user, LogAction.start_vm)
         raise HTTPException(status_code=500, detail=f"VBoxManage failed: {stderr}")
 
+    # Keep status as "starting" — the frontend 5-second poll will call sync_vm_status
+    # which reads the real VBoxManage state and flips to "running" once confirmed.
+    # This lets the UI show "starting" during the actual boot rather than jumping
+    # straight to "running" before the OS has loaded.
     now = datetime.now(timezone.utc).isoformat()
     updated = (
         supabase.table("vms")
-        .update({"status": "running", "error_message": None, "updated_at": now})
+        .update({"status": "starting", "error_message": None, "updated_at": now})
         .eq("id", vm_id)
         .execute()
     )
