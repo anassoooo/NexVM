@@ -347,9 +347,11 @@ def stop_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VMR
     supabase.table("vms").update({"status": "stopping", "updated_at": now}).eq("id", vm_id).execute()
 
     vbox = build_vbox_path()
-    # Use ACPI shutdown (graceful). If it fails, caller can use force_reset_vm.
     try:
+        # Try graceful ACPI shutdown first; fall back to hard poweroff if it fails
         result = run_vbox_command([vbox, "controlvm", vm["name"], "acpipowerbutton"])
+        if result.returncode != 0:
+            result = run_vbox_command([vbox, "controlvm", vm["name"], "poweroff"])
     except FileNotFoundError:
         _update_vm_error(vm_id, "VBoxManage not reachable", log_user, LogAction.stop_vm)
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
