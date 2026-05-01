@@ -348,10 +348,9 @@ def stop_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VMR
 
     vbox = build_vbox_path()
     try:
-        # Try graceful ACPI shutdown first; fall back to hard poweroff if it fails
-        result = run_vbox_command([vbox, "controlvm", vm["name"], "acpipowerbutton"])
-        if result.returncode != 0:
-            result = run_vbox_command([vbox, "controlvm", vm["name"], "poweroff"])
+        # poweroff is synchronous — VM is guaranteed stopped when it returns 0.
+        # acpipowerbutton is async and returns 0 even when the guest ignores it (no OS).
+        result = run_vbox_command([vbox, "controlvm", vm["name"], "poweroff"])
     except FileNotFoundError:
         _update_vm_error(vm_id, "VBoxManage not reachable", log_user, LogAction.stop_vm)
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -364,14 +363,23 @@ def stop_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VMR
         _update_vm_error(vm_id, stderr, log_user, LogAction.stop_vm)
         raise HTTPException(status_code=500, detail=f"VBoxManage failed: {stderr}")
 
+    # Verify VirtualBox actually reports poweroff before trusting the DB update.
+    try:
+        info = run_vbox_command([vbox, "showvminfo", vm["name"], "--machinereadable"])
+        vbox_state = parse_vbox_state(info.stdout) if info.returncode == 0 else None
+    except Exception:  # noqa: BLE001
+        vbox_state = None
+
+    actual_status = VBOX_STATE_MAP.get(vbox_state or "", "stopped")
+
     now = datetime.now(timezone.utc).isoformat()
     updated = (
         supabase.table("vms")
-        .update({"status": "stopped", "error_message": None, "updated_at": now})
+        .update({"status": actual_status, "error_message": None, "updated_at": now})
         .eq("id", vm_id)
         .execute()
     )
-    _log_action(log_user, LogAction.stop_vm, vm_id, LogStatus.success, f"VM '{vm['name']}' stopped")
+    _log_action(log_user, LogAction.stop_vm, vm_id, LogStatus.success, f"VM '{vm['name']}' stopped (vbox state: {actual_status})")
     return _vm_row_to_response(updated.data[0])
 
 
