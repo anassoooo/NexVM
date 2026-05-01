@@ -36,3 +36,6 @@ class LogAction(str, Enum):
     take_snapshot    = "take_snapshot"
     restore_snapshot = "restore_snapshot"
     delete_snapshot  = "delete_snapshot"
+    clone_vm         = "clone_vm"
+    export_vm        = "export_vm"
+    import_vm        = "import_vm"

@@ -15,6 +15,9 @@ VBOXMANAGE_COMMANDS = {
     "storageattach",
     "createmedium",
     "snapshot",
+    "clonevm",
+    "export",
+    "import",
 }
 
 # VirtualBox ostype IDs (VBoxManage list ostypes)

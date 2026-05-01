@@ -33,6 +33,8 @@ interface VMCardProps {
   onTakeSnapshot: (name: string, desc: string) => void;
   onRestoreSnapshot: (name: string) => void;
   onDeleteSnapshot: (name: string) => void;
+  onClone: (newName: string) => void;
+  onExport: (outputPath: string) => void;
   loading: boolean;
   showOwner?: boolean;
 }
@@ -55,6 +57,7 @@ export default function VMCard({
   onPause, onResume, onSaveState, onModify,
   onAddPortRule, onRemovePortRule,
   onTakeSnapshot, onRestoreSnapshot, onDeleteSnapshot,
+  onClone, onExport,
   loading, showOwner,
 }: VMCardProps) {
   const [isoInputVisible, setIsoInputVisible]   = useState(false);
@@ -77,6 +80,11 @@ export default function VMCard({
   const [snapDesc, setSnapDesc]             = useState("");
   const [snapshots, setSnapshots]           = useState<Snapshot[] | null>(null);
   const [snapLoading, setSnapLoading]       = useState(false);
+
+  const [cloneVisible, setCloneVisible]     = useState(false);
+  const [cloneName, setCloneName]           = useState("");
+  const [exportVisible, setExportVisible]   = useState(false);
+  const [exportPath, setExportPath]         = useState("");
 
   const transitional = vm.status === "starting" || vm.status === "stopping";
   const isStopped    = vm.status === "stopped";
@@ -128,6 +136,20 @@ export default function VMCard({
     onTakeSnapshot(snapName.trim(), snapDesc.trim());
     setSnapName(""); setSnapDesc("");
     setSnapshots(null);
+  }
+
+  function handleClone() {
+    const n = cloneName.trim();
+    if (!n) return;
+    onClone(n);
+    setCloneVisible(false); setCloneName("");
+  }
+
+  function handleExport() {
+    const p = exportPath.trim();
+    if (!p) return;
+    onExport(p);
+    setExportVisible(false); setExportPath("");
   }
 
   const inputStyle: React.CSSProperties = {
@@ -305,6 +327,33 @@ export default function VMCard({
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Clone / Export section */}
+      <div className="mt-2">
+        {cloneVisible && (
+          <div className="flex gap-2 mb-2">
+            <input type="text" value={cloneName} onChange={(e) => setCloneName(e.target.value)} placeholder="New VM name" className="flex-1" style={inputStyle}
+              onKeyDown={(e) => { if (e.key === "Enter") handleClone(); if (e.key === "Escape") setCloneVisible(false); }} autoFocus />
+            <Btn onClick={handleClone} disabled={!cloneName.trim() || loading} color="green">Clone</Btn>
+            <Btn onClick={() => { setCloneVisible(false); setCloneName(""); }} color="muted">✕</Btn>
+          </div>
+        )}
+        {exportVisible && (
+          <div className="flex gap-2 mb-2">
+            <input type="text" value={exportPath} onChange={(e) => setExportPath(e.target.value)} placeholder="/path/to/export.ova" className="flex-1" style={inputStyle}
+              onKeyDown={(e) => { if (e.key === "Enter") handleExport(); if (e.key === "Escape") setExportVisible(false); }} autoFocus />
+            <Btn onClick={handleExport} disabled={!exportPath.trim() || loading} color="blue">Export</Btn>
+            <Btn onClick={() => { setExportVisible(false); setExportPath(""); }} color="muted">✕</Btn>
+          </div>
+        )}
+        {!cloneVisible && (vm.status === "stopped" || vm.status === "error") && (
+          <ActionBtn onClick={() => { setExportVisible(false); setCloneVisible(true); }} disabled={loading} color="green-soft">Clone</ActionBtn>
+        )}
+        {" "}
+        {!exportVisible && vm.status === "stopped" && (
+          <ActionBtn onClick={() => { setCloneVisible(false); setExportVisible(true); }} disabled={loading} color="blue-soft">Export OVA</ActionBtn>
         )}
       </div>
     </div>

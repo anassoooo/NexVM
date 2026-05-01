@@ -6,12 +6,15 @@ from app.dependencies import get_current_user
 from app.models.schemas import (
     ISOAttachRequest,
     ISODetachRequest,
+    OVAExportRequest,
+    OVAImportRequest,
     PortFwdAddRequest,
     PortFwdDeleteRequest,
     SnapshotActionRequest,
     SnapshotResponse,
     SnapshotTakeRequest,
     VMActionRequest,
+    VMCloneRequest,
     VMCreate,
     VMModifyRequest,
     VMResponse,
@@ -174,3 +177,26 @@ async def delete_snapshot(
     body: SnapshotActionRequest, current_user_id: str = Depends(get_current_user)
 ):
     vm_service.delete_snapshot(str(body.vm_id), body.name, current_user_id)
+
+
+# --- P3 routes: Clone / Export / Import ---
+
+@router.post("/clone", response_model=VMResponse, status_code=201)
+async def clone_vm(
+    body: VMCloneRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.clone_vm(str(body.vm_id), body.new_name, current_user_id)
+
+
+@router.post("/export")
+async def export_ova(
+    body: OVAExportRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.export_ova(str(body.vm_id), body.output_path, current_user_id)
+
+
+@router.post("/import", response_model=VMResponse, status_code=201)
+async def import_ova(
+    body: OVAImportRequest, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.import_ova(body.source_path, body.name, body.ram, body.cpu, current_user_id)

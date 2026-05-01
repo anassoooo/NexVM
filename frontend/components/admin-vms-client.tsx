@@ -71,6 +71,10 @@ export default function AdminVMsClient({ initialVms }: { initialVms: VM[] }) {
     withLoading(() => api.post("/api/v1/vm/snapshot/restore", { vm_id: id, name }));
   const handleDeleteSnapshot  = (id: string, name: string) =>
     withLoading(() => api.delete("/api/v1/vm/snapshot", { vm_id: id, name }));
+  const handleClone           = (id: string, newName: string) =>
+    withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }));
+  const handleExport          = (id: string, outputPath: string) =>
+    withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }));
 
   return (
     <div>
@@ -110,6 +114,8 @@ export default function AdminVMsClient({ initialVms }: { initialVms: VM[] }) {
         onTakeSnapshot={handleTakeSnapshot}
         onRestoreSnapshot={handleRestoreSnapshot}
         onDeleteSnapshot={handleDeleteSnapshot}
+        onClone={handleClone}
+        onExport={handleExport}
         showOwner={true}
       />
     </div>
