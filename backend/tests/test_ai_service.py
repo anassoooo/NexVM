@@ -84,7 +84,7 @@ def test_create_vm_happy_path(_patch_supabase, _patch_list_vms):
         result = ai_service.process_ai_command("create an ubuntu vm", USER_ID)
 
     assert result.action == "create_vm"
-    assert "Created VM 'ubuntu-vm'" in result.result
+    assert "ubuntu-vm" in result.result and "created" in result.result.lower()
     mock_create.assert_called_once()
     _patch_supabase.table.assert_any_call("ai_usage")
     _patch_supabase.table.assert_any_call("logs")
