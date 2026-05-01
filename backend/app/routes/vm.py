@@ -16,6 +16,7 @@ from app.models.schemas import (
     VMActionRequest,
     VMCloneRequest,
     VMCreate,
+    VMMetrics,
     VMModifyRequest,
     VMResponse,
     VRDEDisableRequest,
@@ -177,6 +178,15 @@ async def delete_snapshot(
     body: SnapshotActionRequest, current_user_id: str = Depends(get_current_user)
 ):
     vm_service.delete_snapshot(str(body.vm_id), body.name, current_user_id)
+
+
+# --- Metrics ---
+
+@router.get("/metrics", response_model=VMMetrics)
+async def get_vm_metrics(
+    vm_id: uuid_lib.UUID, current_user_id: str = Depends(get_current_user)
+):
+    return vm_service.get_vm_metrics(str(vm_id), current_user_id)
 
 
 # --- P3 routes: Clone / Export / Import ---

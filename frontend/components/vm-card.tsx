@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PortFwdRule, Snapshot, VM } from "@/types";
+import { PortFwdRule, Snapshot, VM, VMMetrics } from "@/types";
 import { api } from "@/lib/api";
 
 const STATUS_COLOR: Record<VM["status"], string> = {
@@ -86,6 +86,10 @@ export default function VMCard({
   const [exportVisible, setExportVisible]   = useState(false);
   const [exportPath, setExportPath]         = useState("");
 
+  const [metricsVisible, setMetricsVisible] = useState(false);
+  const [metrics, setMetrics]               = useState<VMMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
   const transitional = vm.status === "starting" || vm.status === "stopping";
   const isStopped    = vm.status === "stopped";
   const isRunning    = vm.status === "running";
@@ -136,6 +140,14 @@ export default function VMCard({
     onTakeSnapshot(snapName.trim(), snapDesc.trim());
     setSnapName(""); setSnapDesc("");
     setSnapshots(null);
+  }
+
+  function fetchMetrics() {
+    setMetricsLoading(true);
+    api.get<VMMetrics>(`/api/v1/vm/metrics?vm_id=${vm.id}`)
+      .then(setMetrics)
+      .catch(() => setMetrics(null))
+      .finally(() => setMetricsLoading(false));
   }
 
   function handleClone() {
@@ -329,6 +341,46 @@ export default function VMCard({
           </div>
         )}
       </div>
+
+      {/* Metrics section — running VMs only */}
+      {isRunning && (
+        <div className="mt-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setMetricsVisible((v) => !v); if (!metricsVisible) fetchMetrics(); }}
+              className="text-xs"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {metricsVisible ? "▾" : "▸"} Metrics
+            </button>
+            {metricsVisible && (
+              <button
+                onClick={fetchMetrics}
+                disabled={metricsLoading}
+                className="text-xs"
+                style={{ color: "var(--accent)", opacity: metricsLoading ? 0.5 : 1 }}
+              >
+                ↻
+              </button>
+            )}
+          </div>
+          {metricsVisible && (
+            <div className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              {metricsLoading ? (
+                <span>Loading…</span>
+              ) : metrics ? (
+                <span>
+                  CPU: {metrics.cpu_percent !== null ? `${metrics.cpu_percent.toFixed(1)}%` : "N/A"}
+                  {" · "}
+                  RAM: {metrics.ram_used_mb !== null ? `${metrics.ram_used_mb} MB` : "N/A"}
+                </span>
+              ) : (
+                <span>Unavailable</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Clone / Export section */}
       <div className="mt-2">

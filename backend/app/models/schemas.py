@@ -274,12 +274,19 @@ class AIChat(BaseModel):
 # --- Analytics schemas ---
 
 
+class VMMetrics(BaseModel):
+    cpu_percent: float | None
+    ram_used_mb: int | None
+
+
 class UserAnalytics(BaseModel):
     total_vms: int
     running_vms: int
     stopped_vms: int
     error_vms: int
     total_ai_commands: int
+    total_disk_used_mb: int
+    disk_quota_mb: int
 
 
 class AdminAnalytics(UserAnalytics):

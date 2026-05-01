@@ -73,7 +73,7 @@ export default async function AdminPage() {
         <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
           VM Status
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 mb-10">
           {statusCards.map(({ label, value, color }) => (
             <div key={label} className="glass text-center" style={{ padding: "1.5rem 1rem" }}>
               <p className="text-3xl font-bold" style={{ color }}>{value}</p>
@@ -81,6 +81,34 @@ export default async function AdminPage() {
             </div>
           ))}
         </div>
+
+        <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
+          Disk Usage
+        </p>
+        {analytics ? (() => {
+          const usedMb   = analytics.total_disk_used_mb;
+          const quotaMb  = analytics.disk_quota_mb;
+          const pct      = quotaMb > 0 ? Math.min(100, (usedMb / quotaMb) * 100) : 0;
+          const usedGb   = (usedMb  / 1024).toFixed(1);
+          const quotaGb  = (quotaMb / 1024).toFixed(1);
+          const barColor = pct > 90 ? "var(--warning)" : "var(--accent)";
+          return (
+            <div className="glass" style={{ padding: "1.5rem" }}>
+              <div className="flex justify-between text-xs mb-2" style={{ color: "var(--text-muted)" }}>
+                <span>{usedGb} GB used</span>
+                <span>{quotaGb} GB quota</span>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
+                <div style={{ width: `${pct.toFixed(1)}%`, height: "100%", background: barColor, transition: "width 0.3s" }} />
+              </div>
+              <p className="text-xs mt-2 text-right" style={{ color: barColor }}>{pct.toFixed(1)}% used</p>
+            </div>
+          );
+        })() : (
+          <div className="glass" style={{ padding: "1.5rem" }}>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Disk data unavailable</p>
+          </div>
+        )}
       </div>
     </div>
   );

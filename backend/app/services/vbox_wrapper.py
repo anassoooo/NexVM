@@ -18,6 +18,7 @@ VBOXMANAGE_COMMANDS = {
     "clonevm",
     "export",
     "import",
+    "metrics",
 }
 
 # VirtualBox ostype IDs (VBoxManage list ostypes)

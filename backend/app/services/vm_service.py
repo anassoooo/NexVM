@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from datetime import datetime, timezone
 from typing import Callable
@@ -60,6 +61,20 @@ def _get_vm_or_404(vm_id: str, user_id: str | None) -> dict:
     if not result.data:
         raise HTTPException(status_code=404, detail="VM not found")
     return result.data[0]
+
+
+def _check_disk_quota(user_id: str, new_disk_mb: int) -> None:
+    supabase = get_supabase_client()
+    result = supabase.table("vms").select("disk_size").eq("user_id", user_id).execute()
+    used_mb = sum(row.get("disk_size", 0) for row in (result.data or []))
+    if used_mb + new_disk_mb > settings.VM_DISK_QUOTA_MB:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Disk quota exceeded — {used_mb + new_disk_mb} MB needed, "
+                f"limit is {settings.VM_DISK_QUOTA_MB} MB"
+            ),
+        )
 
 
 def _update_vm_error(vm_id: str, error_message: str, user_id: str, action: LogAction) -> None:
@@ -178,6 +193,7 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
             status_code=409,
             detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
         )
+    _check_disk_quota(user_id, data.disk_size)
 
     vbox = build_vbox_path()
     os_type = get_ostype(data.os)
@@ -764,6 +780,7 @@ def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
             status_code=409,
             detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
         )
+    _check_disk_quota(user_id, vm["disk_size"])
 
     name_check = (
         supabase.table("vms").select("id").eq("user_id", user_id).eq("name", new_name).execute()
@@ -840,6 +857,7 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
             status_code=409,
             detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
         )
+    _check_disk_quota(user_id, 20480)
 
     name_check = (
         supabase.table("vms").select("id").eq("user_id", user_id).eq("name", name).execute()
@@ -889,3 +907,39 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
     }).execute()
     _log_action(user_id, LogAction.import_vm, name, LogStatus.success, source_path)
     return _vm_row_to_response(inserted.data[0])
+
+
+def get_vm_metrics(vm_id: str, user_id: str) -> dict:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "running":
+        raise HTTPException(status_code=409, detail="Metrics are only available for running VMs")
+
+    vbox = build_vbox_path()
+    vm_name = vm["name"]
+
+    try:
+        run_vbox_command(
+            [vbox, "metrics", "setup", "--period", "1", "--samples", "1",
+             vm_name, "CPU/Load/User,RAM/Usage/Used"],
+        )
+        result = run_vbox_command(
+            [vbox, "metrics", "query", vm_name, "CPU/Load/User,RAM/Usage/Used"],
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        return {"cpu_percent": None, "ram_used_mb": None}
+
+    if result.returncode != 0:
+        return {"cpu_percent": None, "ram_used_mb": None}
+
+    cpu_percent: float | None = None
+    ram_used_mb: int | None = None
+
+    cpu_m = re.search(r"CPU/Load/User\s+([\d.]+)\s*%", result.stdout)
+    if cpu_m:
+        cpu_percent = float(cpu_m.group(1))
+
+    ram_m = re.search(r"RAM/Usage/Used\s+([\d]+)\s+MB", result.stdout)
+    if ram_m:
+        ram_used_mb = int(ram_m.group(1))
+
+    return {"cpu_percent": cpu_percent, "ram_used_mb": ram_used_mb}
