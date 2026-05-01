@@ -90,6 +90,8 @@ export default function VMCard({
   const [metrics, setMetrics]               = useState<VMMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
 
+  const [stopConfirm, setStopConfirm]       = useState(false);
+
   const transitional = vm.status === "starting" || vm.status === "stopping";
   const isStopped    = vm.status === "stopped";
   const isRunning    = vm.status === "running";
@@ -247,12 +249,44 @@ export default function VMCard({
         </div>
       )}
 
+      {/* RDP stop confirmation toast */}
+      {stopConfirm && (
+        <div className="mt-3 mb-1 rounded-lg p-3" style={{
+          background: "rgba(255,109,0,0.08)",
+          border: "1px solid rgba(255,109,0,0.35)",
+        }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "var(--warning)" }}>
+            ⚠ RDP session may still be open
+          </p>
+          <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+            Make sure you have closed your Remote Desktop window before stopping the VM.
+            Stopping now will forcibly power it off.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setStopConfirm(false); onStop(); }}
+              disabled={loading}
+              className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{ background: "rgba(255,109,0,0.18)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.4)", opacity: loading ? 0.5 : 1 }}
+            >
+              Yes, stop it
+            </button>
+            <button
+              onClick={() => setStopConfirm(false)}
+              className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{ background: "transparent", color: "var(--text-muted)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Primary action buttons */}
       <div className="flex gap-2 flex-wrap mt-1">
         <ActionBtn onClick={onStart} disabled={loading || transitional || (vm.status !== "stopped" && vm.status !== "error")} color="green">Start</ActionBtn>
         <ActionBtn onClick={() => {
-          if (vm.vrde_enabled && !window.confirm("An RDP session may be open on this VM.\nClose your Remote Desktop window first, then confirm to stop.")) return;
-          onStop();
+          if (vm.vrde_enabled) { setStopConfirm(true); } else { onStop(); }
         }} disabled={loading || transitional || vm.status !== "running"} color="orange">Stop</ActionBtn>
         <ActionBtn onClick={onPause} disabled={loading || !isRunning} color="blue">Pause</ActionBtn>
         <ActionBtn onClick={onResume} disabled={loading || !isPaused} color="green">Resume</ActionBtn>
