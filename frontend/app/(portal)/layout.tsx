@@ -20,12 +20,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     api.get<UserInfo>("/api/v1/auth/me").then(setUser).catch(() => {});
   }, []);
 
-  const isAdmin = typeof document !== "undefined" && document.cookie.includes("nexvm_admin=1");
+  useEffect(() => {
+    // Must run client-side only to avoid SSR/hydration mismatch
+    setIsAdmin(document.cookie.includes("nexvm_admin=1"));
+  }, []);
 
   function handleLogout() {
     clearAuth();
