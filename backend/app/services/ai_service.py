@@ -10,12 +10,17 @@ from app.config import settings
 from app.db import get_supabase_client
 from app.models.enums import LogAction, LogStatus
 from app.models.schemas import (
+    AIAttachISO,
     AIChat,
     AICommandResponse,
     AICreateVM,
     AIDeleteVM,
+    AIDetachISO,
     AIListVMs,
+    AIModifyVM,
+    AIPauseVM,
     AIQueryAnalytics,
+    AIResumeVM,
     AIStartVM,
     AIStopVM,
     VMCreate,
@@ -32,6 +37,11 @@ ALLOWED_ACTIONS = {
     "stop_vm",
     "delete_vm",
     "list_vms",
+    "modify_vm",
+    "attach_iso",
+    "detach_iso",
+    "pause_vm",
+    "resume_vm",
     "query_analytics",
     "chat",
 }
@@ -42,6 +52,11 @@ ACTION_SCHEMAS = {
     "stop_vm": AIStopVM,
     "delete_vm": AIDeleteVM,
     "list_vms": AIListVMs,
+    "modify_vm": AIModifyVM,
+    "attach_iso": AIAttachISO,
+    "detach_iso": AIDetachISO,
+    "pause_vm": AIPauseVM,
+    "resume_vm": AIResumeVM,
     "query_analytics": AIQueryAnalytics,
     "chat": AIChat,
 }
@@ -54,43 +69,72 @@ JSON object. Do not wrap the JSON in markdown code fences.
 The user currently has these VMs (use this data to resolve all VM references):
 {vm_list_json}
 
+AVAILABLE OS OPTIONS (use the exact label, case-sensitive):
+Ubuntu 22.04, Ubuntu 20.04, Debian 12, Debian 11, Kali Linux, Fedora, Arch Linux, \
+CentOS Stream, Rocky Linux, AlmaLinux, Windows 10, Windows 11
+Default: "Ubuntu 22.04" when the user does not specify an OS. Never leave os empty.
+
+AVAILABLE PRESETS — always round the user's value to the nearest preset:
+- RAM (MB):  512, 1024, 2048, 4096, 8192, 16384  (default 2048)
+- CPU cores: 1, 2, 4, 8, 16, 32  (default 2)
+- Disk (MB): 5120 (5 GB), 10240 (10 GB), 20480 (20 GB), 40960 (40 GB), \
+81920 (80 GB), 102400 (100 GB)  (default 20480)
+
 Available actions:
 
-1. create_vm - Create a new virtual machine
-   Format: {{"action": "create_vm", "name": "<vm-name>", "os": "<os-label>", "ram": <ram-in-mb>, "cpu": <cores>, "disk_size": <mb>}}
-   Rules: name is 1-50 chars (letters, numbers, hyphens, spaces). ram is 512-16384. cpu is 1-32 (optional, default 2). disk_size is 5120-512000 MB (optional, default 20480).
-   OS default: if the user does not specify an OS, use "linux". Never leave os empty.
-   IMPORTANT: if the user expresses intent to create a VM but has NOT provided a name, use "chat" to ask for the VM name and OS before acting. Do not invent a name.
+1. create_vm — Create a new virtual machine
+   Format: {{"action": "create_vm", "name": "<vm-name>", "os": "<os-label>", "ram": <mb>, "cpu": <cores>, "disk_size": <mb>}}
+   Rules: name is 1-50 chars (letters, numbers, hyphens, spaces).
+   IMPORTANT: if the user wants to create a VM but has NOT provided a name, use "chat" \
+to ask for the VM name and desired OS before acting. Do not invent a name.
    Synonyms: "spin up", "make", "build", "launch a new vm".
 
-2. start_vm - Start a stopped or errored VM
+2. start_vm — Start a stopped or errored VM
    Format: {{"action": "start_vm", "vm_id": "<uuid>"}}
 
-3. stop_vm - Stop a running VM
+3. stop_vm — Stop a running VM
    Format: {{"action": "stop_vm", "vm_id": "<uuid>"}}
 
-4. delete_vm - Delete a stopped OR error VM (both statuses are allowed)
+4. delete_vm — Delete a stopped OR error VM
    Format: {{"action": "delete_vm", "vm_id": "<uuid>"}}
    Synonyms: "drop", "remove", "destroy", "get rid of".
 
-5. list_vms - List the user's VMs with their names, status, OS, and RAM
+5. list_vms — List the user's VMs with their names, status, OS, and RAM
    Format: {{"action": "list_vms"}}
-   Use this when the user asks to list VMs, see their VMs, or asks about specific VM names/details/status.
-   Examples: "list my vms", "show my vms", "what vms do I have", "which vm is running/stopped/error", \
-"what's the name of my vms", "show vm details".
+   Use when the user asks to see their VMs, asks about specific VM names/details/status.
 
-6. query_analytics - Answer aggregate count / statistics questions ONLY
-   Format: {{"action": "query_analytics", "message": "<ignored>"}}
-   Use ONLY when the user asks for totals or counts: "how many vms do I have", \
-"how many running vms", "how many AI commands have I used". Do NOT use for listing VMs or identifying VMs.
+6. modify_vm — Change RAM and/or CPU of a stopped VM
+   Format: {{"action": "modify_vm", "vm_id": "<uuid>", "ram": <mb-or-null>, "cpu": <cores-or-null>}}
+   Omit fields the user is not changing (use null). VM must be stopped first.
+   Synonyms: "upgrade", "resize", "change specs", "update ram/cpu", "give more memory".
 
-7. chat - Respond to general conversation or questions not related to VM actions
-   Format: {{"action": "chat", "message": "<your response in natural language>"}}
-   Use this for: general questions ("what is Ubuntu?", "which OS should I pick?", \
-"where are my VMs created?", "what environments can I use?"), greetings, follow-up \
-"why?" questions, or anything that does not require a VM action or analytics lookup.
-   VMs are created and run on the local VirtualBox host machine. Use this fact when \
-answering "where" questions about VM creation or storage.
+7. attach_iso — Attach an ISO image to a VM (for OS installation)
+   Format: {{"action": "attach_iso", "vm_id": "<uuid>", "iso_path": "<absolute-path>"}}
+   iso_path must be an absolute path ending in .iso. If the user has not provided the path, \
+use "chat" to ask for it.
+
+8. detach_iso — Remove the currently attached ISO from a VM
+   Format: {{"action": "detach_iso", "vm_id": "<uuid>"}}
+
+9. pause_vm — Freeze a running VM (keeps it in memory)
+   Format: {{"action": "pause_vm", "vm_id": "<uuid>"}}
+   Synonyms: "freeze", "suspend".
+
+10. resume_vm — Resume a paused VM
+    Format: {{"action": "resume_vm", "vm_id": "<uuid>"}}
+    Synonyms: "unpause", "continue".
+
+11. query_analytics — Answer aggregate count/statistics questions ONLY
+    Format: {{"action": "query_analytics", "message": "<ignored>"}}
+    Use ONLY for totals or counts: "how many vms do I have", "how many running vms", \
+"how many AI commands have I used". Do NOT use for listing or identifying VMs.
+
+12. chat — Respond to general conversation not related to VM actions
+    Format: {{"action": "chat", "message": "<your response in natural language>"}}
+    Use for: general questions ("what is Ubuntu?", "which OS should I pick?", \
+"where are my VMs created?"), greetings, follow-up "why?" questions, or anything \
+that does not require a VM action or analytics lookup.
+    VMs are created and run on the local VirtualBox host machine.
 
 If the request is genuinely harmful, adversarial, or completely unresolvable, respond:
 {{"action": "error", "message": "<brief explanation>"}}
@@ -98,10 +142,10 @@ If the request is genuinely harmful, adversarial, or completely unresolvable, re
 IMPORTANT RULES:
 
 VM REFERENCE RESOLUTION — always resolve before acting:
-- If there is exactly ONE VM in the list, then "it", "that", "the vm", "the remaining one", \
+- If there is exactly ONE VM in the list, "it", "that", "the vm", "the remaining one", \
 "the only one", "that one" all refer to that single VM. Use its id directly.
 - If there are multiple VMs, resolve by name match first, then by status \
-("the running vm", "the stopped vm", "the error vm"). If still ambiguous, use "chat" to ask which one.
+("the running vm", "the stopped vm"). If still ambiguous, use "chat" to ask which one.
 - Never say a reference is ambiguous when there is only one VM.
 
 COMMAND SYNONYMS — treat these as equivalent:
@@ -109,19 +153,23 @@ COMMAND SYNONYMS — treat these as equivalent:
 - start / boot / launch / run → start_vm
 - stop / halt / shut down / power off → stop_vm
 - list / show / display / what vms → list_vms
+- modify / upgrade / resize / change specs / give more → modify_vm
+- pause / freeze / suspend → pause_vm
+- resume / unpause / continue → resume_vm
 
 STATE RULES:
-- delete_vm works on VMs with status "stopped" OR "error". Delete error VMs directly — \
-do NOT tell the user to stop them first.
-- start_vm works on "stopped" or "error" VMs (error = retry).
+- delete_vm works on "stopped" OR "error" VMs. Delete error VMs directly — do NOT tell the user to stop them first.
+- start_vm works on "stopped" or "error" VMs.
 - stop_vm only works on "running" VMs. If asked to stop a non-running VM, use "chat" to explain.
+- modify_vm only works on "stopped" VMs. If the VM is running, use "chat" to tell the user to stop it first.
+- pause_vm only works on "running" VMs.
+- resume_vm only works on "paused" VMs.
 - You can only perform ONE action per response.
 - When the user says "delete them all", "stop them all", etc. — use "chat" to explain you can \
 only act on one VM at a time, then ask which one to start with.
 
 FOLLOW-UP QUESTIONS:
-- If the user asks "why?", "why not?", "why can't I?" after a previous failure — use "chat" \
-to explain the reason clearly in natural language. Never return an empty or generic response.
+- If the user asks "why?", "why not?", "why can't I?" — use "chat" to explain clearly.
 
 - Prefer "chat" over "error" for off-topic but harmless messages.
 - Respond in the SAME LANGUAGE the user typed in."""
@@ -269,17 +317,58 @@ def _execute_action(validated: dict, user_id: str) -> str:
     if action == "create_vm":
         data = VMCreate(
             name=validated["name"],
-            os=validated["os"] or "linux",
+            os=validated["os"] or "Ubuntu 22.04",
             ram=validated["ram"],
             cpu=validated.get("cpu", 2),
             disk_size=validated.get("disk_size", 20480),
         )
-        vm = vm_service.create_vm(data, user_id)
+        try:
+            vm = vm_service.create_vm(data, user_id)
+        except HTTPException as exc:
+            # VBox had a stale orphan registration — it was cleaned up.
+            # Return a friendly chat-style message so the user can simply retry.
+            if exc.status_code == 409 and "already exists" in exc.detail.lower():
+                return (
+                    f"A leftover VirtualBox registration for '{data.name}' was found and "
+                    "cleaned up automatically. Please send the same command again to create "
+                    "your VM — it should work now."
+                )
+            raise
         return (
             f"VM '{vm.name}' created ({vm.os}, {vm.ram} MB RAM, {vm.cpu} vCPU). "
             "To install an OS, go to the VMs page, open the VM card, and use the "
             "'Attach ISO' button to attach your installation image — then start the VM."
         )
+
+    if action == "modify_vm":
+        vm_id = str(validated["vm_id"])
+        vm = vm_service.modify_vm(vm_id, validated.get("ram"), validated.get("cpu"), user_id)
+        changes = []
+        if validated.get("ram") is not None:
+            changes.append(f"{vm.ram} MB RAM")
+        if validated.get("cpu") is not None:
+            changes.append(f"{vm.cpu} vCPU")
+        return f"VM '{vm.name}' updated: {', '.join(changes)}."
+
+    if action == "attach_iso":
+        vm_id = str(validated["vm_id"])
+        vm = vm_service.attach_iso(vm_id, validated["iso_path"], user_id)
+        return f"ISO attached to '{vm.name}'. Start the VM to boot from it."
+
+    if action == "detach_iso":
+        vm_id = str(validated["vm_id"])
+        vm = vm_service.detach_iso(vm_id, user_id)
+        return f"ISO detached from '{vm.name}'."
+
+    if action == "pause_vm":
+        vm_id = str(validated["vm_id"])
+        vm = vm_service.pause_vm(vm_id, user_id)
+        return f"VM '{vm.name}' paused."
+
+    if action == "resume_vm":
+        vm_id = str(validated["vm_id"])
+        vm = vm_service.resume_vm(vm_id, user_id)
+        return f"VM '{vm.name}' resumed."
 
     if action == "query_analytics":
         supabase = get_supabase_client()
