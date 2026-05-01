@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 
@@ -39,6 +40,13 @@ async def lifespan(app: FastAPI):
         settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY
     )
     logger.info("Supabase client ready")
+
+    storage_path = settings.VM_STORAGE_PATH or os.path.join(os.path.expanduser("~"), "VirtualBox VMs")
+    try:
+        os.makedirs(storage_path, exist_ok=True)
+        logger.info("VM storage path: %s", storage_path)
+    except OSError as exc:
+        logger.warning("VM storage path could not be created: %s", exc)
     yield
     logger.info("Shutting down — releasing Supabase client")
     db.supabase_client = None
