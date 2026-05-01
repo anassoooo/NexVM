@@ -271,6 +271,34 @@ class AIChat(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
 
 
+class AIModifyVM(BaseModel):
+    action: Literal["modify_vm"]
+    vm_id: uuid.UUID
+    ram: int | None = Field(default=None, ge=512, le=16384)
+    cpu: int | None = Field(default=None, ge=1, le=32)
+
+
+class AIAttachISO(BaseModel):
+    action: Literal["attach_iso"]
+    vm_id: uuid.UUID
+    iso_path: str = Field(min_length=1)
+
+
+class AIDetachISO(BaseModel):
+    action: Literal["detach_iso"]
+    vm_id: uuid.UUID
+
+
+class AIPauseVM(BaseModel):
+    action: Literal["pause_vm"]
+    vm_id: uuid.UUID
+
+
+class AIResumeVM(BaseModel):
+    action: Literal["resume_vm"]
+    vm_id: uuid.UUID
+
+
 # --- Analytics schemas ---
 
 

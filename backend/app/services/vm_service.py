@@ -109,11 +109,50 @@ def _run_vbox(
 
     if result.returncode != 0:
         stderr = result.stderr.strip() or result.stdout.strip()
+
+        # VirtualBox reports "already exists" when a stale VM registration
+        # lingers in VBox but was already removed from the database (DB/VBox
+        # out of sync).  For the "createvm" step only, auto-purge the orphan
+        # and retry once so the user can create a VM with the same name again.
+        if "already exists" in stderr.lower() and step == "createvm":
+            try:
+                vm_name_idx = cmd.index("--name") + 1
+                orphan_name = cmd[vm_name_idx]
+                vbox = build_vbox_path()
+
+                # Step 1: unregister the VM synchronously (DO NOT use --delete, as VBoxSVC
+                # might process the file deletion asynchronously and wipe out the new VM we are about to create).
+                run_vbox_command([vbox, "unregistervm", orphan_name])
+
+                # Step 2: manually remove the VM folder from disk synchronously
+                basefolder_idx = cmd.index("--basefolder") + 1 if "--basefolder" in cmd else -1
+                if basefolder_idx != -1:
+                    import shutil
+                    vm_folder = os.path.join(cmd[basefolder_idx], orphan_name)
+                    if os.path.isdir(vm_folder):
+                        shutil.rmtree(vm_folder, ignore_errors=True)
+            except Exception:  # noqa: BLE001
+                pass
+
+            # Retry the original command once after cleanup
+            try:
+                result = run_vbox_command(cmd)
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                pass
+            if result.returncode == 0:
+                return result
+
         if on_failure:
             on_failure()
         _log_action(user_id, action, step, LogStatus.failure, stderr)
         if "already exists" in stderr.lower():
-            raise HTTPException(status_code=409, detail="A VM with this name already exists")
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "A VM with this name already exists in VirtualBox but not in the database. "
+                    "It has been cleaned up — please try again."
+                ),
+            )
         raise HTTPException(status_code=500, detail=f"VBoxManage error ({step}): {stderr}")
 
     return result
