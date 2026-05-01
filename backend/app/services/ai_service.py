@@ -60,6 +60,7 @@ Available actions:
    Format: {{"action": "create_vm", "name": "<vm-name>", "os": "<os-label>", "ram": <ram-in-mb>, "cpu": <cores>, "disk_size": <mb>}}
    Rules: name is 1-50 chars (letters, numbers, hyphens, spaces). ram is 512-16384. cpu is 1-32 (optional, default 2). disk_size is 5120-512000 MB (optional, default 20480).
    OS default: if the user does not specify an OS, use "linux". Never leave os empty.
+   IMPORTANT: if the user expresses intent to create a VM but has NOT provided a name, use "chat" to ask for the VM name and OS before acting. Do not invent a name.
    Synonyms: "spin up", "make", "build", "launch a new vm".
 
 2. start_vm - Start a stopped or errored VM
@@ -275,8 +276,9 @@ def _execute_action(validated: dict, user_id: str) -> str:
         )
         vm = vm_service.create_vm(data, user_id)
         return (
-            f"Created VM '{vm.name}'. Note: you'll need to attach a boot disk via "
-            "VirtualBox Manager before it can run a guest OS."
+            f"VM '{vm.name}' created ({vm.os}, {vm.ram} MB RAM, {vm.cpu} vCPU). "
+            "To install an OS, go to the VMs page, open the VM card, and use the "
+            "'Attach ISO' button to attach your installation image — then start the VM."
         )
 
     if action == "query_analytics":
