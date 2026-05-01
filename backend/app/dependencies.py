@@ -1,13 +1,21 @@
 import functools
+from dataclasses import dataclass
 from typing import Annotated
 
 import requests as http_requests
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jose import jwt
 
 from app.config import settings
 from app.db import get_supabase_client
+
+
+@dataclass
+class UserClaims:
+    """Decoded claims extracted from the Supabase JWT — no admin API call needed."""
+    id: str
+    email: str
 
 bearer = HTTPBearer()
 
@@ -54,28 +62,37 @@ async def ensure_profile_exists(user_id: str, supabase) -> None:
 
 async def get_current_user(
     token: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
-) -> str:
+) -> UserClaims:
+    """
+    Decodes the Supabase JWT and returns user_id + email.
+    The email is embedded in the JWT payload — no admin API call required.
+    """
     try:
         payload = _decode_jwt(token.credentials)
         user_id: str | None = payload.get("sub")
-        if user_id is None:
+        email: str = payload.get("email") or ""
+        if not user_id:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
-    except JWTError:
+    except HTTPException:
+        raise
+    except Exception:
+        # Catches JWKS fetch failures and any other decode errors.
+        # Always return 401 (never 500) so the client can handle it cleanly.
         raise HTTPException(
             status_code=401, detail="Invalid or expired token"
         ) from None
 
     supabase = get_supabase_client()
     await ensure_profile_exists(user_id, supabase)
-    return user_id
+    return UserClaims(id=user_id, email=email)
 
 
 async def get_current_admin_user(
-    user_id: Annotated[str, Depends(get_current_user)],
-) -> str:
+    claims: Annotated[UserClaims, Depends(get_current_user)],
+) -> UserClaims:
     supabase = get_supabase_client()
-    result = supabase.table("profiles").select("is_admin").eq("id", user_id).execute()
+    result = supabase.table("profiles").select("is_admin").eq("id", claims.id).execute()
     is_admin = result.data and result.data[0].get("is_admin") is True
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
-    return user_id
+    return claims

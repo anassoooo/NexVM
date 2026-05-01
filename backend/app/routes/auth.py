@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from supabase import AuthApiError
 
 from app.db import get_supabase_client
-from app.dependencies import get_current_user
+from app.dependencies import UserClaims, get_current_user
 from app.models.schemas import AuthResponse, LoginRequest, SignupRequest, SignupResponse, UserInfo
 
 logger = logging.getLogger("NexVM.auth")
@@ -78,11 +78,11 @@ async def signup(body: SignupRequest):
 
 
 @router.get("/me", response_model=UserInfo)
-async def get_me(user_id: str = Depends(get_current_user)):
+async def get_me(claims: UserClaims = Depends(get_current_user)):
+    """Returns the current user's profile from JWT claims — no admin API call."""
     supabase = get_supabase_client()
-    res = supabase.auth.admin.get_user_by_id(user_id)
     return UserInfo(
-        id=res.user.id,
-        email=res.user.email,
-        is_admin=_get_is_admin(supabase, user_id),
+        id=claims.id,
+        email=claims.email,
+        is_admin=_get_is_admin(supabase, claims.id),
     )
