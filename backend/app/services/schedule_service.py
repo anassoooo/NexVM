@@ -12,7 +12,7 @@ from app.services import vm_service
 
 _scheduler: BackgroundScheduler | None = None
 
-log = logging.getLogger("myVMS.scheduler")
+log = logging.getLogger("NexVM.scheduler")
 
 
 def _parse_cron(expr: str) -> dict:

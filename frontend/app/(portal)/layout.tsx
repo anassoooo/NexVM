@@ -6,6 +6,7 @@ import { clearAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { UserInfo } from "@/types";
+import Logo from "@/components/Logo";
 
 const NAV_ITEMS = [
   { href: "/ai", label: "AI Assistant", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
@@ -24,7 +25,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     api.get<UserInfo>("/api/v1/auth/me").then(setUser).catch(() => {});
   }, []);
 
-  const isAdmin = typeof document !== "undefined" && document.cookie.includes("myvms_admin=1");
+  const isAdmin = typeof document !== "undefined" && document.cookie.includes("nexvm_admin=1");
 
   function handleLogout() {
     clearAuth();
@@ -48,33 +49,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       >
         {/* Logo */}
         <div
-          className="flex items-center gap-3 px-4 shrink-0"
-          style={{ height: 56, borderBottom: "1px solid var(--border)" }}
+          className="flex items-center px-4 shrink-0"
+          style={{ height: 56, borderBottom: "1px solid var(--border)", justifyContent: collapsed ? "center" : "flex-start" }}
         >
-          <div
-            className="shrink-0"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "8px",
-              background: "rgba(0,230,118,0.12)",
-              border: "1px solid rgba(0,230,118,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e676" strokeWidth="1.5">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-          </div>
-          {!collapsed && (
-            <span className="font-bold text-base" style={{ color: "var(--accent)" }}>
-              myVMS
-            </span>
-          )}
+          <Logo size="sm" collapsed={collapsed} />
         </div>
 
         {/* Nav links */}

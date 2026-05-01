@@ -59,7 +59,11 @@ function LoginForm() {
 
       <div className="relative z-10 w-full max-w-sm px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: "var(--accent)" }}>myVMS</h1>
+          <div className="flex justify-center mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="NexVM" width={72} height={72} style={{ borderRadius: "18px", objectFit: "cover" }} />
+          </div>
+          <h1 className="text-3xl font-bold" style={{ color: "var(--accent)" }}>NexVM</h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Virtual Machine Management</p>
         </div>
 

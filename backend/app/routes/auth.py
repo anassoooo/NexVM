@@ -7,7 +7,7 @@ from app.db import get_supabase_client
 from app.dependencies import get_current_user
 from app.models.schemas import AuthResponse, LoginRequest, SignupRequest, SignupResponse, UserInfo
 
-logger = logging.getLogger("myVMS.auth")
+logger = logging.getLogger("NexVM.auth")
 router = APIRouter()
 
 

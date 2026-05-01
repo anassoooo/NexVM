@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,9 +17,7 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
           zIndex: 50,
         }}
       >
-        <Link href="/" className="font-bold text-lg nav-logo">
-          myVMS
-        </Link>
+        <Logo size="sm" />
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm font-medium nav-link">
             Sign In

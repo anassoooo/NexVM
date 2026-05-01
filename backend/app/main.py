@@ -29,7 +29,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
-logger = logging.getLogger("myVMS")
+logger = logging.getLogger("NexVM")
 
 # Suppress noisy third-party loggers in dev
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
     db.supabase_client = None
 
 
-app = FastAPI(title="myVMS API", lifespan=lifespan)
+app = FastAPI(title="NexVM API", lifespan=lifespan)
 
 
 async def _log_requests(request: Request, call_next):

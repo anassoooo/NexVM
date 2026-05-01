@@ -10,7 +10,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "myVMS — Virtual Machine Management Platform",
+  title: "NexVM — Virtual Machine Management Platform",
   description: "Create, manage, and monitor VirtualBox VMs through a modern web interface with AI assistance.",
 };
 
