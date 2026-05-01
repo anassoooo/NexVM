@@ -5,6 +5,7 @@ import { UserAnalytics, VM } from "@/types";
 import { api } from "@/lib/api";
 import VMList from "@/components/vm-list";
 import VMCreateForm from "@/components/vm-create-form";
+import { useToast } from "@/components/toast";
 
 export default function VMsClient({
   initialVms,
@@ -13,10 +14,10 @@ export default function VMsClient({
   initialVms: VM[];
   initialAnalytics: UserAnalytics | null;
 }) {
+  const toast = useToast();
   const [vms, setVms] = useState<VM[]>(initialVms);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [importPath, setImportPath] = useState("");
   const [importName, setImportName] = useState("");
@@ -25,12 +26,11 @@ export default function VMsClient({
 
   async function refetch() {
     setLoading(true);
-    setError(null);
     try {
       const data = await api.get<VM[]>("/api/v1/vm");
       setVms(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch VMs");
+      toast("error", e instanceof Error ? e.message : "Failed to fetch VMs");
     } finally {
       setLoading(false);
     }
@@ -65,48 +65,48 @@ export default function VMsClient({
     return () => clearInterval(id);
   }, [vms]);
 
-  async function withLoading(fn: () => Promise<void>) {
+  async function withLoading(fn: () => Promise<void>, successMsg?: string) {
     setLoading(true);
-    setError(null);
     try {
       await fn();
       await refetch();
+      if (successMsg) toast("success", successMsg);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Operation failed");
+      toast("error", e instanceof Error ? e.message : "Operation failed");
       setLoading(false);
     }
   }
 
-  const handleStart        = (id: string) => withLoading(() => api.post("/api/v1/vm/start",  { vm_id: id }));
-  const handleStop         = (id: string) => withLoading(() => api.post("/api/v1/vm/stop",   { vm_id: id }));
-  const handleDelete       = (id: string) => withLoading(() => api.post("/api/v1/vm/delete", { vm_id: id }));
+  const handleStart        = (id: string) => withLoading(() => api.post("/api/v1/vm/start",  { vm_id: id }), "VM started");
+  const handleStop         = (id: string) => withLoading(() => api.post("/api/v1/vm/stop",   { vm_id: id }), "VM stopped");
+  const handleDelete       = (id: string) => withLoading(() => api.post("/api/v1/vm/delete", { vm_id: id }), "VM deleted");
   const handleSync         = (id: string) => withLoading(async () => {
     const updated = await api.post<VM>("/api/v1/vm/sync", { vm_id: id });
     setVms((prev) => prev.map((v) => (v.id === id ? updated : v)));
-  });
-  const handleAttachISO    = (id: string, isoPath: string) => withLoading(() => api.post("/api/v1/vm/iso",  { vm_id: id, iso_path: isoPath }));
-  const handleDetachISO    = (id: string) => withLoading(() => api.delete("/api/v1/vm/iso",  { vm_id: id }));
-  const handleEnableVRDE   = (id: string, port: number) => withLoading(() => api.post("/api/v1/vm/vrde", { vm_id: id, port }));
-  const handleDisableVRDE  = (id: string) => withLoading(() => api.delete("/api/v1/vm/vrde", { vm_id: id }));
-  const handlePause        = (id: string) => withLoading(() => api.post("/api/v1/vm/pause",     { vm_id: id }));
-  const handleResume       = (id: string) => withLoading(() => api.post("/api/v1/vm/resume",    { vm_id: id }));
-  const handleSaveState    = (id: string) => withLoading(() => api.post("/api/v1/vm/savestate", { vm_id: id }));
+  }, "Status synced");
+  const handleAttachISO    = (id: string, isoPath: string) => withLoading(() => api.post("/api/v1/vm/iso",  { vm_id: id, iso_path: isoPath }), "ISO attached");
+  const handleDetachISO    = (id: string) => withLoading(() => api.delete("/api/v1/vm/iso",  { vm_id: id }), "ISO detached");
+  const handleEnableVRDE   = (id: string, port: number) => withLoading(() => api.post("/api/v1/vm/vrde", { vm_id: id, port }), `RDP enabled on port ${port}`);
+  const handleDisableVRDE  = (id: string) => withLoading(() => api.delete("/api/v1/vm/vrde", { vm_id: id }), "RDP disabled");
+  const handlePause        = (id: string) => withLoading(() => api.post("/api/v1/vm/pause",     { vm_id: id }), "VM paused");
+  const handleResume       = (id: string) => withLoading(() => api.post("/api/v1/vm/resume",    { vm_id: id }), "VM resumed");
+  const handleSaveState    = (id: string) => withLoading(() => api.post("/api/v1/vm/savestate", { vm_id: id }), "State saved");
   const handleModify       = (id: string, ram: number | null, cpu: number | null) =>
-    withLoading(() => api.post("/api/v1/vm/modify", { vm_id: id, ram, cpu }));
+    withLoading(() => api.post("/api/v1/vm/modify", { vm_id: id, ram, cpu }), "VM settings updated");
   const handleAddPortRule  = (id: string, name: string, proto: "tcp" | "udp", hp: number, gp: number) =>
-    withLoading(() => api.post("/api/v1/vm/portfwd", { vm_id: id, name, protocol: proto, host_port: hp, guest_port: gp }));
+    withLoading(() => api.post("/api/v1/vm/portfwd", { vm_id: id, name, protocol: proto, host_port: hp, guest_port: gp }), `Port rule "${name}" added`);
   const handleRemovePortRule = (id: string, name: string) =>
-    withLoading(() => api.delete("/api/v1/vm/portfwd", { vm_id: id, name }));
+    withLoading(() => api.delete("/api/v1/vm/portfwd", { vm_id: id, name }), "Port rule removed");
   const handleTakeSnapshot   = (id: string, name: string, desc: string) =>
-    withLoading(() => api.post("/api/v1/vm/snapshot", { vm_id: id, name, description: desc }));
+    withLoading(() => api.post("/api/v1/vm/snapshot", { vm_id: id, name, description: desc }), `Snapshot "${name}" taken`);
   const handleRestoreSnapshot = (id: string, name: string) =>
-    withLoading(() => api.post("/api/v1/vm/snapshot/restore", { vm_id: id, name }));
+    withLoading(() => api.post("/api/v1/vm/snapshot/restore", { vm_id: id, name }), `Snapshot "${name}" restored`);
   const handleDeleteSnapshot  = (id: string, name: string) =>
-    withLoading(() => api.delete("/api/v1/vm/snapshot", { vm_id: id, name }));
+    withLoading(() => api.delete("/api/v1/vm/snapshot", { vm_id: id, name }), "Snapshot deleted");
   const handleClone           = (id: string, newName: string) =>
-    withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }));
+    withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }), `VM cloned as "${newName}"`);
   const handleExport          = (id: string, outputPath: string) =>
-    withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }));
+    withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }), "VM exported");
   const handleImport          = () => {
     if (!importPath.trim() || !importName.trim()) return;
     withLoading(() => api.post("/api/v1/vm/import", {
@@ -166,15 +166,6 @@ export default function VMsClient({
             <button onClick={handleImport} disabled={!importPath.trim() || !importName.trim() || loading} className="btn-primary" style={{ padding: "6px 16px" }}>Import</button>
             <button onClick={() => { setShowImport(false); setImportPath(""); setImportName(""); }} className="btn-primary" style={{ padding: "6px 16px", background: "transparent", color: "var(--text-muted)" }}>Cancel</button>
           </div>
-        </div>
-      )}
-
-      {error && (
-        <div
-          className="mb-4 p-3 rounded text-sm"
-          style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
-        >
-          {error}
         </div>
       )}
 

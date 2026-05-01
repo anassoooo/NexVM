@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PortFwdRule, Snapshot, VM, VMMetrics } from "@/types";
 import { api } from "@/lib/api";
+import { Modal } from "@/components/modal";
 
 const STATUS_COLOR: Record<VM["status"], string> = {
   running:  "var(--success)",
@@ -249,37 +250,15 @@ export default function VMCard({
         </div>
       )}
 
-      {/* RDP stop confirmation toast */}
       {stopConfirm && (
-        <div className="mt-3 mb-1 rounded-lg p-3" style={{
-          background: "rgba(255,109,0,0.08)",
-          border: "1px solid rgba(255,109,0,0.35)",
-        }}>
-          <p className="text-xs font-semibold mb-1" style={{ color: "var(--warning)" }}>
-            ⚠ RDP session may still be open
-          </p>
-          <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-            Make sure you have closed your Remote Desktop window before stopping the VM.
-            Stopping now will forcibly power it off.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setStopConfirm(false); onStop(); }}
-              disabled={loading}
-              className="text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ background: "rgba(255,109,0,0.18)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.4)", opacity: loading ? 0.5 : 1 }}
-            >
-              Yes, stop it
-            </button>
-            <button
-              onClick={() => setStopConfirm(false)}
-              className="text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ background: "transparent", color: "var(--text-muted)", border: "1px solid rgba(255,255,255,0.1)" }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <Modal
+          title="Stop VM — RDP Warning"
+          message="An RDP session may still be open on this VM. Make sure you have closed your Remote Desktop window before stopping. This will forcibly power it off."
+          confirmLabel="Yes, stop it"
+          onConfirm={() => { setStopConfirm(false); onStop(); }}
+          onCancel={() => setStopConfirm(false)}
+          loading={loading}
+        />
       )}
 
       {/* Primary action buttons */}
