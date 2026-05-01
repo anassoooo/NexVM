@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.config import settings
 from app.db import get_supabase_client
 from app.models.enums import VMStatus
 from app.models.schemas import AdminAnalytics, UserAnalytics
@@ -10,7 +11,7 @@ def get_user_analytics(user_id: str) -> UserAnalytics:
         supabase = get_supabase_client()
 
         vm_result = (
-            supabase.table("vms").select("status").eq("user_id", user_id).execute()
+            supabase.table("vms").select("status,disk_size").eq("user_id", user_id).execute()
         )
         vms = vm_result.data or []
 
@@ -26,6 +27,8 @@ def get_user_analytics(user_id: str) -> UserAnalytics:
         stopped_vms=sum(1 for v in vms if v["status"] == VMStatus.stopped),
         error_vms=sum(1 for v in vms if v["status"] == VMStatus.error),
         total_ai_commands=len(ai_result.data or []),
+        total_disk_used_mb=sum(v.get("disk_size", 0) for v in vms),
+        disk_quota_mb=settings.VM_DISK_QUOTA_MB,
     )
 
 
@@ -34,7 +37,7 @@ def get_admin_analytics() -> AdminAnalytics:
         supabase = get_supabase_client()
 
         users_result = supabase.table("profiles").select("id").execute()
-        vm_result = supabase.table("vms").select("status").execute()
+        vm_result = supabase.table("vms").select("status,disk_size").execute()
         ai_result = supabase.table("ai_usage").select("id").execute()
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Analytics unavailable") from exc
@@ -48,4 +51,6 @@ def get_admin_analytics() -> AdminAnalytics:
         stopped_vms=sum(1 for v in vms if v["status"] == VMStatus.stopped),
         error_vms=sum(1 for v in vms if v["status"] == VMStatus.error),
         total_ai_commands=len(ai_result.data or []),
+        total_disk_used_mb=sum(v.get("disk_size", 0) for v in vms),
+        disk_quota_mb=settings.VM_DISK_QUOTA_MB,
     )

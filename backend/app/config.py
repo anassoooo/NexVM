@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     VBOXMANAGE_PATH: str = ""
     VM_STORAGE_PATH: str = ""
     VM_QUOTA_PER_USER: int = 5
+    VM_DISK_QUOTA_MB: int = 200000
 
     model_config = {
         "env_file": str(_BACKEND_DIR / ".env"),

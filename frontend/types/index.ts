@@ -75,12 +75,19 @@ export interface AICommandResponse {
   ai_response: Record<string, unknown>;
 }
 
+export interface VMMetrics {
+  cpu_percent: number | null;
+  ram_used_mb: number | null;
+}
+
 export interface UserAnalytics {
   total_vms: number;
   running_vms: number;
   stopped_vms: number;
   error_vms: number;
   total_ai_commands: number;
+  total_disk_used_mb: number;
+  disk_quota_mb: number;
 }
 
 export interface AdminAnalytics {
@@ -90,4 +97,6 @@ export interface AdminAnalytics {
   stopped_vms: number;
   error_vms: number;
   total_ai_commands: number;
+  total_disk_used_mb: number;
+  disk_quota_mb: number;
 }
