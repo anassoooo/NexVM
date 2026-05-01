@@ -11,12 +11,14 @@ from supabase import ClientOptions, create_client
 
 from app.config import settings
 from app import db
+from app.services import schedule_service
 from app.routes.admin_vm import router as admin_vm_router
 from app.routes.ai import router as ai_router
 from app.routes.analytics import router as analytics_router
 from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
 from app.routes.logs import router as logs_router
+from app.routes.schedules import router as schedules_router
 from app.routes.vm import router as vm_router
 
 # --- Logging setup (dev mode) ---
@@ -50,8 +52,11 @@ async def lifespan(app: FastAPI):
         logger.info("VM storage path: %s", storage_path)
     except OSError as exc:
         logger.warning("VM storage path could not be created: %s", exc)
+
+    schedule_service.start_scheduler()
     yield
     logger.info("Shutting down — releasing Supabase client")
+    schedule_service.stop_scheduler()
     db.supabase_client = None
 
 
@@ -68,9 +73,9 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.debug("→ %s %s", request.method, request.url.path)
+    logger.debug(">> %s %s", request.method, request.url.path)
     response = await call_next(request)
-    logger.debug("← %s %s %d", request.method, request.url.path, response.status_code)
+    logger.debug("<< %s %s %d", request.method, request.url.path, response.status_code)
     return response
 
 
@@ -81,6 +86,7 @@ app.include_router(admin_vm_router, prefix="/api/v1/admin/vm", tags=["admin-vm"]
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(logs_router, prefix="/api/v1/logs", tags=["logs"])
+app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["schedules"])
 
 
 if __name__ == "__main__":

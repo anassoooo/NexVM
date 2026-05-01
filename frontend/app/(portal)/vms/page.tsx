@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserAnalytics, VM } from "@/types";
-import BackgroundLayer from "@/components/background-layer";
 import VMsClient from "@/components/vms-client";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -16,7 +15,7 @@ export default async function VMsPage() {
 
   const [vmsRes, analyticsRes] = await Promise.allSettled([
     fetch(`${BASE_URL}/api/v1/vm`, { headers }),
-    fetch(`${BASE_URL}/api/v1/analytics/user`, { headers }),
+    fetch(`${BASE_URL}/api/v1/analytics/`, { headers }),
   ]);
 
   const vms: VM[] =
@@ -30,11 +29,8 @@ export default async function VMsPage() {
       : null;
 
   return (
-    <div className="relative min-h-screen" style={{ background: "var(--bg)" }}>
-      <BackgroundLayer />
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-8">
-        <VMsClient initialVms={vms} initialAnalytics={analytics} />
-      </div>
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <VMsClient initialVms={vms} initialAnalytics={analytics} />
     </div>
   );
 }

@@ -100,3 +100,25 @@ export interface AdminAnalytics {
   total_disk_used_mb: number;
   disk_quota_mb: number;
 }
+
+export interface TimeSeriesPoint {
+  date: string;
+  count: number;
+}
+
+export interface AnalyticsTimeSeries {
+  vms_created: TimeSeriesPoint[];
+  vms_by_day: TimeSeriesPoint[];
+  ai_commands_by_day: TimeSeriesPoint[];
+}
+
+export interface VMSchedule {
+  id: string;
+  user_id: string;
+  vm_id: string;
+  action: "start" | "stop";
+  cron_expr: string;
+  enabled: boolean;
+  last_run: string | null;
+  created_at: string;
+}

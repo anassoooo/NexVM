@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
-import Link from "next/link";
-import LogoutButton from "./dashboard/logout-button";
 import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
@@ -12,8 +10,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "myVMS",
-  description: "Virtual Machine Management System",
+  title: "myVMS — Virtual Machine Management Platform",
+  description: "Create, manage, and monitor VirtualBox VMs through a modern web interface with AI assistance.",
 };
 
 export default function RootLayout({
@@ -25,36 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${spaceGrotesk.variable} antialiased`} style={{ background: "var(--bg)", color: "var(--text)" }}>
         <ToastProvider>
-        <nav
-          className="flex items-center justify-between px-6"
-          style={{
-            height: 56,
-            background: "rgba(10,15,13,0.85)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            borderBottom: "1px solid var(--border)",
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-          }}
-        >
-          <div className="flex items-center gap-6">
-            <Link href="/ai" className="font-bold text-lg nav-logo">
-              myVMS
-            </Link>
-            <Link href="/ai" className="text-sm font-medium nav-link">
-              AI
-            </Link>
-            <Link href="/vms" className="text-sm font-medium nav-link">
-              VMs
-            </Link>
-            <Link href="/logs" className="text-sm font-medium nav-link">
-              Logs
-            </Link>
-          </div>
-          <LogoutButton />
-        </nav>
-        {children}
+          {children}
         </ToastProvider>
       </body>
     </html>

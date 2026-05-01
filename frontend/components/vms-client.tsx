@@ -116,6 +116,14 @@ export default function VMsClient({
     withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }), `VM cloned as "${newName}"`);
   const handleExport          = (id: string, outputPath: string) =>
     withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }), "VM exported");
+  const handleCreateSchedule  = (vmId: string, action: "start" | "stop", cronExpr: string) =>
+    withLoading(() => api.post("/api/v1/schedules/", { vm_id: vmId, action, cron_expr: cronExpr }), `Schedule created: ${action} ${cronExpr}`);
+  const handleDeleteSchedule  = (scheduleId: string) =>
+    withLoading(() => api.delete(`/api/v1/schedules/${scheduleId}`, {}), "Schedule deleted");
+  const handleToggleSchedule  = (scheduleId: string) =>
+    withLoading(async () => {
+      await api.post(`/api/v1/schedules/${scheduleId}/toggle`, {});
+    }, "Schedule toggled");
   const handleImport          = () => {
     if (!importPath.trim() || !importName.trim()) return;
     withLoading(() => api.post("/api/v1/vm/import", {
@@ -207,6 +215,9 @@ export default function VMsClient({
         onDeleteSnapshot={handleDeleteSnapshot}
         onClone={handleClone}
         onExport={handleExport}
+        onCreateSchedule={handleCreateSchedule}
+        onDeleteSchedule={handleDeleteSchedule}
+        onToggleSchedule={handleToggleSchedule}
       />
     </div>
   );

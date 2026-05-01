@@ -26,6 +26,9 @@ interface VMListProps {
   onDeleteSnapshot: (vmId: string, name: string) => void;
   onClone: (vmId: string, newName: string) => void;
   onExport: (vmId: string, outputPath: string) => void;
+  onCreateSchedule: (vmId: string, action: "start" | "stop", cronExpr: string) => void;
+  onDeleteSchedule: (scheduleId: string) => void;
+  onToggleSchedule: (scheduleId: string) => void;
   showOwner?: boolean;
 }
 
@@ -36,6 +39,7 @@ export default function VMList({
   onAddPortRule, onRemovePortRule,
   onTakeSnapshot, onRestoreSnapshot, onDeleteSnapshot,
   onClone, onExport,
+  onCreateSchedule, onDeleteSchedule, onToggleSchedule,
   showOwner,
 }: VMListProps) {
   if (loading && vms.length === 0) {
@@ -83,6 +87,9 @@ export default function VMList({
           onDeleteSnapshot={(name) => onDeleteSnapshot(vm.id, name)}
           onClone={(newName) => onClone(vm.id, newName)}
           onExport={(outputPath) => onExport(vm.id, outputPath)}
+          onCreateSchedule={(action, cronExpr) => onCreateSchedule(vm.id, action, cronExpr)}
+          onDeleteSchedule={(scheduleId) => onDeleteSchedule(scheduleId)}
+          onToggleSchedule={(scheduleId) => onToggleSchedule(scheduleId)}
           showOwner={showOwner}
         />
       ))}
