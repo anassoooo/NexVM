@@ -250,7 +250,10 @@ export default function VMCard({
       {/* Primary action buttons */}
       <div className="flex gap-2 flex-wrap mt-1">
         <ActionBtn onClick={onStart} disabled={loading || transitional || (vm.status !== "stopped" && vm.status !== "error")} color="green">Start</ActionBtn>
-        <ActionBtn onClick={onStop} disabled={loading || transitional || vm.status !== "running"} color="orange">Stop</ActionBtn>
+        <ActionBtn onClick={() => {
+          if (vm.vrde_enabled && !window.confirm("An RDP session may be open on this VM.\nClose your Remote Desktop window first, then confirm to stop.")) return;
+          onStop();
+        }} disabled={loading || transitional || vm.status !== "running"} color="orange">Stop</ActionBtn>
         <ActionBtn onClick={onPause} disabled={loading || !isRunning} color="blue">Pause</ActionBtn>
         <ActionBtn onClick={onResume} disabled={loading || !isPaused} color="green">Resume</ActionBtn>
         <ActionBtn onClick={onSaveState} disabled={loading || !isRunning} color="blue">Save State</ActionBtn>
