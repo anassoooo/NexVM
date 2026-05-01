@@ -36,12 +36,32 @@ export default function VMsClient({
     }
   }
 
+  // Fast poll (5 s) while any VM is transitional
   useEffect(() => {
     const hasTransitional = vms.some(
       (v) => v.status === "starting" || v.status === "stopping"
     );
     if (!hasTransitional) return;
     const id = setInterval(() => void refetch(), 5000);
+    return () => clearInterval(id);
+  }, [vms]);
+
+  // Background reconciliation (30 s) — catches DB/VirtualBox drift for stable VMs
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const stable = vms.filter((v) => v.status === "running" || v.status === "stopped");
+      if (stable.length === 0) return;
+      for (const v of stable) {
+        try {
+          const updated = await api.post<import("@/types").VM>("/api/v1/vm/sync", { vm_id: v.id });
+          if (updated.status !== v.status) {
+            setVms((prev) => prev.map((vm) => (vm.id === v.id ? updated : vm)));
+          }
+        } catch {
+          // ignore — best effort
+        }
+      }
+    }, 30000);
     return () => clearInterval(id);
   }, [vms]);
 
