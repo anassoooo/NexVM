@@ -129,6 +129,63 @@ class SnapshotResponse(BaseModel):
     created_at: datetime
 
 
+class VMCloneRequest(BaseModel):
+    vm_id: uuid.UUID
+    new_name: str = Field(min_length=1, max_length=50)
+
+    @field_validator("new_name")
+    @classmethod
+    def validate_new_name(cls, v: str) -> str:
+        if not _VM_NAME_RE.match(v):
+            raise ValueError(
+                "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
+            )
+        return v
+
+
+class OVAExportRequest(BaseModel):
+    vm_id: uuid.UUID
+    output_path: str
+
+    @field_validator("output_path")
+    @classmethod
+    def validate_output_path(cls, v: str) -> str:
+        if not os.path.isabs(v):
+            raise ValueError("output_path must be an absolute path")
+        if not v.lower().endswith(".ova"):
+            raise ValueError("output_path must end with .ova")
+        return v
+
+
+class OVAImportRequest(BaseModel):
+    source_path: str
+    name: str = Field(min_length=1, max_length=50)
+    ram: int = Field(ge=512, le=16384, default=1024)
+    cpu: int = Field(ge=1, le=32, default=2)
+
+    @field_validator("source_path")
+    @classmethod
+    def validate_source_path(cls, v: str) -> str:
+        if not os.path.isabs(v):
+            raise ValueError("source_path must be an absolute path")
+        if not v.lower().endswith((".ova", ".ovf")):
+            raise ValueError("source_path must end with .ova or .ovf")
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def validate_import_name(cls, v: str) -> str:
+        if not _VM_NAME_RE.match(v):
+            raise ValueError(
+                "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
+            )
+        return v
+
+
+class OVAExportResponse(BaseModel):
+    message: str
+
+
 class LogResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID | None

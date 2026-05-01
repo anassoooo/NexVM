@@ -740,3 +740,152 @@ def list_snapshots(vm_id: str, user_id: str) -> list[SnapshotResponse]:
         .execute()
     )
     return [SnapshotResponse(**row) for row in result.data]
+
+
+# ---------------------------------------------------------------------------
+# P3 — Clone, Export / Import OVA
+# ---------------------------------------------------------------------------
+
+def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] not in ("stopped", "error"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot clone VM in '{vm['status']}' state (must be stopped or error)",
+        )
+
+    supabase = get_supabase_client()
+
+    count_result = (
+        supabase.table("vms").select("id", count="exact").eq("user_id", user_id).execute()
+    )
+    if (count_result.count or 0) >= settings.VM_QUOTA_PER_USER:
+        raise HTTPException(
+            status_code=409,
+            detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
+        )
+
+    name_check = (
+        supabase.table("vms").select("id").eq("user_id", user_id).eq("name", new_name).execute()
+    )
+    if name_check.data:
+        raise HTTPException(status_code=409, detail=f"A VM named '{new_name}' already exists")
+
+    vbox = build_vbox_path()
+    _run_vbox(
+        [vbox, "clonevm", vm["name"], "--name", new_name, "--register"],
+        user_id, LogAction.clone_vm, "clonevm",
+    )
+
+    vbox_id: str | None = None
+    info = run_vbox_command([vbox, "showvminfo", new_name, "--machinereadable"])
+    if info.returncode == 0:
+        for line in info.stdout.splitlines():
+            if line.startswith("UUID="):
+                vbox_id = line.split("=", 1)[1].strip('"')
+                break
+
+    now = datetime.now(timezone.utc).isoformat()
+    inserted = supabase.table("vms").insert({
+        "user_id": user_id,
+        "name": new_name,
+        "os": vm["os"],
+        "ram": vm["ram"],
+        "cpu": vm["cpu"],
+        "disk_size": vm["disk_size"],
+        "status": "stopped",
+        "vbox_id": vbox_id,
+        "created_at": now,
+        "updated_at": now,
+    }).execute()
+    _log_action(user_id, LogAction.clone_vm, vm["name"], LogStatus.success, f"→ {new_name}")
+    return _vm_row_to_response(inserted.data[0])
+
+
+def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
+    vm = _get_vm_or_404(vm_id, user_id)
+    if vm["status"] != "stopped":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot export VM in '{vm['status']}' state (must be stopped)",
+        )
+
+    vbox = build_vbox_path()
+    try:
+        result = run_vbox_command([vbox, "export", vm["name"], "--output", output_path], timeout=300)
+    except FileNotFoundError:
+        _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, "VBoxManage not reachable")
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, "Export timed out")
+        raise HTTPException(status_code=500, detail="Export timed out") from None
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, stderr)
+        raise HTTPException(status_code=500, detail=f"VBoxManage export failed: {stderr}")
+
+    _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.success, output_path)
+    return {"message": f"Exported to {output_path}"}
+
+
+def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) -> VMResponse:
+    supabase = get_supabase_client()
+
+    count_result = (
+        supabase.table("vms").select("id", count="exact").eq("user_id", user_id).execute()
+    )
+    if (count_result.count or 0) >= settings.VM_QUOTA_PER_USER:
+        raise HTTPException(
+            status_code=409,
+            detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
+        )
+
+    name_check = (
+        supabase.table("vms").select("id").eq("user_id", user_id).eq("name", name).execute()
+    )
+    if name_check.data:
+        raise HTTPException(status_code=409, detail=f"A VM named '{name}' already exists")
+
+    vbox = build_vbox_path()
+    try:
+        result = run_vbox_command(
+            [vbox, "import", source_path, "--vsys", "0",
+             "--vmname", name, "--memory", str(ram), "--cpus", str(cpu)],
+            timeout=300,
+        )
+    except FileNotFoundError:
+        _log_action(user_id, LogAction.import_vm, name, LogStatus.failure, "VBoxManage not reachable")
+        raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
+    except subprocess.TimeoutExpired:
+        _log_action(user_id, LogAction.import_vm, name, LogStatus.failure, "Import timed out")
+        raise HTTPException(status_code=500, detail="Import timed out") from None
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        _log_action(user_id, LogAction.import_vm, name, LogStatus.failure, stderr)
+        raise HTTPException(status_code=500, detail=f"VBoxManage import failed: {stderr}")
+
+    vbox_id: str | None = None
+    info = run_vbox_command([vbox, "showvminfo", name, "--machinereadable"])
+    if info.returncode == 0:
+        for line in info.stdout.splitlines():
+            if line.startswith("UUID="):
+                vbox_id = line.split("=", 1)[1].strip('"')
+                break
+
+    now = datetime.now(timezone.utc).isoformat()
+    inserted = supabase.table("vms").insert({
+        "user_id": user_id,
+        "name": name,
+        "os": "imported",
+        "ram": ram,
+        "cpu": cpu,
+        "disk_size": 20480,
+        "status": "stopped",
+        "vbox_id": vbox_id,
+        "created_at": now,
+        "updated_at": now,
+    }).execute()
+    _log_action(user_id, LogAction.import_vm, name, LogStatus.success, source_path)
+    return _vm_row_to_response(inserted.data[0])

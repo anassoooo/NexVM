@@ -11,6 +11,11 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importPath, setImportPath] = useState("");
+  const [importName, setImportName] = useState("");
+  const [importRam, setImportRam] = useState("1024");
+  const [importCpu, setImportCpu] = useState("2");
 
   async function refetch() {
     setLoading(true);
@@ -72,6 +77,20 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
     withLoading(() => api.post("/api/v1/vm/snapshot/restore", { vm_id: id, name }));
   const handleDeleteSnapshot  = (id: string, name: string) =>
     withLoading(() => api.delete("/api/v1/vm/snapshot", { vm_id: id, name }));
+  const handleClone           = (id: string, newName: string) =>
+    withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }));
+  const handleExport          = (id: string, outputPath: string) =>
+    withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }));
+  const handleImport          = () => {
+    if (!importPath.trim() || !importName.trim()) return;
+    withLoading(() => api.post("/api/v1/vm/import", {
+      source_path: importPath.trim(),
+      name: importName.trim(),
+      ram: parseInt(importRam, 10) || 1024,
+      cpu: parseInt(importCpu, 10) || 2,
+    }));
+    setShowImport(false); setImportPath(""); setImportName(""); setImportRam("1024"); setImportCpu("2");
+  };
 
   return (
     <div>
@@ -79,10 +98,29 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
         <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
           Virtual Machines
         </h1>
-        <button onClick={() => setShowForm(true)} className="btn-primary" style={{ padding: "8px 20px" }}>
-          Create VM
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-primary" style={{ padding: "8px 20px", background: "rgba(100,180,255,0.12)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.25)" }}>
+            Import OVA
+          </button>
+          <button onClick={() => setShowForm(true)} className="btn-primary" style={{ padding: "8px 20px" }}>
+            Create VM
+          </button>
+        </div>
       </div>
+
+      {showImport && (
+        <div className="glass mb-4" style={{ padding: "1rem" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "var(--text)" }}>Import OVA / OVF</p>
+          <div className="flex gap-2 flex-wrap">
+            <input type="text" value={importPath} onChange={(e) => setImportPath(e.target.value)} placeholder="/path/to/file.ova" className="flex-1" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(0,230,118,0.2)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", minWidth: "200px" }} />
+            <input type="text" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="VM name" className="flex-1" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(0,230,118,0.2)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", minWidth: "120px" }} />
+            <input type="number" value={importRam} onChange={(e) => setImportRam(e.target.value)} placeholder="RAM (MB)" min={512} max={16384} style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(0,230,118,0.2)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", width: "90px" }} />
+            <input type="number" value={importCpu} onChange={(e) => setImportCpu(e.target.value)} placeholder="CPU" min={1} max={32} style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid rgba(0,230,118,0.2)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", width: "70px" }} />
+            <button onClick={handleImport} disabled={!importPath.trim() || !importName.trim() || loading} className="btn-primary" style={{ padding: "6px 16px" }}>Import</button>
+            <button onClick={() => { setShowImport(false); setImportPath(""); setImportName(""); }} className="btn-primary" style={{ padding: "6px 16px", background: "transparent", color: "var(--text-muted)" }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div
@@ -120,6 +158,8 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
         onTakeSnapshot={handleTakeSnapshot}
         onRestoreSnapshot={handleRestoreSnapshot}
         onDeleteSnapshot={handleDeleteSnapshot}
+        onClone={handleClone}
+        onExport={handleExport}
       />
     </div>
   );

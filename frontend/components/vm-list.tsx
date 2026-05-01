@@ -24,6 +24,8 @@ interface VMListProps {
   onTakeSnapshot: (vmId: string, name: string, desc: string) => void;
   onRestoreSnapshot: (vmId: string, name: string) => void;
   onDeleteSnapshot: (vmId: string, name: string) => void;
+  onClone: (vmId: string, newName: string) => void;
+  onExport: (vmId: string, outputPath: string) => void;
   showOwner?: boolean;
 }
 
@@ -33,6 +35,7 @@ export default function VMList({
   onPause, onResume, onSaveState, onModify,
   onAddPortRule, onRemovePortRule,
   onTakeSnapshot, onRestoreSnapshot, onDeleteSnapshot,
+  onClone, onExport,
   showOwner,
 }: VMListProps) {
   if (loading && vms.length === 0) {
@@ -78,6 +81,8 @@ export default function VMList({
           onTakeSnapshot={(name, desc) => onTakeSnapshot(vm.id, name, desc)}
           onRestoreSnapshot={(name) => onRestoreSnapshot(vm.id, name)}
           onDeleteSnapshot={(name) => onDeleteSnapshot(vm.id, name)}
+          onClone={(newName) => onClone(vm.id, newName)}
+          onExport={(outputPath) => onExport(vm.id, outputPath)}
           showOwner={showOwner}
         />
       ))}
