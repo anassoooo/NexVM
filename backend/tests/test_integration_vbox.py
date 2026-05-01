@@ -11,6 +11,7 @@ Run with:
 Skipped automatically if VBoxManage or the ISO is not present.
 """
 
+import os
 import subprocess
 import uuid
 
@@ -27,6 +28,9 @@ UBUNTU_ISO_PATH = r"C:\Users\DELL\Downloads\ubuntu-20.04.6-desktop-amd64.iso"
 
 VBOX = build_vbox_path()
 
+pytestmark = pytest.mark.integration
+
+
 # ---------------------------------------------------------------------------
 # Skip guards
 # ---------------------------------------------------------------------------
@@ -37,11 +41,6 @@ def _vbox_available() -> bool:
         return r.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
-
-
-import os
-
-pytestmark = pytest.mark.integration
 
 vbox_missing  = pytest.mark.skipif(not _vbox_available(),    reason="VBoxManage not available")
 iso_missing   = pytest.mark.skipif(not os.path.isfile(UBUNTU_ISO_PATH), reason=f"ISO not found: {UBUNTU_ISO_PATH}")

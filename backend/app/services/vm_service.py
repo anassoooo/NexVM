@@ -201,6 +201,11 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
     storage_base = get_storage_base()
     vm_name = data.name
 
+    try:
+        os.makedirs(storage_base, exist_ok=True)
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"VM storage path unavailable: {exc}") from exc
+
     def cleanup() -> None:
         """Best-effort VBox cleanup if creation fails mid-way."""
         try:
