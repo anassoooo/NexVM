@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { VM } from "@/types";
+import { UserAnalytics, VM } from "@/types";
 import { api } from "@/lib/api";
 import VMList from "@/components/vm-list";
 import VMCreateForm from "@/components/vm-create-form";
 
-export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
+export default function VMsClient({
+  initialVms,
+  initialAnalytics,
+}: {
+  initialVms: VM[];
+  initialAnalytics: UserAnalytics | null;
+}) {
   const [vms, setVms] = useState<VM[]>(initialVms);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -92,8 +98,29 @@ export default function VMsClient({ initialVms }: { initialVms: VM[] }) {
     setShowImport(false); setImportPath(""); setImportName(""); setImportRam("1024"); setImportCpu("2");
   };
 
+  const quotaBar = (() => {
+    if (!initialAnalytics) return null;
+    const { total_disk_used_mb: used, disk_quota_mb: quota } = initialAnalytics;
+    const pct      = quota > 0 ? Math.min(100, (used / quota) * 100) : 0;
+    const usedGb   = (used  / 1024).toFixed(1);
+    const quotaGb  = (quota / 1024).toFixed(1);
+    const barColor = pct > 90 ? "var(--warning)" : "var(--accent)";
+    return (
+      <div className="glass mb-6" style={{ padding: "1rem 1.25rem" }}>
+        <div className="flex justify-between text-xs mb-2" style={{ color: "var(--text-muted)" }}>
+          <span>Disk usage</span>
+          <span style={{ color: barColor }}>{usedGb} GB / {quotaGb} GB ({pct.toFixed(1)}%)</span>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", height: "6px" }}>
+          <div style={{ width: `${pct.toFixed(1)}%`, height: "100%", background: barColor, transition: "width 0.3s" }} />
+        </div>
+      </div>
+    );
+  })();
+
   return (
     <div>
+      {quotaBar}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
           Virtual Machines
