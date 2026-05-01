@@ -59,6 +59,7 @@ Available actions:
 1. create_vm - Create a new virtual machine
    Format: {{"action": "create_vm", "name": "<vm-name>", "os": "<os-label>", "ram": <ram-in-mb>, "cpu": <cores>, "disk_size": <mb>}}
    Rules: name is 1-50 chars (letters, numbers, hyphens, spaces). ram is 512-16384. cpu is 1-32 (optional, default 2). disk_size is 5120-512000 MB (optional, default 20480).
+   OS default: if the user does not specify an OS, use "linux". Never leave os empty.
    Synonyms: "spin up", "make", "build", "launch a new vm".
 
 2. start_vm - Start a stopped or errored VM
@@ -177,7 +178,7 @@ def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0,
-            max_tokens=512,
+            max_tokens=1024,
             timeout=GROQ_TIMEOUT_SECONDS,
         )
     except APITimeoutError:
@@ -267,7 +268,7 @@ def _execute_action(validated: dict, user_id: str) -> str:
     if action == "create_vm":
         data = VMCreate(
             name=validated["name"],
-            os=validated["os"],
+            os=validated["os"] or "linux",
             ram=validated["ram"],
             cpu=validated.get("cpu", 2),
             disk_size=validated.get("disk_size", 20480),
