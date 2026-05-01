@@ -39,3 +39,4 @@ class LogAction(str, Enum):
     clone_vm         = "clone_vm"
     export_vm        = "export_vm"
     import_vm        = "import_vm"
+    schedule_vm      = "schedule_vm"

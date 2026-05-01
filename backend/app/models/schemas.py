@@ -323,3 +323,42 @@ class SignupResponse(BaseModel):
     user: UserInfo
     access_token: str | None = None
     token_type: str = "bearer"
+
+
+class TimeSeriesPoint(BaseModel):
+    date: str
+    count: int
+
+
+class AnalyticsTimeSeries(BaseModel):
+    vms_created: list[TimeSeriesPoint]
+    vms_by_day: list[TimeSeriesPoint]
+    ai_commands_by_day: list[TimeSeriesPoint]
+
+
+class ScheduleCreate(BaseModel):
+    vm_id: uuid.UUID
+    action: Literal["start", "stop"]
+    cron_expr: str = Field(min_length=9, max_length=100)
+
+    @field_validator("cron_expr")
+    @classmethod
+    def validate_cron(cls, v: str) -> str:
+        parts = v.strip().split()
+        if len(parts) < 5:
+            raise ValueError("cron_expr must have at least 5 fields (minute hour day month weekday)")
+        for p in parts[:5]:
+            if not re.match(r"^[\d,\-\*/]+$", p):
+                raise ValueError(f"Invalid cron field: '{p}'")
+        return v.strip()
+
+
+class ScheduleResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    vm_id: uuid.UUID
+    action: str
+    cron_expr: str
+    enabled: bool
+    last_run: datetime | None
+    created_at: datetime

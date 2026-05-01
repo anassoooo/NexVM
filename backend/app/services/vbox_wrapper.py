@@ -6,6 +6,7 @@ from app.config import settings
 
 VBOXMANAGE_COMMANDS = {
     "createvm",
+    "debugvm",
     "startvm",
     "controlvm",
     "unregistervm",

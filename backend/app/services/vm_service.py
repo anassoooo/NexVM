@@ -948,29 +948,33 @@ def get_vm_metrics(vm_id: str, user_id: str) -> dict:
     vbox = build_vbox_path()
     vm_name = vm["name"]
 
-    try:
-        run_vbox_command(
-            [vbox, "metrics", "setup", "--period", "1", "--samples", "1",
-             vm_name, "CPU/Load/User,RAM/Usage/Used"],
-        )
-        result = run_vbox_command(
-            [vbox, "metrics", "query", vm_name, "CPU/Load/User,RAM/Usage/Used"],
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
-        return {"cpu_percent": None, "ram_used_mb": None}
-
-    if result.returncode != 0:
-        return {"cpu_percent": None, "ram_used_mb": None}
-
     cpu_percent: float | None = None
     ram_used_mb: int | None = None
 
-    cpu_m = re.search(r"CPU/Load/User\s+([\d.]+)\s*%", result.stdout)
-    if cpu_m:
-        cpu_percent = float(cpu_m.group(1))
+    try:
+        stats = run_vbox_command(
+            [vbox, "debugvm", vm_name, "statistics", "--pattern", "/TM/CPU/*"],
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        stats = None
 
-    ram_m = re.search(r"RAM/Usage/Used\s+([\d]+)\s+MB", result.stdout)
-    if ram_m:
-        ram_used_mb = int(ram_m.group(1))
+    if stats and stats.returncode == 0:
+        per_cpu: list[float] = []
+        for m in re.finditer(r'val="(\d+)"[^>]*name="/TM/CPU/\d+/pctExecuting"', stats.stdout):
+            per_cpu.append(float(m.group(1)))
+        if per_cpu:
+            cpu_percent = round(sum(per_cpu) / len(per_cpu), 1)
+
+    try:
+        info = run_vbox_command(
+            [vbox, "showvminfo", vm_name, "--machinereadable"],
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        info = None
+
+    if info and info.returncode == 0:
+        mem_m = re.search(r'^memory=(\d+)', info.stdout, re.MULTILINE)
+        if mem_m:
+            ram_used_mb = int(mem_m.group(1))
 
     return {"cpu_percent": cpu_percent, "ram_used_mb": ram_used_mb}

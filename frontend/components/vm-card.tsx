@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PortFwdRule, Snapshot, VM, VMMetrics } from "@/types";
+import { PortFwdRule, Snapshot, VM, VMMetrics, VMSchedule } from "@/types";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/modal";
 
@@ -36,6 +36,9 @@ interface VMCardProps {
   onDeleteSnapshot: (name: string) => void;
   onClone: (newName: string) => void;
   onExport: (outputPath: string) => void;
+  onCreateSchedule: (action: "start" | "stop", cronExpr: string) => void;
+  onDeleteSchedule: (scheduleId: string) => void;
+  onToggleSchedule: (scheduleId: string) => void;
   loading: boolean;
   showOwner?: boolean;
 }
@@ -59,6 +62,7 @@ export default function VMCard({
   onAddPortRule, onRemovePortRule,
   onTakeSnapshot, onRestoreSnapshot, onDeleteSnapshot,
   onClone, onExport,
+  onCreateSchedule, onDeleteSchedule, onToggleSchedule,
   loading, showOwner,
 }: VMCardProps) {
   const [isoInputVisible, setIsoInputVisible]   = useState(false);
@@ -93,6 +97,12 @@ export default function VMCard({
 
   const [stopConfirm, setStopConfirm]       = useState(false);
 
+  const [schedVisible, setSchedVisible]     = useState(false);
+  const [schedAction, setSchedAction]       = useState<"start" | "stop">("start");
+  const [schedCron, setSchedCron]           = useState("");
+  const [schedules, setSchedules]           = useState<VMSchedule[] | null>(null);
+  const [schedLoading, setSchedLoading]     = useState(false);
+
   const transitional = vm.status === "starting" || vm.status === "stopping";
   const isStopped    = vm.status === "stopped";
   const isRunning    = vm.status === "running";
@@ -107,6 +117,22 @@ export default function VMCard({
       .catch(() => setSnapshots([]))
       .finally(() => setSnapLoading(false));
   }, [snapVisible, vm.id]);
+
+  useEffect(() => {
+    if (!schedVisible) return;
+    setSchedLoading(true);
+    api.get<VMSchedule[]>(`/api/v1/schedules/${vm.id}`)
+      .then(setSchedules)
+      .catch(() => setSchedules([]))
+      .finally(() => setSchedLoading(false));
+  }, [schedVisible, vm.id]);
+
+  function handleCreateSchedule() {
+    if (!schedCron.trim()) return;
+    onCreateSchedule(schedAction, schedCron.trim());
+    setSchedCron("");
+    setSchedules(null);
+  }
 
   function handleAttachISO() {
     const p = isoInputValue.trim();
@@ -412,9 +438,9 @@ export default function VMCard({
                 <span>Loading…</span>
               ) : metrics ? (
                 <span>
-                  CPU: {metrics.cpu_percent !== null ? `${metrics.cpu_percent.toFixed(1)}%` : "N/A"}
+                  CPU Load: {metrics.cpu_percent !== null ? `${metrics.cpu_percent}%` : "N/A"}
                   {" · "}
-                  RAM: {metrics.ram_used_mb !== null ? `${metrics.ram_used_mb} MB` : "N/A"}
+                  RAM Allocated: {metrics.ram_used_mb !== null ? `${metrics.ram_used_mb >= 1024 ? `${(metrics.ram_used_mb / 1024).toFixed(1)} GB` : `${metrics.ram_used_mb} MB`}` : "N/A"}
                 </span>
               ) : (
                 <span>Unavailable</span>
@@ -448,6 +474,47 @@ export default function VMCard({
         {" "}
         {!exportVisible && vm.status === "stopped" && (
           <ActionBtn onClick={() => { setCloneVisible(false); setExportVisible(true); }} disabled={loading} color="blue-soft">Export OVA</ActionBtn>
+        )}
+      </div>
+
+      {/* Schedule section */}
+      <div className="mt-2">
+        <button onClick={() => setSchedVisible((v) => !v)} className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {schedVisible ? "▾" : "▸"} Schedules
+        </button>
+        {schedVisible && (
+          <div className="mt-2">
+            {schedLoading && <p className="text-xs" style={{ color: "var(--text-muted)" }}>Loading…</p>}
+            {!schedLoading && schedules && schedules.length === 0 && (
+              <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>No schedules</p>
+            )}
+            {!schedLoading && schedules && schedules.map((s: VMSchedule) => (
+              <div key={s.id} className="flex items-center justify-between text-xs mb-1" style={{ color: s.enabled ? "var(--accent)" : "var(--text-muted)" }}>
+                <span>
+                  <span className="font-semibold">{s.action}</span> {s.cron_expr}
+                  {s.last_run && <span style={{ color: "var(--text-muted)", fontSize: "10px" }}> (last: {new Date(s.last_run).toLocaleString()})</span>}
+                </span>
+                <div className="flex gap-2 ml-2">
+                  <button onClick={() => onToggleSchedule(s.id)} style={{ color: s.enabled ? "var(--warning)" : "var(--success)", opacity: loading ? 0.3 : 1 }}>
+                    {s.enabled ? "⏸" : "▶"}
+                  </button>
+                  <button onClick={() => { onDeleteSchedule(s.id); setSchedules(null); }} style={{ color: "var(--warning)", opacity: loading ? 0.3 : 1 }}>✕</button>
+                </div>
+              </div>
+            ))}
+            <div className="flex gap-1 flex-wrap mt-2">
+              <select value={schedAction} onChange={(e) => setSchedAction(e.target.value as "start" | "stop")} style={{ ...inputStyle, width: "70px" }}>
+                <option value="start">start</option>
+                <option value="stop">stop</option>
+              </select>
+              <input value={schedCron} onChange={(e) => setSchedCron(e.target.value)} placeholder="*/30 * * * * (cron)" style={{ ...inputStyle, flex: 1, minWidth: "140px" }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateSchedule(); }} />
+              <Btn onClick={handleCreateSchedule} disabled={!schedCron.trim() || loading} color="green">Add</Btn>
+            </div>
+            <p className="text-xs mt-1" style={{ color: "rgba(122,158,138,0.4)", fontSize: "9px" }}>
+              Format: minute hour day month weekday — e.g. &apos;0 8 * * *&apos; = daily at 8:00, &apos;*/30 * * * *&apos; = every 30 min
+            </p>
+          </div>
         )}
       </div>
     </div>

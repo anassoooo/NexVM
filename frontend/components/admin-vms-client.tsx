@@ -75,6 +75,9 @@ export default function AdminVMsClient({ initialVms }: { initialVms: VM[] }) {
     withLoading(() => api.post("/api/v1/vm/clone", { vm_id: id, new_name: newName }));
   const handleExport          = (id: string, outputPath: string) =>
     withLoading(() => api.post("/api/v1/vm/export", { vm_id: id, output_path: outputPath }));
+  const handleCreateSchedule  = (_vmId: string, _action: "start" | "stop", _cronExpr: string) => {};
+  const handleDeleteSchedule  = (_scheduleId: string) => {};
+  const handleToggleSchedule  = (_scheduleId: string) => {};
 
   return (
     <div>
@@ -116,6 +119,9 @@ export default function AdminVMsClient({ initialVms }: { initialVms: VM[] }) {
         onDeleteSnapshot={handleDeleteSnapshot}
         onClone={handleClone}
         onExport={handleExport}
+        onCreateSchedule={handleCreateSchedule}
+        onDeleteSchedule={handleDeleteSchedule}
+        onToggleSchedule={handleToggleSchedule}
         showOwner={true}
       />
     </div>

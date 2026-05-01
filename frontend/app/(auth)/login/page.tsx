@@ -43,7 +43,7 @@ function LoginForm() {
 
       const data = await res.json();
       setAuth(data.access_token, data.user.is_admin);
-      window.location.href = data.user.is_admin ? "/admin" : "/ai";
+      window.location.href = data.user.is_admin ? "/admin" : "/vms";
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
