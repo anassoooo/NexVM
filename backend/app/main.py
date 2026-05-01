@@ -7,6 +7,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from supabase import ClientOptions, create_client
 
@@ -80,6 +81,23 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# Ensure CORS headers are present even on unhandled 500 errors.
+# BaseHTTPMiddleware can swallow them otherwise.
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    headers = {}
+    if origin in (settings.FRONTEND_URL, ""):
+        headers["Access-Control-Allow-Origin"] = origin or settings.FRONTEND_URL
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers,
+    )
 
 
 app.include_router(health_router, prefix="/api/v1")
