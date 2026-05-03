@@ -897,15 +897,90 @@ Les tests utilisent des **mocks** pour les dépendances externes (Supabase, Groq
                     └─────────────┘
 ```
 
-### 11.2 Docker
+### 11.2 Docker — Conteneurisation complète
 
-Le backend peut être déployé via Docker :
+NexVM est entièrement conteneurisable via Docker. Chaque composant possède son propre `Dockerfile` et un `docker-compose.yml` à la racine orchestre les deux services.
 
-```bash
-docker-compose up -d    # Démarre le backend sur le port 9999
+#### 11.2.1 Dockerfile du backend
+
+```dockerfile
+FROM python:3.12-slim
+# Utilisateur non-root pour la sécurité
+# Installe les dépendances Python depuis requirements.txt
+# Copie le code applicatif (app/)
+# Expose le port 8000 — Uvicorn en point d'entrée
 ```
 
-Le `Dockerfile` utilise Python 3.12-slim avec un utilisateur non-root.
+Caractéristiques :
+- Image de base : `python:3.12-slim` (légère).
+- Utilisateur non-root (`appuser`) pour la sécurité.
+- Point de montage `/vm-storage` pour le stockage des VMs.
+- Port exposé : `8000`.
+
+#### 11.2.2 Dockerfile du frontend
+
+```dockerfile
+# Build multi-étapes (multi-stage build) :
+# 1. deps   — installation des dépendances npm
+# 2. builder— compilation Next.js (next build)
+# 3. runner — image finale minimale avec le standalone output
+```
+
+Caractéristiques :
+- Image de base : `node:20-alpine` (ultra-légère).
+- **Build multi-étapes** optimisé pour la taille de l'image finale.
+- Utilisation du mode `standalone` de Next.js (configuration `output: "standalone"`).
+- Utilisateur non-root (`nextjs`).
+- Port exposé : `3000`.
+
+#### 11.2.3 Docker Compose (orchestration)
+
+Un fichier `docker-compose.yml` à la racine du projet orchestre les deux services :
+
+| Service | Image | Port | Dépendances |
+|---|---|---|---|
+| `backend` | Backend Dockerfile | `8000:8000` | Montage VirtualBox + VM storage depuis l'hôte |
+| `frontend` | Frontend Dockerfile | `3000:3000` | Dépend de `backend` |
+
+**Volumes montés :**
+
+- `${VBOX_INSTALL_PATH}:/vbox:ro` — accès en lecture seule au binaire VirtualBox de l'hôte.
+- `${VM_STORAGE_HOST_PATH}:/vm-storage` — stockage des fichiers de VMs partagé avec l'hôte.
+
+**Réseau :** Les deux services communiquent via un réseau bridge dédié (`nexvm-network`).
+
+#### 11.2.4 Lancement
+
+```bash
+# Copier et remplir les fichiers d'environnement
+cp .env.example .env
+cp backend/.env.example backend/.env
+
+# Construire et démarrer les deux services
+docker-compose up --build
+
+# Démarrer en arrière-plan
+docker-compose up -d --build
+
+# Arrêter les services
+docker-compose down
+```
+
+Après démarrage :
+- **Frontend** accessible sur `http://localhost:3000`
+- **Backend** accessible sur `http://localhost:8000`
+- **API health check** sur `http://localhost:8000/api/v1/health`
+
+#### 11.2.5 Variables d'environnement Docker
+
+Fichier `.env` à la racine du projet :
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anonyme Supabase |
+| `VBOX_INSTALL_PATH` | Chemin de l'installation VirtualBox sur l'hôte (ex. : `C:\Program Files\Oracle\VirtualBox`) |
+| `VM_STORAGE_HOST_PATH` | Chemin du répertoire de stockage des VMs sur l'hôte |
 
 ### 11.3 Prérequis d'installation
 
@@ -913,6 +988,7 @@ Le `Dockerfile` utilise Python 3.12-slim avec un utilisateur non-root.
 2. **Backend** : Python 3.12+, dépendances via `pip install -r requirements.txt`.
 3. **Frontend** : Node.js 18+, dépendances via `npm install`.
 4. **Base de données** : Projet Supabase configuré avec les migrations appliquées.
+5. **Docker (optionnel)** : Docker et Docker Compose pour le déploiement conteneurisé.
 
 ---
 
@@ -920,45 +996,50 @@ Le `Dockerfile` utilise Python 3.12-slim avec un utilisateur non-root.
 
 ```
 NexVM/
+├── docker-compose.yml              # Orchestration Docker (backend + frontend)
+├── .env.example                    # Variables d'environnement Docker Compose
+├── .gitignore
+├── CLAUDE.md                       # Instructions pour l'assistance IA
+├── README.md                       # Documentation du projet
+│
 ├── backend/
-│   ├── .env                          # Variables d'environnement (non versionné)
-│   ├── .env.example                  # Template des variables d'environnement
-│   ├── requirements.txt              # Dépendances Python
-│   ├── dev-requirements.txt          # Dépendances de développement
-│   ├── Dockerfile                    # Image Docker du backend
-│   ├── docker-compose.yml            # Orchestration Docker
-│   ├── pytest.ini                    # Configuration pytest
-│   ├── test_vbox.py                  # Test manuel VirtualBox
+│   ├── .env                        # Variables d'environnement (non versionné)
+│   ├── .env.example                # Template des variables d'environnement
+│   ├── requirements.txt            # Dépendances Python
+│   ├── dev-requirements.txt        # Dépendances de développement
+│   ├── Dockerfile                  # Image Docker du backend (Python 3.12-slim)
+│   ├── pytest.ini                  # Configuration pytest
+│   ├── test_vbox.py                # Test manuel VirtualBox
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py                   # Point d'entrée FastAPI + lifespan
-│   │   ├── config.py                 # Configuration Pydantic Settings
-│   │   ├── db.py                     # Client Supabase global
-│   │   ├── dependencies.py           # Dépendances d'authentification (JWT)
+│   │   ├── main.py                 # Point d'entrée FastAPI + lifespan
+│   │   ├── config.py               # Configuration Pydantic Settings
+│   │   ├── db.py                   # Client Supabase global
+│   │   ├── dependencies.py         # Dépendances d'authentification (JWT)
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   ├── enums.py             # Énumérations (VMStatus, LogAction)
-│   │   │   └── schemas.py           # Schémas Pydantic (392 lignes)
+│   │   │   ├── enums.py            # Énumérations (VMStatus, LogAction)
+│   │   │   └── schemas.py          # Schémas Pydantic (392 lignes)
 │   │   ├── routes/
 │   │   │   ├── __init__.py
-│   │   │   ├── auth.py              # Routes d'authentification
-│   │   │   ├── health.py            # Route de santé
-│   │   │   ├── vm.py                # Routes de gestion des VMs (25 endpoints)
-│   │   │   ├── admin_vm.py          # Routes d'administration VM
-│   │   │   ├── ai.py                # Route de l'assistant IA
-│   │   │   ├── analytics.py         # Routes analytiques
-│   │   │   ├── logs.py              # Routes des logs
-│   │   │   └── schedules.py         # Routes de planification
+│   │   │   ├── auth.py             # Routes d'authentification
+│   │   │   ├── health.py           # Route de santé
+│   │   │   ├── vm.py               # Routes de gestion des VMs (25 endpoints)
+│   │   │   ├── admin_vm.py         # Routes d'administration VM
+│   │   │   ├── ai.py               # Route de l'assistant IA
+│   │   │   ├── analytics.py        # Routes analytiques
+│   │   │   ├── logs.py             # Routes des logs
+│   │   │   └── schedules.py        # Routes de planification
 │   │   ├── services/
 │   │   │   ├── __init__.py
-│   │   │   ├── vm_service.py        # Service de gestion des VMs (1009 lignes)
-│   │   │   ├── ai_service.py        # Service IA (478 lignes)
-│   │   │   ├── analytics_service.py # Service analytique
-│   │   │   ├── schedule_service.py  # Service de planification
-│   │   │   └── vbox_wrapper.py      # Wrapper VirtualBox
+│   │   │   ├── vm_service.py       # Service de gestion des VMs (1009 lignes)
+│   │   │   ├── ai_service.py       # Service IA (478 lignes)
+│   │   │   ├── analytics_service.py# Service analytique
+│   │   │   ├── schedule_service.py # Service de planification
+│   │   │   └── vbox_wrapper.py     # Wrapper VirtualBox
 │   │   └── utils/
 │   │       ├── __init__.py
-│   │       └── logger.py            # Logger structuré JSON
+│   │       └── logger.py           # Logger structuré JSON
 │   └── tests/
 │       ├── __init__.py
 │       ├── test_auth.py
@@ -972,87 +1053,86 @@ NexVM/
 │       └── test_integration_vbox.py
 │
 ├── frontend/
-│   ├── .env.example                  # Template des variables d'environnement
-│   ├── .env.local                    # Variables d'environnement (non versionné)
-│   ├── .eslintrc.json               # Configuration ESLint
-│   ├── package.json                  # Dépendances et scripts
-│   ├── next.config.mjs              # Configuration Next.js
-│   ├── postcss.config.mjs           # Configuration PostCSS
-│   ├── tailwind.config.ts           # Configuration Tailwind (thème cyberpunk)
-│   ├── tsconfig.json                # Configuration TypeScript
-│   ├── middleware.ts                 # Middleware de protection des routes
+│   ├── .env.example                # Template des variables d'environnement
+│   ├── .env.local                  # Variables d'environnement (non versionné)
+│   ├── .eslintrc.json              # Configuration ESLint
+│   ├── Dockerfile                  # Image Docker du frontend (multi-stage, Node 20-alpine)
+│   ├── package.json                # Dépendances et scripts
+│   ├── next.config.mjs             # Configuration Next.js (standalone output)
+│   ├── postcss.config.mjs          # Configuration PostCSS
+│   ├── tailwind.config.ts          # Configuration Tailwind (thème cyberpunk)
+│   ├── tsconfig.json               # Configuration TypeScript
+│   ├── middleware.ts                # Middleware de protection des routes
 │   ├── public/
 │   │   ├── favicon.ico
 │   │   └── logo.png
 │   ├── app/
-│   │   ├── layout.tsx               # Layout racine
-│   │   ├── globals.css              # Styles globaux
+│   │   ├── layout.tsx              # Layout racine
+│   │   ├── globals.css             # Styles globaux
 │   │   ├── icon.png
 │   │   ├── fonts/
 │   │   │   ├── GeistVF.woff
 │   │   │   └── GeistMonoVF.woff
 │   │   ├── (auth)/
-│   │   │   ├── login/page.tsx       # Page de connexion
-│   │   │   └── signup/page.tsx      # Page d'inscription
+│   │   │   ├── login/page.tsx      # Page de connexion
+│   │   │   └── signup/page.tsx     # Page d'inscription
 │   │   ├── (landing)/
-│   │   │   ├── layout.tsx           # Layout landing
-│   │   │   └── page.tsx             # Page d'accueil marketing
+│   │   │   ├── layout.tsx          # Layout landing
+│   │   │   └── page.tsx            # Page d'accueil marketing
 │   │   └── (portal)/
-│   │       ├── layout.tsx           # Layout portail (sidebar)
-│   │       ├── admin/page.tsx       # Tableau de bord admin
-│   │       ├── admin/vms/page.tsx   # Gestion VMs admin
-│   │       ├── ai/page.tsx          # Chat IA
-│   │       ├── analytics/page.tsx   # Analytique
-│   │       ├── logs/page.tsx        # Journal
-│   │       ├── profile/page.tsx     # Profil utilisateur
-│   │       └── vms/page.tsx         # Gestion des VMs
+│   │       ├── layout.tsx          # Layout portail (sidebar)
+│   │       ├── admin/page.tsx      # Tableau de bord admin
+│   │       ├── admin/vms/page.tsx  # Gestion VMs admin
+│   │       ├── ai/page.tsx         # Chat IA
+│   │       ├── analytics/page.tsx  # Analytique
+│   │       ├── logs/page.tsx       # Journal
+│   │       ├── profile/page.tsx    # Profil utilisateur
+│   │       └── vms/page.tsx        # Gestion des VMs
 │   ├── components/
-│   │   ├── Logo.tsx                 # Logo NexVM
-│   │   ├── admin-vms-client.tsx     # Gestion VMs admin (client)
-│   │   ├── ai-chat.tsx             # Interface de chat IA
-│   │   ├── analytics-client.tsx    # Graphiques analytiques
-│   │   ├── background-layer.tsx    # Arrière-plan décoratif
-│   │   ├── glass-card.tsx          # Carte glass-morphism
-│   │   ├── logs-client.tsx         # Journal d'activité
-│   │   ├── modal.tsx               # Modal de confirmation
-│   │   ├── profile-client.tsx      # Profil utilisateur
-│   │   ├── toast.tsx               # Notifications toast
-│   │   ├── vm-card.tsx             # Carte de VM (571 lignes)
-│   │   ├── vm-create-form.tsx      # Formulaire de création de VM
-│   │   ├── vm-list.tsx             # Liste de VMs
-│   │   └── vms-client.tsx          # Page VMs principale (client)
+│   │   ├── Logo.tsx                # Logo NexVM
+│   │   ├── admin-vms-client.tsx    # Gestion VMs admin (client)
+│   │   ├── ai-chat.tsx            # Interface de chat IA
+│   │   ├── analytics-client.tsx   # Graphiques analytiques
+│   │   ├── background-layer.tsx   # Arrière-plan décoratif
+│   │   ├── glass-card.tsx         # Carte glass-morphism
+│   │   ├── logs-client.tsx        # Journal d'activité
+│   │   ├── modal.tsx              # Modal de confirmation
+│   │   ├── profile-client.tsx     # Profil utilisateur
+│   │   ├── toast.tsx              # Notifications toast
+│   │   ├── vm-card.tsx            # Carte de VM (571 lignes)
+│   │   ├── vm-create-form.tsx     # Formulaire de création de VM
+│   │   ├── vm-list.tsx            # Liste de VMs
+│   │   └── vms-client.tsx         # Page VMs principale (client)
 │   ├── hooks/
-│   │   └── use-auth.ts             # Hook d'authentification React
+│   │   └── use-auth.ts            # Hook d'authentification React
 │   ├── lib/
-│   │   ├── api.ts                  # Client API avec injection JWT
-│   │   ├── auth.ts                 # Gestion des cookies d'auth
+│   │   ├── api.ts                 # Client API avec injection JWT
+│   │   ├── auth.ts                # Gestion des cookies d'auth
 │   │   └── supabase/
-│   │       ├── client.ts           # Client Supabase navigateur
-│   │       ├── middleware.ts        # Gestion session middleware
-│   │       └── server.ts           # Client Supabase serveur
+│   │       ├── client.ts          # Client Supabase navigateur
+│   │       ├── middleware.ts       # Gestion session middleware
+│   │       └── server.ts          # Client Supabase serveur
 │   └── types/
-│       └── index.ts                # Types TypeScript
+│       └── index.ts               # Types TypeScript
 │
 ├── supabase/
-│   ├── config.toml                  # Configuration Supabase locale
+│   ├── config.toml                 # Configuration Supabase locale
 │   └── migrations/
-│       ├── 001_initial_schema.sql   # Schéma initial (profiles, vms, logs, ai_usage)
+│       ├── 001_initial_schema.sql  # Schéma initial (profiles, vms, logs, ai_usage)
 │       ├── 002_vm_hardware_fields.sql # Ajout cpu, disk_size, vbox_id
-│       └── 003_vm_schedules.sql     # Table vm_schedules + actions étendues
+│       └── 003_vm_schedules.sql    # Table vm_schedules + actions étendues
 │
-├── specs/                           # Spécifications de fonctionnalités (12 features)
+├── specs/                          # Spécifications de fonctionnalités (12 features)
 ├── docs/
-│   └── implementation-plan.md       # Plan d'implémentation
-├── rapport/                         # Rapport de stage (Markdown + PDF)
-│   ├── chapitre1.md
-│   ├── chapitre2.md
-│   ├── chapitre1.pdf
-│   ├── chapitre2.pdf
-│   ├── toc-newpage.tex
-│   └── README.md
-├── .gitignore
-├── CLAUDE.md                        # Instructions pour l'assistance IA
-└── README.md                        # Documentation du projet
+│   └── implementation-plan.md      # Plan d'implémentation
+└── rapport/                        # Rapport de stage (Markdown + PDF)
+    ├── description-complete.md     # Description complète du projet
+    ├── chapitre1.md
+    ├── chapitre2.md
+    ├── chapitre1.pdf
+    ├── chapitre2.pdf
+    ├── toc-newpage.tex
+    └── README.md
 ```
 
 ---

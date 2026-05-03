@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexvm-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FRONTEND_URL=http://localhost:3000
+      - VM_STORAGE_PATH=/vm-storage
+    volumes:
+      - ${VBOX_INSTALL_PATH:-/usr/bin}:/vbox:ro
+      - ${VM_STORAGE_HOST_PATH:-/tmp/vm-storage}:/vm-storage
+    networks:
+      - nexvm-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexvm-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - nexvm-network
+
+networks:
+  nexvm-network:
+    driver: bridge
