@@ -1,5 +1,5 @@
 -- ============================================================
--- myVMS — Initial Schema Migration
+-- NexVM — Initial Schema Migration
 -- Branch: 001-supabase-auth-db
 -- Date:   2026-04-04
 -- File:   supabase/migrations/001_initial_schema.sql

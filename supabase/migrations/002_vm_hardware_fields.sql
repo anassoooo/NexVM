@@ -1,5 +1,5 @@
 -- ============================================================
--- myVMS — VM hardware fields
+-- NexVM — VM hardware fields
 -- Date: 2026-04-21
 -- Adds cpu, disk_size, vbox_id to the vms table
 -- ============================================================

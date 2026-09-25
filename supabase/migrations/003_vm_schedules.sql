@@ -1,5 +1,5 @@
 -- ============================================================
--- myVMS — VM Schedules table
+-- NexVM — VM Schedules table
 -- Date: 2026-05-01
 -- Stores cron-like start/stop schedules per VM
 -- ============================================================

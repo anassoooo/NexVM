@@ -1,4 +1,4 @@
-# myVMS Implementation Plan
+# NexVM Implementation Plan
 
 ## Global Execution Model
 
@@ -479,8 +479,8 @@ backend/
 | Variable             | Description                    | Default      |
 |----------------------|--------------------------------|--------------|
 | SUPABASE_URL         | Supabase project URL           | —            |
-| SUPABASE_KEY         | Supabase anon key              | —            |
-| SUPABASE_SERVICE_KEY | Supabase service role key      | —            |
+| SUPABASE_SECRET_KEY  | Supabase server secret key     | —            |
+| SUPABASE_JWT_SECRET  | JWT verification secret        | —            |
 | GROQ_API_KEY         | Groq API key                   | —            |
 | FRONTEND_URL         | Vercel frontend URL for CORS   | —            |
 | VBOXMANAGE_PATH      | Path to VBoxManage binary      | VBoxManage   |
@@ -683,8 +683,8 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 **Environment variables on Render:**
 
 - `SUPABASE_URL`
-- `SUPABASE_KEY`
-- `SUPABASE_SERVICE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `SUPABASE_JWT_SECRET`
 - `GROQ_API_KEY`
 - `FRONTEND_URL`
 - `VBOXMANAGE_PATH`
@@ -834,7 +834,7 @@ Plus shadcn/ui components (installed via CLI).
 |-----------------------|--------------------------|
 | NEXT_PUBLIC_API_URL   | Backend API base URL     |
 | NEXT_PUBLIC_SUPABASE_URL | Supabase project URL  |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase anon key |
+| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | Supabase publishable key |
 
 ---
 
@@ -851,9 +851,9 @@ Plus shadcn/ui components (installed via CLI).
 
 | Service   | Variables                                                    |
 |-----------|--------------------------------------------------------------|
-| Supabase  | URL, anon key, service role key                              |
-| Render    | SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY, GROQ_API_KEY, FRONTEND_URL, VBOXMANAGE_PATH |
-| Vercel    | NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY |
+| Supabase  | URL, publishable key, secret key                              |
+| Render    | SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_JWT_SECRET, GROQ_API_KEY, FRONTEND_URL, VBOXMANAGE_PATH |
+| Vercel    | NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY |
 
 ### CORS
 
