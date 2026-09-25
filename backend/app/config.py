@@ -7,9 +7,9 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     SUPABASE_URL: str
-    SUPABASE_KEY: str
-    SUPABASE_SERVICE_KEY: str
-    SUPABASE_JWT_SECRET: str
+    SUPABASE_SECRET_KEY: str
+    # Only needed while the Supabase project still issues legacy HS256 JWTs.
+    SUPABASE_JWT_SECRET: str | None = None
     GROQ_API_KEY: str
     FRONTEND_URL: str = "http://localhost:3000"
     VBOXMANAGE_PATH: str = ""

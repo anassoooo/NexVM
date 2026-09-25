@@ -4,15 +4,20 @@ import AdminVMsClient from "@/components/admin-vms-client";
 import { VM } from "@/types";
 import BackgroundLayer from "@/components/background-layer";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function AdminVMsPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("nexvm_token")?.value;
-  const isAdmin = cookieStore.get("nexvm_admin")?.value === "1";
-
   if (!token) redirect("/login");
-  if (!isAdmin) redirect("/ai");
+
+  const meRes = await fetch(`${BASE_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  }).catch(() => null);
+  if (!meRes?.ok) redirect("/login");
+  const me: { is_admin: boolean } = await meRes.json();
+  if (!me.is_admin) redirect("/ai");
 
   let vms: VM[] = [];
   try {
