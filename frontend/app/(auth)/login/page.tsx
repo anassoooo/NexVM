@@ -42,7 +42,7 @@ function LoginForm() {
       }
 
       const data = await res.json();
-      setAuth(data.access_token, data.user.is_admin);
+      setAuth(data.access_token);
       window.location.href = data.user.is_admin ? "/admin" : "/vms";
     } catch {
       setError("Something went wrong. Please try again.");

@@ -8,10 +8,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("nexvm_token")?.value;
-  const isAdmin = cookieStore.get("nexvm_admin")?.value === "1";
-
   if (!token) redirect("/login");
-  if (!isAdmin) redirect("/ai");
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -29,6 +26,9 @@ export default async function AdminPage() {
     meRes.status === "fulfilled" && meRes.value.ok
       ? ((await meRes.value.json()) as UserInfo)
       : null;
+
+  if (!me) redirect("/login");
+  if (!me.is_admin) redirect("/ai");
 
   const fmt = (n: number | undefined) => (n !== undefined ? String(n) : "—");
 

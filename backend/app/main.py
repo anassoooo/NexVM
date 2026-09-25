@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up — connecting to Supabase (%s)", settings.SUPABASE_URL)
     db.supabase_client = create_client(
         settings.SUPABASE_URL,
-        settings.SUPABASE_SERVICE_KEY,
+        settings.SUPABASE_SECRET_KEY,
         options=ClientOptions(httpx_client=httpx.Client(http2=False)),
     )
     logger.info("Supabase client ready")

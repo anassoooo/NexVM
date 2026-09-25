@@ -69,7 +69,7 @@ Les besoins non fonctionnels définissent les contraintes de qualité du systèm
 
 ## 2.2 Identification des acteurs
 
-L'analyse du système myVMS permet d'identifier deux catégories d'acteurs principaux, chacun disposant de droits et de parcours d'utilisation distincts.
+L'analyse du système NexVM permet d'identifier deux catégories d'acteurs principaux, chacun disposant de droits et de parcours d'utilisation distincts.
 
 ### 2.2.1 Acteur 1 : L'utilisateur régulier
 
@@ -107,7 +107,7 @@ L'administrateur est un responsable technique de la DSI chargé de superviser l'
 
 ```mermaid
 graph TD
-    System[("Système myVMS")]
+    System[("Système NexVM")]
     User["Utilisateur régulier"]
     Admin["Administrateur"]
     
@@ -260,7 +260,7 @@ usecaseDiagram
 
 ### 2.4.1 Architecture du système
 
-L'application myVMS adopte une architecture en trois tiers, séparant clairement la couche de présentation, la couche métier et la couche de données :
+L'application NexVM adopte une architecture en trois tiers, séparant clairement la couche de présentation, la couche métier et la couche de données :
 
 ```mermaid
 graph TB

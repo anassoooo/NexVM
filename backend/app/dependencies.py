@@ -2,10 +2,11 @@ import functools
 from dataclasses import dataclass
 from typing import Annotated
 
-import requests as http_requests
+import httpx
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
+from jose.exceptions import JWTError
 
 from app.config import settings
 from app.db import get_supabase_client
@@ -23,33 +24,52 @@ bearer = HTTPBearer()
 @functools.lru_cache(maxsize=1)
 def _get_jwks_keys() -> list[dict]:
     url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
-    resp = http_requests.get(url, timeout=10)
+    resp = httpx.get(url, timeout=10)
     resp.raise_for_status()
     return resp.json().get("keys", [])
 
 
 def _decode_jwt(token_str: str) -> dict:
-    # Try each JWKS public key (ES256 / RS256) first
-    try:
-        for key_data in _get_jwks_keys():
-            algo = key_data.get("alg", "ES256")
-            try:
-                return jwt.decode(
-                    token_str,
-                    key_data,
-                    algorithms=[algo],
-                    audience="authenticated",
-                )
-            except JWTError:
-                continue
-    except Exception:
-        pass
+    header = jwt.get_unverified_header(token_str)
+    algorithm = header.get("alg")
 
-    # Fall back to shared HS256 secret
+    if algorithm == "HS256":
+        if not settings.SUPABASE_JWT_SECRET:
+            raise JWTError("Legacy JWT secret is not configured")
+        return jwt.decode(
+            token_str,
+            settings.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+
+    if algorithm not in ("ES256", "RS256"):
+        raise JWTError("Unsupported JWT algorithm")
+
+    key_id = header.get("kid")
+    if not key_id:
+        raise JWTError("JWT key ID is missing")
+
+    keys = _get_jwks_keys()
+    key_data = next(
+        (key for key in keys if key.get("kid") == key_id and key.get("alg") in (None, algorithm)),
+        None,
+    )
+    if key_data is None:
+        # A key may have rotated since the JWKS response was cached.
+        _get_jwks_keys.cache_clear()
+        keys = _get_jwks_keys()
+        key_data = next(
+            (key for key in keys if key.get("kid") == key_id and key.get("alg") in (None, algorithm)),
+            None,
+        )
+    if key_data is None:
+        raise JWTError("JWT signing key not found")
+
     return jwt.decode(
         token_str,
-        settings.SUPABASE_JWT_SECRET,
-        algorithms=["HS256"],
+        key_data,
+        algorithms=[algorithm],
         audience="authenticated",
     )
 
