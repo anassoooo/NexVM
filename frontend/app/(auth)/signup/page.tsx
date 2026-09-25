@@ -46,7 +46,7 @@ export default function SignupPage() {
       }
 
       if (data.access_token) {
-        setAuth(data.access_token, data.user.is_admin);
+        setAuth(data.access_token);
         window.location.href = "/vms";
       } else {
         setMessage(data.message ?? "Account created! Check your email or try signing in.");

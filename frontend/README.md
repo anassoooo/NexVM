@@ -8,9 +8,13 @@ First, configure environment variables:
 cp .env.example .env.local
 # Edit .env.local and set:
 #   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+#   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 #   NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
+
+For the root Docker Compose setup, supply these public variables at build time with
+`docker compose --env-file frontend/.env.local up --build`. The backend reads
+`SUPABASE_SECRET_KEY` from `backend/.env`; never put that key in the frontend env file.
 
 Then run the development server:
 

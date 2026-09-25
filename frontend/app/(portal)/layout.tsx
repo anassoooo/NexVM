@@ -20,15 +20,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     api.get<UserInfo>("/api/v1/auth/me").then(setUser).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    // Must run client-side only to avoid SSR/hydration mismatch
-    setIsAdmin(document.cookie.includes("nexvm_admin=1"));
   }, []);
 
   function handleLogout() {
@@ -85,7 +79,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             );
           })}
 
-          {isAdmin && (
+          {user?.is_admin && (
             <>
               <div className="my-2" style={{ borderTop: "1px solid var(--border)" }} />
               <Link

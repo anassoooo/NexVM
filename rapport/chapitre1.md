@@ -115,7 +115,7 @@ Comment concevoir et développer une application web permettant aux utilisateurs
 
 ## 1.4 Solution proposée
 
-Pour répondre à cette problématique, nous proposons **myVMS** (*my Virtual Machine System*), une application web fullstack permettant la gestion complète du cycle de vie des machines virtuelles VirtualBox à travers une interface intelligente et conversationnelle.
+Pour répondre à cette problématique, nous proposons **NexVM** (*my Virtual Machine System*), une application web fullstack permettant la gestion complète du cycle de vie des machines virtuelles VirtualBox à travers une interface intelligente et conversationnelle.
 
 La solution repose sur quatre piliers complémentaires :
 
@@ -141,7 +141,7 @@ Des tableaux de bord offrent une visibilité en temps réel sur le système. L'a
 
 ### 1.5.1 Présentation générale
 
-**myVMS** est une application web fullstack de gestion de machines virtuelles VirtualBox. Elle offre une interface moderne, sécurisée et intelligente permettant aux utilisateurs d'interagir avec leurs VMs via un assistant conversationnel en langage naturel, et aux administrateurs de superviser l'ensemble du parc depuis un panneau d'administration structuré.
+**NexVM** est une application web fullstack de gestion de machines virtuelles VirtualBox. Elle offre une interface moderne, sécurisée et intelligente permettant aux utilisateurs d'interagir avec leurs VMs via un assistant conversationnel en langage naturel, et aux administrateurs de superviser l'ensemble du parc depuis un panneau d'administration structuré.
 
 Le projet a été développé en adoptant une approche itérative et incrémentale, inspirée des principes Agile, organisée en quatre sprints :
 

@@ -12,6 +12,11 @@ from app.dependencies import get_current_user
 TEST_USER_ID = "00000000-0000-0000-0000-000000000001"
 
 
+@pytest.fixture(autouse=True)
+def legacy_test_secret(monkeypatch):
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "local-test-secret")
+
+
 def _make_token(
     user_id: str = TEST_USER_ID,
     exp_offset: int = 3600,
@@ -71,7 +76,7 @@ async def test_valid_jwt_returns_200(valid_token, test_app, mock_supabase):
                 headers={"Authorization": f"Bearer {valid_token}"},
             )
             assert response.status_code == 200
-            assert response.json()["user_id"] == TEST_USER_ID
+            assert response.json()["user_id"]["id"] == TEST_USER_ID
 
 
 @pytest.mark.asyncio

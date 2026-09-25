@@ -1,38 +1,39 @@
-version: '3.8'
-
+# Backend-only local development. Use ../docker-compose.yml for the full stack.
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: myvms-backend
+    container_name: nexvm-backend
     ports:
-      - "9999:8000"
+      - "8001:8000"
+    env_file:
+      - ./.env
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
       - .:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
-      - myvms-network
+      - nexvm-network
 
   # db:
   #   image: postgres:15-alpine
-  #   container_name: myvms-db
+  #   container_name: nexvm-db
   #   environment:
   #     POSTGRES_USER: postgres
   #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: myvms
+  #     POSTGRES_DB: nexvm
   #   ports:
   #     - "5432:5432"
   #   volumes:
   #     - postgres_data:/var/lib/postgresql/data
   #   networks:
-  #     - myvms-network
+  #     - nexvm-network
 
 volumes:
   postgres_data:
 
 networks:
-  myvms-network:
+  nexvm-network:
     driver: bridge
