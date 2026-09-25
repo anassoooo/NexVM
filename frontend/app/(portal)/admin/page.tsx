@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminAnalytics, UserInfo } from "@/types";
 import BackgroundLayer from "@/components/background-layer";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function AdminPage() {
   const cookieStore = await cookies();

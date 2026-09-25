@@ -4,7 +4,7 @@ import AdminVMsClient from "@/components/admin-vms-client";
 import { VM } from "@/types";
 import BackgroundLayer from "@/components/background-layer";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE_URL = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export default async function AdminVMsPage() {
   const cookieStore = await cookies();
