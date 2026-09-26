@@ -480,7 +480,6 @@ backend/
 |----------------------|--------------------------------|--------------|
 | SUPABASE_URL         | Supabase project URL           | —            |
 | SUPABASE_SECRET_KEY  | Supabase server secret key     | —            |
-| SUPABASE_JWT_SECRET  | JWT verification secret        | —            |
 | GROQ_API_KEY         | Groq API key                   | —            |
 | FRONTEND_URL         | Vercel frontend URL for CORS   | —            |
 | VBOXMANAGE_PATH      | Path to VBoxManage binary      | VBoxManage   |
@@ -684,7 +683,6 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY`
-- `SUPABASE_JWT_SECRET`
 - `GROQ_API_KEY`
 - `FRONTEND_URL`
 - `VBOXMANAGE_PATH`
@@ -852,7 +850,7 @@ Plus shadcn/ui components (installed via CLI).
 | Service   | Variables                                                    |
 |-----------|--------------------------------------------------------------|
 | Supabase  | URL, publishable key, secret key                              |
-| Render    | SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_JWT_SECRET, GROQ_API_KEY, FRONTEND_URL, VBOXMANAGE_PATH |
+| Render    | SUPABASE_URL, SUPABASE_SECRET_KEY, GROQ_API_KEY, FRONTEND_URL, VBOXMANAGE_PATH |
 | Vercel    | NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY |
 
 ### CORS

@@ -33,16 +33,6 @@ def _decode_jwt(token_str: str) -> dict:
     header = jwt.get_unverified_header(token_str)
     algorithm = header.get("alg")
 
-    if algorithm == "HS256":
-        if not settings.SUPABASE_JWT_SECRET:
-            raise JWTError("Legacy JWT secret is not configured")
-        return jwt.decode(
-            token_str,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
-
     if algorithm not in ("ES256", "RS256"):
         raise JWTError("Unsupported JWT algorithm")
 

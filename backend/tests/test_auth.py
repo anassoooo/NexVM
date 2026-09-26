@@ -1,7 +1,10 @@
+import base64
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import APIRouter, Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
@@ -13,11 +16,31 @@ TEST_USER_ID = "00000000-0000-0000-0000-000000000001"
 
 
 @pytest.fixture(autouse=True)
-def legacy_test_secret(monkeypatch):
-    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "local-test-secret")
+def signing_key(monkeypatch):
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_numbers = private_key.public_key().public_numbers()
+
+    def encode_coordinate(value: int) -> str:
+        return base64.urlsafe_b64encode(value.to_bytes(32, "big")).rstrip(b"=").decode()
+
+    public_jwk = {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": encode_coordinate(public_numbers.x),
+        "y": encode_coordinate(public_numbers.y),
+        "kid": "test-key",
+        "alg": "ES256",
+    }
+    monkeypatch.setattr("app.dependencies._get_jwks_keys", lambda: [public_jwk])
+    return private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
 
 
 def _make_token(
+    signing_key: bytes,
     user_id: str = TEST_USER_ID,
     exp_offset: int = 3600,
     aud: str = "authenticated",
@@ -31,17 +54,17 @@ def _make_token(
         "iss": settings.SUPABASE_URL,
         "role": "authenticated",
     }
-    return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, signing_key, algorithm="ES256", headers={"kid": "test-key"})
 
 
 @pytest.fixture
-def valid_token():
-    return _make_token()
+def valid_token(signing_key):
+    return _make_token(signing_key)
 
 
 @pytest.fixture
-def expired_token():
-    return _make_token(exp_offset=-10)
+def expired_token(signing_key):
+    return _make_token(signing_key, exp_offset=-10)
 
 
 @pytest.fixture
