@@ -759,7 +759,7 @@ Le portail utilisateur dispose d'une **sidebar latérale** avec les liens suivan
 ### 8.1 Authentification
 
 - **JWT (JSON Web Tokens)** via Supabase Auth avec expiration à 24h.
-- **Décodage dual** : tentative JWKS (clé publique RSA) en premier, fallback HS256 (secret partagé).
+- **Vérification JWT** : clé publique asymétrique Supabase obtenue via JWKS.
 - **Middleware d'authentification** sur toutes les routes protégées.
 - **Création automatique du profil** si manquant lors de la première requête authentifiée.
 
@@ -825,7 +825,6 @@ Variables d'environnement (fichier `.env`) :
 | `SUPABASE_URL` | Oui | URL du projet Supabase |
 | `SUPABASE_KEY` | Oui | Clé anonyme Supabase |
 | `SUPABASE_SERVICE_KEY` | Oui | Clé de service Supabase |
-| `SUPABASE_JWT_SECRET` | Oui | Secret JWT Supabase |
 | `GROQ_API_KEY` | Oui | Clé API Groq |
 | `FRONTEND_URL` | Non | URL du frontend (défaut : `http://localhost:3000`) |
 | `VBOXMANAGE_PATH` | Non | Chemin de VBoxManage (défaut : `VBoxManage`) |
