@@ -1,38 +1,25 @@
 """Authentication checks that do not need a live Supabase project."""
 
-from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
 from jose import jwt
 from jose.exceptions import JWTError
 
-from app.config import settings
 from app.dependencies import _decode_jwt
 
 
 def _legacy_token(secret: str) -> str:
     return jwt.encode(
-        {
-            "sub": "test-user",
-            "aud": "authenticated",
-            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
-        },
+        {"sub": "test-user", "aud": "authenticated"},
         secret,
         algorithm="HS256",
     )
 
 
-def test_legacy_token_requires_explicit_secret() -> None:
-    secret = "local-test-secret"
-    token = _legacy_token(secret)
-
-    with patch.object(settings, "SUPABASE_JWT_SECRET", None):
-        with pytest.raises(JWTError, match="not configured"):
-            _decode_jwt(token)
-
-    with patch.object(settings, "SUPABASE_JWT_SECRET", secret):
-        assert _decode_jwt(token)["sub"] == "test-user"
+def test_legacy_token_is_rejected() -> None:
+    with pytest.raises(JWTError, match="Unsupported"):
+        _decode_jwt(_legacy_token("local-test-secret"))
 
 
 def test_asymmetric_token_uses_matching_public_key() -> None:
