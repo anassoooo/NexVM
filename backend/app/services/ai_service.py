@@ -30,7 +30,6 @@ from app.models.schemas import (
 from app.services import analytics_service, vm_service
 from app.utils.logger import logger
 
-GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 GROQ_TIMEOUT_SECONDS = 30.0
 
 ALLOWED_ACTIONS = {
@@ -223,7 +222,7 @@ def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:
     try:
         client = Groq(api_key=settings.GROQ_API_KEY)
         response = client.chat.completions.create(
-            model=GROQ_MODEL,
+            model=settings.GROQ_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

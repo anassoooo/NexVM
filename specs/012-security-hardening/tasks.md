@@ -20,7 +20,7 @@
 | T011 | [P] No default NAT rule + host-port conflict check | F6 | 1.5 h | done |
 | T012 | [P] Snapshot / port-rule name validation | F8 | 0.5 h | done |
 | T013 | Docs: `.env.example`, input placeholders, release note | F2 | 0.5 h | done |
-| T014 | Verify: ruff + pytest + tsc + lint + build + manual test | all | 1.5 h | automated done; manual pending |
+| T014 | Verify: ruff + pytest + tsc + lint + build + manual test | all | 1.5 h | done |
 
 ---
 

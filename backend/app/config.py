@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_SECRET_KEY: str
     GROQ_API_KEY: str
+    # Groq retires models periodically; see https://console.groq.com/docs/models
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
     FRONTEND_URL: str = "http://localhost:3000"
     VBOXMANAGE_PATH: str = ""
     VM_STORAGE_PATH: str = ""
