@@ -119,3 +119,30 @@ async def test_missing_authorization_returns_401(test_app):
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/v1/protected")
         assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_login_does_not_sign_in_shared_client():
+    from app.routes.auth import router as auth_router
+
+    shared = MagicMock()
+    shared.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        {"is_admin": False}
+    ]
+    auth_client = MagicMock()
+    auth_client.auth.sign_in_with_password.return_value.session.access_token = "user-token"
+    auth_client.auth.sign_in_with_password.return_value.user.id = TEST_USER_ID
+    auth_client.auth.sign_in_with_password.return_value.user.email = "user@example.com"
+
+    app = FastAPI()
+    app.include_router(auth_router, prefix="/auth")
+    with (
+        patch("app.routes.auth.get_supabase_client", return_value=shared),
+        patch("app.routes.auth.new_auth_client", return_value=auth_client),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/auth/login", json={"email": "user@example.com", "password": "pw123456"})
+
+    assert resp.status_code == 200
+    auth_client.auth.sign_in_with_password.assert_called_once()
+    shared.auth.sign_in_with_password.assert_not_called()

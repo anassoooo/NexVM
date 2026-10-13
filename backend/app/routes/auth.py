@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import AuthApiError
 
-from app.db import get_supabase_client
+from app.db import get_supabase_client, new_auth_client
 from app.dependencies import UserClaims, get_current_user
 from app.models.schemas import AuthResponse, LoginRequest, SignupRequest, SignupResponse, UserInfo
 
@@ -18,9 +18,8 @@ def _get_is_admin(supabase, user_id: str) -> bool:
 
 @router.post("/login", response_model=AuthResponse)
 async def login(body: LoginRequest):
-    supabase = get_supabase_client()
     try:
-        res = supabase.auth.sign_in_with_password(
+        res = new_auth_client().auth.sign_in_with_password(
             {"email": body.email, "password": body.password}
         )
     except AuthApiError as e:
@@ -36,16 +35,15 @@ async def login(body: LoginRequest):
         user=UserInfo(
             id=res.user.id,
             email=res.user.email,
-            is_admin=_get_is_admin(supabase, str(res.user.id)),
+            is_admin=_get_is_admin(get_supabase_client(), str(res.user.id)),
         ),
     )
 
 
 @router.post("/signup", response_model=SignupResponse, status_code=201)
 async def signup(body: SignupRequest):
-    supabase = get_supabase_client()
     try:
-        res = supabase.auth.sign_up(
+        res = new_auth_client().auth.sign_up(
             {"email": body.email, "password": body.password}
         )
     except AuthApiError as e:
