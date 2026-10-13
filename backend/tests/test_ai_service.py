@@ -129,22 +129,53 @@ def test_stop_vm_happy_path(_patch_supabase, _patch_list_vms):
     mock_stop.assert_called_once_with(VM_ID, USER_ID)
 
 
-def test_delete_vm_happy_path(_patch_supabase, _patch_list_vms):
+def _run_delete_prompt(get_vm_side_effect):
     raw = f'{{"action": "delete_vm", "vm_id": "{VM_ID}"}}'
-
     with (
         patch("app.services.ai_service.Groq") as mock_groq,
+        patch("app.services.ai_service.vm_service.delete_vm") as mock_delete,
         patch(
-            "app.services.ai_service.vm_service.delete_vm", return_value=None
-        ) as mock_delete,
+            "app.services.ai_service.vm_service._get_vm_or_404", side_effect=get_vm_side_effect
+        ) as mock_get,
     ):
         mock_groq.return_value.chat.completions.create.return_value = (
             _mock_groq_response(raw)
         )
         result = ai_service.process_ai_command("delete my vm", USER_ID)
+    return result, mock_delete, mock_get
+
+
+def test_delete_vm_is_proposed_not_executed(_patch_supabase, _patch_list_vms):
+    result, mock_delete, mock_get = _run_delete_prompt(
+        lambda vm_id, user_id: {"id": VM_ID, "name": "test-vm"}
+    )
 
     assert result.action == "delete_vm"
-    mock_delete.assert_called_once_with(VM_ID, USER_ID)
+    mock_delete.assert_not_called()
+    mock_get.assert_called_once_with(VM_ID, USER_ID)
+    assert result.pending_action is not None
+    assert str(result.pending_action.vm_id) == VM_ID
+    assert result.pending_action.vm_name == "test-vm"
+    assert "cannot be undone" in result.result
+
+
+def test_delete_vm_unknown_vm_returns_404(_patch_supabase, _patch_list_vms):
+    from fastapi import HTTPException
+
+    def not_found(vm_id, user_id):
+        raise HTTPException(status_code=404, detail="VM not found")
+
+    with pytest.raises(HTTPException) as exc_info:
+        _run_delete_prompt(not_found)
+    assert exc_info.value.status_code == 404
+
+
+def test_other_actions_have_no_pending_action(_patch_supabase, _patch_list_vms):
+    raw = '{"action": "chat", "message": "hi"}'
+    with patch("app.services.ai_service.Groq") as mock_groq:
+        mock_groq.return_value.chat.completions.create.return_value = _mock_groq_response(raw)
+        result = ai_service.process_ai_command("hello", USER_ID)
+    assert result.pending_action is None
 
 
 # ── Failure paths ──────────────────────────────────────────

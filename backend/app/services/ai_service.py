@@ -23,6 +23,7 @@ from app.models.schemas import (
     AIQueryAnalytics,
     AIResumeVM,
     AIStartVM,
+    PendingAction,
     AIStopVM,
     VMCreate,
 )
@@ -323,18 +324,7 @@ def _execute_action(validated: dict, user_id: str) -> str:
             cpu=validated.get("cpu", 2),
             disk_size=validated.get("disk_size", 20480),
         )
-        try:
-            vm = vm_service.create_vm(data, user_id)
-        except HTTPException as exc:
-            # VBox had a stale orphan registration — it was cleaned up.
-            # Return a friendly chat-style message so the user can simply retry.
-            if exc.status_code == 409 and "already exists" in exc.detail.lower():
-                return (
-                    f"A leftover VirtualBox registration for '{data.name}' was found and "
-                    "cleaned up automatically. Please send the same command again to create "
-                    "your VM — it should work now."
-                )
-            raise
+        vm = vm_service.create_vm(data, user_id)
         return (
             f"VM '{vm.name}' created ({vm.os}, {vm.ram} MB RAM, {vm.cpu} vCPU). "
             "To install an OS, go to the VMs page, open the VM card, and use the "
@@ -402,10 +392,6 @@ def _execute_action(validated: dict, user_id: str) -> str:
         vm = vm_service.stop_vm(vm_id, user_id)
         return f"Stopped VM '{vm.name}'"
 
-    if action == "delete_vm":
-        vm_service.delete_vm(vm_id, user_id)
-        return "Deleted VM"
-
     raise HTTPException(status_code=400, detail="Unknown action")
 
 
@@ -453,6 +439,15 @@ def _log_action(user_id: str, target: str, status: LogStatus, message: str) -> N
         )
 
 
+def _propose_delete(validated: dict, user_id: str) -> tuple[str, PendingAction]:
+    """Deletion is irreversible, so the AI only proposes it; the user confirms in the UI."""
+    vm = vm_service._get_vm_or_404(str(validated["vm_id"]), user_id)
+    return (
+        f"Delete VM '{vm['name']}'? This cannot be undone.",
+        PendingAction(action="delete_vm", vm_id=vm["id"], vm_name=vm["name"]),
+    )
+
+
 def process_ai_command(prompt: str, user_id: str) -> AICommandResponse:
     _check_rate_limit(user_id)
 
@@ -461,7 +456,11 @@ def process_ai_command(prompt: str, user_id: str) -> AICommandResponse:
 
     try:
         validated = _validate_ai_response(raw_response)
-        result_message = _execute_action(validated, user_id)
+        pending_action = None
+        if validated["action"] == "delete_vm":
+            result_message, pending_action = _propose_delete(validated, user_id)
+        else:
+            result_message = _execute_action(validated, user_id)
     except HTTPException:
         _log_ai_usage(user_id, prompt, raw_response, tokens)
         _log_action(user_id, "ai", LogStatus.failure, raw_response[:500])
@@ -476,4 +475,5 @@ def process_ai_command(prompt: str, user_id: str) -> AICommandResponse:
         action=validated["action"],
         result=result_message,
         ai_response=validated,
+        pending_action=pending_action,
     )

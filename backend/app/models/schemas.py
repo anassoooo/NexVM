@@ -219,10 +219,17 @@ class AICommandRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
 
 
+class PendingAction(BaseModel):
+    action: Literal["delete_vm"]
+    vm_id: uuid.UUID
+    vm_name: str
+
+
 class AICommandResponse(BaseModel):
     action: str
     result: str
     ai_response: dict[str, Any]
+    pending_action: PendingAction | None = None
 
 
 class AICreateVM(BaseModel):

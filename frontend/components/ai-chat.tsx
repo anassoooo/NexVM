@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import type { AICommandResponse, UserAnalytics } from "@/types";
+import type { AICommandResponse, PendingAction, UserAnalytics } from "@/types";
 
 interface Message {
   id: string;
@@ -10,6 +10,8 @@ interface Message {
   content: string;
   action?: string;
   error?: boolean;
+  pending?: PendingAction;
+  resolved?: boolean;
 }
 
 const MAX_PROMPT_LENGTH = 2000;
@@ -55,7 +57,13 @@ export default function AIChat() {
       const res = await api.post<AICommandResponse>("/api/v1/ai/command", { prompt: trimmed });
       setMessages((prev) => [
         ...prev,
-        { id: `${Date.now()}-assistant`, role: "assistant", content: res.result, action: res.action },
+        {
+          id: `${Date.now()}-assistant`,
+          role: "assistant",
+          content: res.result,
+          action: res.action,
+          pending: res.pending_action ?? undefined,
+        },
       ]);
     } catch (err) {
       setMessages((prev) => [
@@ -69,6 +77,28 @@ export default function AIChat() {
       ]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function addAssistantMessage(content: string, error = false) {
+    setMessages((prev) => [
+      ...prev,
+      { id: `${Date.now()}-assistant`, role: "assistant", content, error },
+    ]);
+  }
+
+  async function resolvePending(msgId: string, pending: PendingAction, confirmed: boolean) {
+    // Disable the buttons straight away so a double click can't send two deletes.
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, resolved: true } : m)));
+    if (!confirmed) {
+      addAssistantMessage("Cancelled — nothing was deleted.");
+      return;
+    }
+    try {
+      await api.post("/api/v1/vm/delete", { vm_id: pending.vm_id });
+      addAssistantMessage(`Deleted VM '${pending.vm_name}'.`);
+    } catch (err) {
+      addAssistantMessage(err instanceof Error ? err.message : "Delete failed", true);
     }
   }
 
@@ -127,6 +157,34 @@ export default function AIChat() {
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{msg.content}</div>
+                {msg.pending && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      type="button"
+                      disabled={msg.resolved}
+                      onClick={() => resolvePending(msg.id, msg.pending!, true)}
+                      className="btn-primary"
+                      style={{ padding: "6px 16px" }}
+                    >
+                      Confirm delete
+                    </button>
+                    <button
+                      type="button"
+                      disabled={msg.resolved}
+                      onClick={() => resolvePending(msg.id, msg.pending!, false)}
+                      className="glass text-sm font-semibold"
+                      style={{
+                        padding: "6px 16px",
+                        borderRadius: "9999px",
+                        color: "var(--text)",
+                        opacity: msg.resolved ? 0.5 : 1,
+                        cursor: msg.resolved ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
