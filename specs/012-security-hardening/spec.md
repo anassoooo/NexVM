@@ -38,7 +38,8 @@ The orphan auto-purge is removed.
 |---|---|
 | FR-101 | `create_vm`, `clone_vm` and `import_ova` register the VM as `<name>-<8 hex chars>` (random) |
 | FR-102 | The VDI disk path uses the host-unique name, not the display name |
-| FR-103 | Every VBoxManage call on an existing VM uses `vm["vbox_id"]`; it falls back to `vm["name"]` only when `vbox_id` is null |
+| FR-103 | Every VBoxManage call on an existing VM uses `vm["vbox_id"]`; a row without one returns 409 (never falls back to the display name) |
+| FR-107 | If the new VM's UUID can't be read after create/clone/import, the VM is unregistered by its host-unique name and the call returns 500 |
 | FR-104 | The "already exists → unregister + rmtree" branch in `_run_vbox` is removed; the error is returned as HTTP 409 |
 | FR-105 | The display `name` stored in the database and shown in the UI is unchanged |
 | FR-106 | Existing VMs keep working with no data migration (all 4 have `vbox_id`) |
@@ -70,7 +71,7 @@ Each path must resolve inside a configured directory.
 |---|---|
 | FR-201 | New settings `ISO_DIR` and `EXPORT_DIR`; defaults `<VM storage>/isos` and `<VM storage>/exports`, created at startup |
 | FR-202 | `iso_path` must resolve (via `os.path.realpath`) inside `ISO_DIR` |
-| FR-203 | `output_path` and `source_path` must resolve inside `EXPORT_DIR` |
+| FR-203 | `output_path` and `source_path` are bare file names (`my-vm.ova`); the server reads and writes them in `EXPORT_DIR/<user_id>/`, so users can't reach each other's exports |
 | FR-204 | `..` segments and symlinks pointing outside the directory are rejected |
 | FR-205 | Rejection returns HTTP 422 with a message naming the allowed directory |
 | FR-206 | The AI `attach_iso` path goes through the same check |
@@ -79,7 +80,8 @@ Each path must resolve inside a configured directory.
 ### Acceptance Criteria
 
 - `C:\Windows\x.ova` as export target → 422
-- `<EXPORT_DIR>\..\x.ova` → 422
+- `../x.ova` or `sub/x.ova` as export name → 422
+- Importing a file that exists only in another user's folder → 404
 - `<ISO_DIR>\ubuntu.iso` → accepted
 - Existing ISO/export flows work when files are placed in the configured directories
 

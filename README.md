@@ -100,7 +100,7 @@ Do not put real API keys or service-role credentials in example files, screensho
 
 ## Upgrading to spec 012 (security hardening)
 
-- **ISO and OVA folders.** Users can only attach ISOs from `ISO_DIR` and export or import OVAs in `EXPORT_DIR` (defaults: `isos` and `exports` inside the VM storage folder; both are created at startup). Set them in `backend/.env` to your existing folders, or move your files there.
+- **ISO and OVA folders.** Users can only attach ISOs from `ISO_DIR` (default: `isos` inside the VM storage folder). Export and import take a file name such as `my-vm.ova`; each user's files live in `EXPORT_DIR/<user id>/` (default `exports`). Both folders are created at startup; set them in `backend/.env` if you prefer other locations.
 - **VirtualBox names.** New VMs are registered as `<name>-<8 hex chars>` and addressed by UUID, so two users can use the same VM name. Existing VMs keep their names.
 - **No default SSH forward.** New VMs no longer forward host port 2222; add a rule under Port forwarding when needed.
 - **AI deletions** now ask for confirmation in the chat.

@@ -224,6 +224,8 @@ via user input is prohibited at the service layer.
 User-supplied host paths (ISO files, OVA export targets, OVA import sources) MUST resolve —
 after following symlinks and `..` — inside a directory configured in settings (`ISO_DIR`,
 `EXPORT_DIR`). Paths outside it MUST be rejected with HTTP 422 before any VBoxManage call.
+Files one user creates on the host (OVA exports) MUST live in a per-user subfolder that other
+users cannot name.
 
 ### §XI.5 — VirtualBox Resource Isolation
 
