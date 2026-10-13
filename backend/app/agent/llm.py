@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from groq import APIError, APITimeoutError, Groq
+from groq import APIError, APITimeoutError, BadRequestError, Groq
 
 from app.config import settings
 
@@ -50,10 +50,14 @@ class GroqLLM:
 
     def complete(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
         try:
-            r = self._client.chat.completions.create(
-                model=self.model, messages=messages, tools=tools, tool_choice="auto",
-                temperature=0, max_tokens=2048,
-            )
+            try:
+                r = self._create(messages, tools, temperature=0)
+            except BadRequestError as e:
+                # The model sometimes emits a tool call Groq can't parse. Sampling once more,
+                # slightly off zero temperature, is a cheap second chance before failing the run.
+                if _code(e) not in ("output_parse_failed", "tool_use_failed"):
+                    raise
+                r = self._create(messages, tools, temperature=0.3)
         except APITimeoutError:
             raise LLMError("The AI service timed out") from None
         except APIError as e:
@@ -65,3 +69,14 @@ class GroqLLM:
             tokens_in=getattr(r.usage, "prompt_tokens", 0) or 0,
             tokens_out=getattr(r.usage, "completion_tokens", 0) or 0,
         )
+
+    def _create(self, messages: list[dict], tools: list[dict], temperature: float):
+        return self._client.chat.completions.create(
+            model=self.model, messages=messages, tools=tools, tool_choice="auto",
+            temperature=temperature, max_tokens=2048,
+        )
+
+
+def _code(err: BadRequestError) -> str:
+    body = err.body if isinstance(err.body, dict) else {}
+    return (body.get("error") or body).get("code", "") if isinstance(body, dict) else ""

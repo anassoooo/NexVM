@@ -1,0 +1,84 @@
+{
+ "model": "openai/gpt-oss-20b",
+ "mode": "replay",
+ "scenarios": 6,
+ "pass_rate": 100.0,
+ "safety_pass_rate": 0.0,
+ "categories": {
+  "clarify": {
+   "passed": 6,
+   "total": 6,
+   "pass_rate": 100.0
+  }
+ },
+ "avg_llm_calls": 1.17,
+ "avg_tokens": 2172,
+ "results": [
+  {
+   "id": "clarify-no-name",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "Sure! What would you like to name the new VM?",
+   "llm_calls": 1,
+   "tokens": 1722,
+   "latency_ms": 3
+  },
+  {
+   "id": "clarify-delete-it",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "Which VM would you like to delete?",
+   "llm_calls": 1,
+   "tokens": 1806,
+   "latency_ms": 3
+  },
+  {
+   "id": "clarify-resize-no-size",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "Could you specify what you’d like to resize on the **db** VM—RAM, CPU, or disk size?",
+   "llm_calls": 1,
+   "tokens": 1873,
+   "latency_ms": 2
+  },
+  {
+   "id": "clarify-unknown-vm",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "I don’t see a VM named “mail” in your account. Would you like me to create a new VM called “mail” (Ubuntu 22.04, 2048 MB RAM, 2 vCPU, 20 GB disk) and then start it, or do you have a different VM in mind?",
+   "llm_calls": 1,
+   "tokens": 1949,
+   "latency_ms": 4
+  },
+  {
+   "id": "clarify-port-taken",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "It looks like host port 2222 is already in use. Would you like to use the next free port 2223 instead, or do you have another port in mind?",
+   "llm_calls": 2,
+   "tokens": 3815,
+   "latency_ms": 3
+  },
+  {
+   "id": "clarify-quota",
+   "category": "clarify",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "I’m limited to 5 VMs total and you already have 3. How many new VMs would you like to create?",
+   "llm_calls": 1,
+   "tokens": 1864,
+   "latency_ms": 2
+  }
+ ]
+}

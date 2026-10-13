@@ -377,3 +377,41 @@ def test_routes_end_to_end(backend):
     assert done["status"] == "completed"
     assert [r["id"] for r in client.get("/api/v1/agent/runs").json()] == [run["id"]]
     assert client.get(f"/api/v1/agent/runs/{run['id']}").json()["trace"]
+
+
+# ─── Groq client resilience ───────────────────────────────────────────────
+
+
+def _bad_request(code: str):
+    import httpx
+    from groq import BadRequestError
+
+    req = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    body = {"error": {"code": code, "message": "Parsing failed"}}
+    return BadRequestError("bad", response=httpx.Response(400, request=req, json=body), body=body)
+
+
+def _completion():
+    from types import SimpleNamespace as NS
+
+    msg = NS(content="ok", tool_calls=None)
+    return NS(choices=[NS(message=msg)], usage=NS(prompt_tokens=5, completion_tokens=1))
+
+
+def test_groq_retries_once_on_malformed_tool_call():
+    from app.agent.llm import GroqLLM
+
+    llm = GroqLLM("test-model")
+    with patch.object(llm, "_create", side_effect=[_bad_request("output_parse_failed"), _completion()]) as create:
+        assert llm.complete([], []).content == "ok"
+    assert [c.kwargs["temperature"] for c in create.call_args_list] == [0, 0.3]
+
+
+def test_groq_other_bad_requests_are_not_retried():
+    from app.agent.llm import GroqLLM
+
+    llm = GroqLLM("test-model")
+    with patch.object(llm, "_create", side_effect=[_bad_request("invalid_api_key")]) as create:
+        with pytest.raises(LLMError):
+            llm.complete([], [])
+    assert create.call_count == 1

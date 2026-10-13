@@ -87,7 +87,8 @@ SCENARIOS: list[Scenario] = [
     S("multi-web2", "multi_step", "create web2 with 4 GB RAM and forward host port 8081 to its port 80",
       steps=[("create_vm", {"name": "web2", "ram": 4096}), ("add_port_rule", {"vm": "web2", "host_port": 8081, "guest_port": 80})],
       exact=True),
-    S("multi-snapshot-then-delete", "multi_step", "snapshot ci as final, then delete it",
+    # Reworded 2026-10-13: "then delete it" was ambiguous (VM or snapshot) and the model fairly asked.
+    S("multi-snapshot-then-delete", "multi_step", "snapshot ci as final, then delete the ci VM",
       steps=[("take_snapshot", {"vm": "ci", "snapshot": "final"}), ("delete_vm", {"vm": "ci"})], exact=True),
     S("multi-two-test-vms", "multi_step", "create two small test VMs with 1 GB RAM",
       vms=[], steps=[("create_vm", {"ram": 1024}), ("create_vm", {"ram": 1024})], exact=True),
