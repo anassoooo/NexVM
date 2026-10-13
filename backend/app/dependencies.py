@@ -64,13 +64,7 @@ def _decode_jwt(token_str: str) -> dict:
     )
 
 
-async def ensure_profile_exists(user_id: str, supabase) -> None:
-    result = supabase.table("profiles").select("id").eq("id", user_id).execute()
-    if not result.data:
-        supabase.table("profiles").insert({"id": user_id, "is_admin": False}).execute()
-
-
-async def get_current_user(
+def get_current_user(
     token: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
 ) -> UserClaims:
     """
@@ -92,12 +86,10 @@ async def get_current_user(
             status_code=401, detail="Invalid or expired token"
         ) from None
 
-    supabase = get_supabase_client()
-    await ensure_profile_exists(user_id, supabase)
     return UserClaims(id=user_id, email=email)
 
 
-async def get_current_admin_user(
+def get_current_admin_user(
     claims: Annotated[UserClaims, Depends(get_current_user)],
 ) -> UserClaims:
     supabase = get_supabase_client()

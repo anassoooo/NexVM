@@ -172,31 +172,56 @@ def test_clone_vm_quota_exceeded(_patch_supabase):
 # export_ova
 # ---------------------------------------------------------------------------
 
-def test_export_ova_ok(_patch_supabase):
+@pytest.fixture
+def export_root(tmp_path):
+    with patch("app.services.vbox_wrapper.get_export_dir", return_value=str(tmp_path)):
+        yield tmp_path
+
+
+def _user_dir(export_root):
+    d = export_root / USER_ID
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def test_export_ova_ok(_patch_supabase, export_root):
     _setup_vm(_patch_supabase)
 
     export_result = MagicMock(returncode=0, stdout="", stderr="")
-    with patch("app.services.vm_service.run_vbox_command", return_value=export_result):
-        result = vm_service.export_ova(VM_ID, "/exports/test.ova", USER_ID)
+    with patch("app.services.vm_service.run_vbox_command", return_value=export_result) as run:
+        result = vm_service.export_ova(VM_ID, "test.ova", USER_ID)
 
-    assert "Exported to" in result["message"]
+    assert result["message"] == "Exported as test.ova"
+    cmd = run.call_args.args[0]
+    assert cmd[cmd.index("--output") + 1] == str(export_root / USER_ID / "test.ova")
 
 
-def test_export_ova_not_stopped(_patch_supabase):
+def test_export_ova_existing_file_409(_patch_supabase, export_root):
+    _setup_vm(_patch_supabase)
+    (_user_dir(export_root) / "test.ova").write_text("x")
+
+    with patch("app.services.vm_service.run_vbox_command") as run:
+        with pytest.raises(HTTPException) as exc:
+            vm_service.export_ova(VM_ID, "test.ova", USER_ID)
+    assert exc.value.status_code == 409
+    run.assert_not_called()
+
+
+def test_export_ova_not_stopped(_patch_supabase, export_root):
     _setup_vm(_patch_supabase, _vm_row(status="running"))
 
     with pytest.raises(HTTPException) as exc:
-        vm_service.export_ova(VM_ID, "/exports/test.ova", USER_ID)
+        vm_service.export_ova(VM_ID, "test.ova", USER_ID)
     assert exc.value.status_code == 409
 
 
-def test_export_ova_vbox_failure(_patch_supabase):
+def test_export_ova_vbox_failure(_patch_supabase, export_root):
     _setup_vm(_patch_supabase)
 
     fail_result = MagicMock(returncode=1, stdout="", stderr="export failed")
     with patch("app.services.vm_service.run_vbox_command", return_value=fail_result):
         with pytest.raises(HTTPException) as exc:
-            vm_service.export_ova(VM_ID, "/exports/test.ova", USER_ID)
+            vm_service.export_ova(VM_ID, "test.ova", USER_ID)
     assert exc.value.status_code == 500
 
 
@@ -204,7 +229,8 @@ def test_export_ova_vbox_failure(_patch_supabase):
 # import_ova
 # ---------------------------------------------------------------------------
 
-def test_import_ova_ok(_patch_supabase):
+def test_import_ova_ok(_patch_supabase, export_root):
+    (_user_dir(export_root) / "ubuntu.ova").write_text("x")
     imported_row = _vm_row(name="imported-vm", os="imported")
     imported_row["id"] = "00000000-0000-0000-0000-000000000030"
 
@@ -237,13 +263,14 @@ def test_import_ova_ok(_patch_supabase):
     info_result = MagicMock(returncode=0, stdout='UUID="import-uuid"\n', stderr="")
 
     with patch("app.services.vm_service.run_vbox_command", side_effect=[import_result, info_result]):
-        result = vm_service.import_ova("/imports/ubuntu.ova", "imported-vm", 1024, 2, USER_ID)
+        result = vm_service.import_ova("ubuntu.ova", "imported-vm", 1024, 2, USER_ID)
 
     assert result.name == "imported-vm"
     assert result.os == "imported"
 
 
-def test_import_ova_quota_exceeded(_patch_supabase):
+def test_import_ova_quota_exceeded(_patch_supabase, export_root):
+    (_user_dir(export_root) / "ubuntu.ova").write_text("x")
     vms_mock = MagicMock()
 
     (vms_mock.select.return_value
@@ -265,14 +292,27 @@ def test_import_ova_quota_exceeded(_patch_supabase):
     _patch_supabase.table.side_effect = _table
 
     with pytest.raises(HTTPException) as exc:
-        vm_service.import_ova("/imports/ubuntu.ova", "vm", 1024, 2, USER_ID)
+        vm_service.import_ova("ubuntu.ova", "vm", 1024, 2, USER_ID)
     assert exc.value.status_code == 409
     assert "quota" in exc.value.detail.lower()
 
 
-def test_import_ova_name_conflict(_patch_supabase):
+def test_import_ova_name_conflict(_patch_supabase, export_root):
+    (_user_dir(export_root) / "ubuntu.ova").write_text("x")
     _mock_table_router(_patch_supabase, name_check_empty=False)
 
     with pytest.raises(HTTPException) as exc:
-        vm_service.import_ova("/imports/ubuntu.ova", "dup-name", 1024, 2, USER_ID)
+        vm_service.import_ova("ubuntu.ova", "dup-name", 1024, 2, USER_ID)
     assert exc.value.status_code == 409
+
+
+def test_import_ova_only_reads_own_folder(_patch_supabase, export_root):
+    other_user = "00000000-0000-0000-0000-000000000099"
+    (export_root / other_user).mkdir()
+    (export_root / other_user / "secret.ova").write_text("x")
+
+    with patch("app.services.vm_service.run_vbox_command") as run:
+        with pytest.raises(HTTPException) as exc:
+            vm_service.import_ova("secret.ova", "stolen", 1024, 2, USER_ID)
+    assert exc.value.status_code == 404
+    run.assert_not_called()

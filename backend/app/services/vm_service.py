@@ -1,5 +1,6 @@
 import os
 import re
+import secrets
 import subprocess
 from datetime import datetime, timezone
 from typing import Callable
@@ -19,6 +20,7 @@ from app.services.vbox_wrapper import (
     get_ostype,
     get_vm_disk_path,
     get_storage_base,
+    get_user_export_dir,
     parse_vbox_state,
     run_vbox_command,
 )
@@ -28,6 +30,39 @@ from app.utils.logger import logger
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _vbox_ref(vm: dict) -> str:
+    """VirtualBox UUID for a VM row. Display names are not unique on the host, so
+    falling back to one could act on another user's VM."""
+    if not vm.get("vbox_id"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"VM '{vm['name']}' has no VirtualBox UUID recorded — ask an admin to repair it",
+        )
+    return vm["vbox_id"]
+
+
+def _discard_unidentified_vm(vbox: str, vbox_name: str) -> None:
+    """Remove a VM we just registered under a host-unique name but couldn't read a UUID for."""
+    try:
+        run_vbox_command([vbox, "unregistervm", vbox_name, "--delete"])
+    except Exception:  # noqa: BLE001
+        pass
+    raise HTTPException(status_code=500, detail="Could not determine the new VM's VirtualBox UUID")
+
+
+def _unique_vbox_name(display_name: str) -> str:
+    return f"{display_name}-{secrets.token_hex(4)}"
+
+
+def _read_vbox_uuid(vbox: str, ref: str) -> str | None:
+    info = run_vbox_command([vbox, "showvminfo", ref, "--machinereadable"])
+    if info.returncode == 0:
+        for line in info.stdout.splitlines():
+            if line.startswith("UUID="):
+                return line.split("=", 1)[1].strip('"')
+    return None
 
 def _log_action(
     user_id: str, action: LogAction, target: str, status: LogStatus, message: str
@@ -110,48 +145,13 @@ def _run_vbox(
     if result.returncode != 0:
         stderr = result.stderr.strip() or result.stdout.strip()
 
-        # VirtualBox reports "already exists" when a stale VM registration
-        # lingers in VBox but was already removed from the database (DB/VBox
-        # out of sync).  For the "createvm" step only, auto-purge the orphan
-        # and retry once so the user can create a VM with the same name again.
-        if "already exists" in stderr.lower() and step == "createvm":
-            try:
-                vm_name_idx = cmd.index("--name") + 1
-                orphan_name = cmd[vm_name_idx]
-                vbox = build_vbox_path()
-
-                # Step 1: unregister the VM synchronously (DO NOT use --delete, as VBoxSVC
-                # might process the file deletion asynchronously and wipe out the new VM we are about to create).
-                run_vbox_command([vbox, "unregistervm", orphan_name])
-
-                # Step 2: manually remove the VM folder from disk synchronously
-                basefolder_idx = cmd.index("--basefolder") + 1 if "--basefolder" in cmd else -1
-                if basefolder_idx != -1:
-                    import shutil
-                    vm_folder = os.path.join(cmd[basefolder_idx], orphan_name)
-                    if os.path.isdir(vm_folder):
-                        shutil.rmtree(vm_folder, ignore_errors=True)
-            except Exception:  # noqa: BLE001
-                pass
-
-            # Retry the original command once after cleanup
-            try:
-                result = run_vbox_command(cmd)
-            except (FileNotFoundError, subprocess.TimeoutExpired):
-                pass
-            if result.returncode == 0:
-                return result
-
         if on_failure:
             on_failure()
         _log_action(user_id, action, step, LogStatus.failure, stderr)
         if "already exists" in stderr.lower():
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    "A VM with this name already exists in VirtualBox but not in the database. "
-                    "It has been cleaned up — please try again."
-                ),
+                detail="A VirtualBox VM with this name already exists",
             )
         raise HTTPException(status_code=500, detail=f"VBoxManage error ({step}): {stderr}")
 
@@ -196,7 +196,7 @@ def sync_vm_status(vm_id: str, user_id: str) -> VMResponse:
     vbox = build_vbox_path()
 
     try:
-        result = run_vbox_command([vbox, "showvminfo", vm["name"], "--machinereadable"])
+        result = run_vbox_command([vbox, "showvminfo", _vbox_ref(vm), "--machinereadable"])
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
         return _vm_row_to_response(vm)
 
@@ -236,7 +236,8 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     os_type = get_ostype(data.os)
-    disk_path = get_vm_disk_path(data.name)
+    vbox_name = _unique_vbox_name(data.name)
+    disk_path = get_vm_disk_path(vbox_name)
     storage_base = get_storage_base()
     vm_name = data.name
 
@@ -245,22 +246,25 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"VM storage path unavailable: {exc}") from exc
 
-    def cleanup() -> None:
-        """Best-effort VBox cleanup if creation fails mid-way."""
-        try:
-            run_vbox_command([vbox, "unregistervm", vm_name, "--delete"])
-        except Exception:  # noqa: BLE001
-            pass
-
     # Step 1 — Register VM
-    create_cmd = [vbox, "createvm", "--name", vm_name, "--ostype", os_type, "--register",
+    create_cmd = [vbox, "createvm", "--name", vbox_name, "--ostype", os_type, "--register",
                   "--basefolder", storage_base]
     result = _run_vbox(create_cmd, user_id, LogAction.create_vm, "createvm")
     vbox_id = extract_vbox_uuid(result.stdout)
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, vbox_name)
+    ref = vbox_id
+
+    def cleanup() -> None:
+        """Best-effort cleanup of the VM this call just registered."""
+        try:
+            run_vbox_command([vbox, "unregistervm", ref, "--delete"])
+        except Exception:  # noqa: BLE001
+            pass
 
     # Step 2 — Configure hardware (RAM, CPU, VRAM, boot order)
     _run_vbox(
-        [vbox, "modifyvm", vm_name,
+        [vbox, "modifyvm", ref,
          "--memory", str(data.ram),
          "--cpus", str(data.cpu),
          "--vram", "16",
@@ -274,7 +278,7 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
 
     # Step 3 — Add SATA controller
     _run_vbox(
-        [vbox, "storagectl", vm_name, "--name", "SATA", "--add", "sata",
+        [vbox, "storagectl", ref, "--name", "SATA", "--add", "sata",
          "--controller", "IntelAhci", "--portcount", "2"],
         user_id, LogAction.create_vm, "storagectl", cleanup,
     )
@@ -290,7 +294,7 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
 
     # Step 5 — Attach disk to SATA port 0
     _run_vbox(
-        [vbox, "storageattach", vm_name,
+        [vbox, "storageattach", ref,
          "--storagectl", "SATA",
          "--port", "0", "--device", "0",
          "--type", "hdd", "--medium", disk_path],
@@ -299,9 +303,8 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
 
     # Step 6 — NAT network adapter
     _run_vbox(
-        [vbox, "modifyvm", vm_name,
-         "--nic1", "nat", "--nictype1", "82540EM",
-         "--natpf1", "ssh,tcp,,2222,,22"],
+        [vbox, "modifyvm", ref,
+         "--nic1", "nat", "--nictype1", "82540EM"],
         user_id, LogAction.create_vm, "modifyvm network", cleanup,
     )
 
@@ -347,7 +350,7 @@ def start_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VM
 
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "startvm", vm["name"], "--type", "headless"])
+        result = run_vbox_command([vbox, "startvm", _vbox_ref(vm), "--type", "headless"])
     except FileNotFoundError:
         _update_vm_error(vm_id, "VBoxManage not reachable", log_user, LogAction.start_vm)
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -393,7 +396,7 @@ def stop_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VMR
     try:
         # poweroff is synchronous — VM is guaranteed stopped when it returns 0.
         # acpipowerbutton is async and returns 0 even when the guest ignores it (no OS).
-        result = run_vbox_command([vbox, "controlvm", vm["name"], "poweroff"])
+        result = run_vbox_command([vbox, "controlvm", _vbox_ref(vm), "poweroff"])
     except FileNotFoundError:
         _update_vm_error(vm_id, "VBoxManage not reachable", log_user, LogAction.stop_vm)
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -408,7 +411,7 @@ def stop_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> VMR
 
     # Verify VirtualBox actually reports poweroff before trusting the DB update.
     try:
-        info = run_vbox_command([vbox, "showvminfo", vm["name"], "--machinereadable"])
+        info = run_vbox_command([vbox, "showvminfo", _vbox_ref(vm), "--machinereadable"])
         vbox_state = parse_vbox_state(info.stdout) if info.returncode == 0 else None
     except Exception:  # noqa: BLE001
         vbox_state = None
@@ -439,7 +442,7 @@ def delete_vm(vm_id: str, user_id: str | None, actor_id: str | None = None) -> N
 
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "unregistervm", vm["name"], "--delete"])
+        result = run_vbox_command([vbox, "unregistervm", _vbox_ref(vm), "--delete"])
     except FileNotFoundError:
         _log_action(log_user, LogAction.delete_vm, vm_id, LogStatus.failure, "VBoxManage not reachable")
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -468,10 +471,11 @@ def attach_iso(vm_id: str, iso_path: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     vm_name = vm["name"]
+    ref = _vbox_ref(vm)
 
     # Add IDE controller — swallow "already exists" (idempotent)
     try:
-        ctl_result = run_vbox_command([vbox, "storagectl", vm_name, "--name", "IDE", "--add", "ide", "--controller", "PIIX4"])
+        ctl_result = run_vbox_command([vbox, "storagectl", ref, "--name", "IDE", "--add", "ide", "--controller", "PIIX4"])
         if ctl_result.returncode != 0:
             stderr = ctl_result.stderr.strip().lower()
             if "already exists" not in stderr:
@@ -482,14 +486,14 @@ def attach_iso(vm_id: str, iso_path: str, user_id: str) -> VMResponse:
         raise HTTPException(status_code=500, detail="VBoxManage command timed out") from None
 
     _run_vbox(
-        [vbox, "storageattach", vm_name, "--storagectl", "IDE",
+        [vbox, "storageattach", ref, "--storagectl", "IDE",
          "--port", "0", "--device", "0", "--type", "dvddrive", "--medium", iso_path],
         user_id, LogAction.attach_iso, "storageattach iso",
     )
 
     # Boot from DVD first so the ISO is used before the (empty) hard disk
     _run_vbox(
-        [vbox, "modifyvm", vm_name, "--boot1", "dvd", "--boot2", "disk", "--boot3", "none"],
+        [vbox, "modifyvm", ref, "--boot1", "dvd", "--boot2", "disk", "--boot3", "none"],
         user_id, LogAction.attach_iso, "modifyvm boot order",
     )
 
@@ -509,16 +513,17 @@ def detach_iso(vm_id: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     vm_name = vm["name"]
+    ref = _vbox_ref(vm)
 
     _run_vbox(
-        [vbox, "storageattach", vm_name, "--storagectl", "IDE",
+        [vbox, "storageattach", ref, "--storagectl", "IDE",
          "--port", "0", "--device", "0", "--type", "dvddrive", "--medium", "emptydrive"],
         user_id, LogAction.detach_iso, "storageattach emptydrive",
     )
 
     # Restore disk-first boot order now that the ISO is gone
     _run_vbox(
-        [vbox, "modifyvm", vm_name, "--boot1", "disk", "--boot2", "none", "--boot3", "none"],
+        [vbox, "modifyvm", ref, "--boot1", "disk", "--boot2", "none", "--boot3", "none"],
         user_id, LogAction.detach_iso, "modifyvm boot order",
     )
 
@@ -541,9 +546,10 @@ def enable_vrde(vm_id: str, port: int, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     vm_name = vm["name"]
+    ref = _vbox_ref(vm)
 
     _run_vbox(
-        [vbox, "modifyvm", vm_name, "--vrde", "on", "--vrdeport", str(port)],
+        [vbox, "modifyvm", ref, "--vrde", "on", "--vrdeport", str(port)],
         user_id, LogAction.enable_vrde, "modifyvm vrde",
     )
 
@@ -564,9 +570,10 @@ def disable_vrde(vm_id: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     vm_name = vm["name"]
+    ref = _vbox_ref(vm)
 
     _run_vbox(
-        [vbox, "modifyvm", vm_name, "--vrde", "off"],
+        [vbox, "modifyvm", ref, "--vrde", "off"],
         user_id, LogAction.disable_vrde, "modifyvm vrde off",
     )
 
@@ -586,7 +593,7 @@ def force_reset_vm(vm_id: str, actor_id: str) -> VMResponse:
 
     # Best-effort hard poweroff
     try:
-        run_vbox_command([vbox, "controlvm", vm["name"], "poweroff"])
+        run_vbox_command([vbox, "controlvm", _vbox_ref(vm), "poweroff"])
     except Exception:  # noqa: BLE001
         pass
 
@@ -613,13 +620,14 @@ def modify_vm(vm_id: str, ram: int | None, cpu: int | None, user_id: str) -> VMR
 
     vbox = build_vbox_path()
     vm_name = vm["name"]
+    ref = _vbox_ref(vm)
     args: list[str] = []
     if ram is not None:
         args += ["--memory", str(ram)]
     if cpu is not None:
         args += ["--cpus", str(cpu)]
 
-    _run_vbox([vbox, "modifyvm", vm_name, *args], user_id, LogAction.modify_vm, "modifyvm modify")
+    _run_vbox([vbox, "modifyvm", ref, *args], user_id, LogAction.modify_vm, "modifyvm modify")
 
     updates: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
     if ram is not None:
@@ -640,7 +648,7 @@ def pause_vm(vm_id: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "controlvm", vm["name"], "pause"])
+        result = run_vbox_command([vbox, "controlvm", _vbox_ref(vm), "pause"])
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
     except subprocess.TimeoutExpired:
@@ -663,7 +671,7 @@ def resume_vm(vm_id: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "controlvm", vm["name"], "resume"])
+        result = run_vbox_command([vbox, "controlvm", _vbox_ref(vm), "resume"])
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
     except subprocess.TimeoutExpired:
@@ -690,7 +698,7 @@ def save_state(vm_id: str, user_id: str) -> VMResponse:
 
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "controlvm", vm["name"], "savestate"])
+        result = run_vbox_command([vbox, "controlvm", _vbox_ref(vm), "savestate"])
     except FileNotFoundError:
         _update_vm_error(vm_id, "VBoxManage not reachable", user_id, LogAction.save_state)
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -709,6 +717,30 @@ def save_state(vm_id: str, user_id: str) -> VMResponse:
     return _vm_row_to_response(updated.data[0])
 
 
+def _host_ports_in_use() -> set[int]:
+    """Host ports claimed by any VM's NAT rules or VRDE server."""
+    supabase = get_supabase_client()
+    rows: list[dict] = []
+    page = 1000  # PostgREST's default max rows per request
+    while True:
+        batch = (
+            supabase.table("vms").select("nat_rules,vrde_port")
+            .order("id").range(len(rows), len(rows) + page - 1).execute().data
+        ) or []
+        rows.extend(batch)
+        if len(batch) < page:
+            break
+    ports: set[int] = set()
+    for row in rows:
+        rules = row.get("nat_rules") or []
+        if isinstance(rules, str):  # stored via json.dumps
+            rules = json.loads(rules)
+        ports.update(int(r["host_port"]) for r in rules)
+        if row.get("vrde_port"):
+            ports.add(int(row["vrde_port"]))
+    return ports
+
+
 def add_port_rule(
     vm_id: str, name: str, protocol: str, host_port: int, guest_port: int, user_id: str
 ) -> VMResponse:
@@ -719,9 +751,11 @@ def add_port_rule(
     existing: list[dict] = vm.get("nat_rules") or []
     if any(r["name"] == name for r in existing):
         raise HTTPException(status_code=409, detail=f"Port rule '{name}' already exists on this VM")
+    if host_port in _host_ports_in_use():
+        raise HTTPException(status_code=409, detail=f"Host port {host_port} is already used by another VM")
 
     _run_vbox(
-        [build_vbox_path(), "modifyvm", vm["name"], "--natpf1", f"{name},{protocol},,{host_port},,{guest_port}"],
+        [build_vbox_path(), "modifyvm", _vbox_ref(vm), "--natpf1", f"{name},{protocol},,{host_port},,{guest_port}"],
         user_id, LogAction.add_port_rule, "modifyvm natpf1",
     )
 
@@ -743,7 +777,7 @@ def remove_port_rule(vm_id: str, name: str, user_id: str) -> VMResponse:
         raise HTTPException(status_code=404, detail=f"Port rule '{name}' not found on this VM")
 
     _run_vbox(
-        [build_vbox_path(), "modifyvm", vm["name"], "--natpf1", f"delete {name}"],
+        [build_vbox_path(), "modifyvm", _vbox_ref(vm), "--natpf1", f"delete {name}"],
         user_id, LogAction.remove_port_rule, "modifyvm natpf1 delete",
     )
 
@@ -766,7 +800,7 @@ def take_snapshot(vm_id: str, name: str, description: str, user_id: str) -> Snap
         raise HTTPException(status_code=409, detail=f"Snapshot '{name}' already exists on this VM")
 
     _run_vbox(
-        [build_vbox_path(), "snapshot", vm["name"], "take", name, "--description", description],
+        [build_vbox_path(), "snapshot", _vbox_ref(vm), "take", name, "--description", description],
         user_id, LogAction.take_snapshot, "snapshot take",
     )
 
@@ -788,7 +822,7 @@ def restore_snapshot(vm_id: str, name: str, user_id: str) -> VMResponse:
         raise HTTPException(status_code=404, detail=f"Snapshot '{name}' not found on this VM")
 
     _run_vbox(
-        [build_vbox_path(), "snapshot", vm["name"], "restore", name],
+        [build_vbox_path(), "snapshot", _vbox_ref(vm), "restore", name],
         user_id, LogAction.restore_snapshot, "snapshot restore",
     )
 
@@ -807,7 +841,7 @@ def delete_snapshot(vm_id: str, name: str, user_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"Snapshot '{name}' not found on this VM")
 
     _run_vbox(
-        [build_vbox_path(), "snapshot", vm["name"], "delete", name],
+        [build_vbox_path(), "snapshot", _vbox_ref(vm), "delete", name],
         user_id, LogAction.delete_snapshot, "snapshot delete",
     )
 
@@ -859,18 +893,15 @@ def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
         raise HTTPException(status_code=409, detail=f"A VM named '{new_name}' already exists")
 
     vbox = build_vbox_path()
+    clone_vbox_name = _unique_vbox_name(new_name)
     _run_vbox(
-        [vbox, "clonevm", vm["name"], "--name", new_name, "--register"],
+        [vbox, "clonevm", _vbox_ref(vm), "--name", clone_vbox_name, "--register"],
         user_id, LogAction.clone_vm, "clonevm",
     )
 
-    vbox_id: str | None = None
-    info = run_vbox_command([vbox, "showvminfo", new_name, "--machinereadable"])
-    if info.returncode == 0:
-        for line in info.stdout.splitlines():
-            if line.startswith("UUID="):
-                vbox_id = line.split("=", 1)[1].strip('"')
-                break
+    vbox_id = _read_vbox_uuid(vbox, clone_vbox_name)
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, clone_vbox_name)
 
     now = datetime.now(timezone.utc).isoformat()
     inserted = supabase.table("vms").insert({
@@ -889,7 +920,7 @@ def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
     return _vm_row_to_response(inserted.data[0])
 
 
-def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
+def export_ova(vm_id: str, file_name: str, user_id: str) -> dict:
     vm = _get_vm_or_404(vm_id, user_id)
     if vm["status"] != "stopped":
         raise HTTPException(
@@ -897,9 +928,15 @@ def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
             detail=f"Cannot export VM in '{vm['status']}' state (must be stopped)",
         )
 
+    export_dir = get_user_export_dir(user_id)
+    os.makedirs(export_dir, exist_ok=True)
+    output_path = os.path.join(export_dir, file_name)
+    if os.path.exists(output_path):
+        raise HTTPException(status_code=409, detail=f"An export named '{file_name}' already exists")
+
     vbox = build_vbox_path()
     try:
-        result = run_vbox_command([vbox, "export", vm["name"], "--output", output_path], timeout=300)
+        result = run_vbox_command([vbox, "export", _vbox_ref(vm), "--output", output_path], timeout=300)
     except FileNotFoundError:
         _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, "VBoxManage not reachable")
         raise HTTPException(status_code=503, detail="VBoxManage not reachable") from None
@@ -912,11 +949,15 @@ def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
         _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, stderr)
         raise HTTPException(status_code=500, detail=f"VBoxManage export failed: {stderr}")
 
-    _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.success, output_path)
-    return {"message": f"Exported to {output_path}"}
+    _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.success, file_name)
+    return {"message": f"Exported as {file_name}"}
 
 
-def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) -> VMResponse:
+def import_ova(file_name: str, name: str, ram: int, cpu: int, user_id: str) -> VMResponse:
+    source_path = os.path.join(get_user_export_dir(user_id), file_name)
+    if not os.path.isfile(source_path):
+        raise HTTPException(status_code=404, detail=f"No export named '{file_name}' in your export folder")
+
     supabase = get_supabase_client()
 
     count_result = (
@@ -936,10 +977,11 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
         raise HTTPException(status_code=409, detail=f"A VM named '{name}' already exists")
 
     vbox = build_vbox_path()
+    import_vbox_name = _unique_vbox_name(name)
     try:
         result = run_vbox_command(
             [vbox, "import", source_path, "--vsys", "0",
-             "--vmname", name, "--memory", str(ram), "--cpus", str(cpu)],
+             "--vmname", import_vbox_name, "--memory", str(ram), "--cpus", str(cpu)],
             timeout=300,
         )
     except FileNotFoundError:
@@ -954,13 +996,9 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
         _log_action(user_id, LogAction.import_vm, name, LogStatus.failure, stderr)
         raise HTTPException(status_code=500, detail=f"VBoxManage import failed: {stderr}")
 
-    vbox_id: str | None = None
-    info = run_vbox_command([vbox, "showvminfo", name, "--machinereadable"])
-    if info.returncode == 0:
-        for line in info.stdout.splitlines():
-            if line.startswith("UUID="):
-                vbox_id = line.split("=", 1)[1].strip('"')
-                break
+    vbox_id = _read_vbox_uuid(vbox, import_vbox_name)
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, import_vbox_name)
 
     now = datetime.now(timezone.utc).isoformat()
     inserted = supabase.table("vms").insert({
@@ -975,7 +1013,7 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
         "created_at": now,
         "updated_at": now,
     }).execute()
-    _log_action(user_id, LogAction.import_vm, name, LogStatus.success, source_path)
+    _log_action(user_id, LogAction.import_vm, name, LogStatus.success, file_name)
     return _vm_row_to_response(inserted.data[0])
 
 
@@ -985,16 +1023,16 @@ def get_vm_metrics(vm_id: str, user_id: str) -> dict:
         raise HTTPException(status_code=409, detail="Metrics are only available for running VMs")
 
     vbox    = build_vbox_path()
-    vm_name = vm["name"]
+    ref     = _vbox_ref(vm)
     cpu_percent: float | None = None
     ram_used_mb: int | None = None
 
     try:
         # Arm a 1-second collection window then immediately sample
         run_vbox_command([vbox, "metrics", "setup", "--period", "1", "--samples", "1",
-                          vm_name, "CPU/Load/User,RAM/Usage/Used"])
+                          ref, "CPU/Load/User,RAM/Usage/Used"])
         stats = run_vbox_command([vbox, "metrics", "query",
-                                  vm_name, "CPU/Load/User,RAM/Usage/Used"])
+                                  ref, "CPU/Load/User,RAM/Usage/Used"])
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
         return {"cpu_percent": None, "ram_used_mb": None}
 

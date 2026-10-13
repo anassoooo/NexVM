@@ -69,10 +69,17 @@ export interface UserInfo {
   is_admin: boolean;
 }
 
+export interface PendingAction {
+  action: "delete_vm";
+  vm_id: string;
+  vm_name: string;
+}
+
 export interface AICommandResponse {
   action: string;
   result: string;
   ai_response: Record<string, unknown>;
+  pending_action?: PendingAction | null;
 }
 
 export interface VMMetrics {

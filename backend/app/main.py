@@ -14,6 +14,7 @@ from supabase import ClientOptions, create_client
 from app.config import settings
 from app import db
 from app.services import schedule_service
+from app.services.vbox_wrapper import get_export_dir, get_iso_dir, get_storage_base
 from app.routes.admin_vm import router as admin_vm_router
 from app.routes.ai import router as ai_router
 from app.routes.analytics import router as analytics_router
@@ -48,12 +49,16 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Supabase client ready")
 
-    storage_path = settings.VM_STORAGE_PATH or os.path.join(os.path.expanduser("~"), "VirtualBox VMs")
-    try:
-        os.makedirs(storage_path, exist_ok=True)
-        logger.info("VM storage path: %s", storage_path)
-    except OSError as exc:
-        logger.warning("VM storage path could not be created: %s", exc)
+    for label, path in (
+        ("VM storage path", get_storage_base()),
+        ("ISO directory", get_iso_dir()),
+        ("Export directory", get_export_dir()),
+    ):
+        try:
+            os.makedirs(path, exist_ok=True)
+            logger.info("%s: %s", label, path)
+        except OSError as exc:
+            logger.warning("%s could not be created (%s): %s", label, path, exc)
 
     schedule_service.start_scheduler()
     yield

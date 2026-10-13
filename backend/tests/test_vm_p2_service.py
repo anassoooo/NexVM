@@ -201,6 +201,42 @@ def test_add_port_rule_duplicate(_patch_supabase):
     assert exc.value.status_code == 409
 
 
+def _setup_all_vms(mock_sb, rows):
+    (mock_sb.table.return_value.select.return_value
+     .order.return_value.range.return_value.execute.return_value) = MagicMock(data=rows)
+
+
+@pytest.mark.parametrize(
+    "other_vm",
+    [
+        {"nat_rules": [{"name": "ssh", "protocol": "tcp", "host_port": 8080, "guest_port": 22}], "vrde_port": None},
+        {"nat_rules": '[{"name": "ssh", "protocol": "tcp", "host_port": 8080, "guest_port": 22}]', "vrde_port": None},
+        {"nat_rules": [], "vrde_port": 8080},
+    ],
+    ids=["nat-rule", "nat-rule-json-string", "vrde-port"],
+)
+def test_add_port_rule_host_port_in_use(_patch_supabase, other_vm):
+    _setup_vm(_patch_supabase, _vm_row(nat_rules=[]))
+    _setup_all_vms(_patch_supabase, [other_vm])
+
+    with patch("app.services.vm_service.run_vbox_command", return_value=_ok) as run:
+        with pytest.raises(HTTPException) as exc:
+            vm_service.add_port_rule(VM_ID, "http", "tcp", 8080, 80, USER_ID)
+    assert exc.value.status_code == 409
+    run.assert_not_called()
+
+
+def test_create_vm_has_no_default_port_rule(_patch_supabase):
+    from app.models.schemas import VMCreate
+
+    _patch_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.count = 0
+    _patch_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[_vm_row()])
+    created = MagicMock(returncode=0, stderr="", stdout="UUID: 12345678-1234-1234-1234-123456789012")
+    with patch("app.services.vm_service.run_vbox_command", return_value=created) as run:
+        vm_service.create_vm(VMCreate(name="web", os="Ubuntu", ram=1024), USER_ID)
+    assert not any("--natpf1" in c.args[0] for c in run.call_args_list)
+
+
 def test_remove_port_rule_ok(_patch_supabase):
     mock_sb = _patch_supabase
     existing = [{"name": "http", "protocol": "tcp", "host_port": 8080, "guest_port": 80}]

@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import uuid
 
 from app.config import settings
 
@@ -61,6 +62,32 @@ def get_storage_base() -> str:
     if settings.VM_STORAGE_PATH:
         return settings.VM_STORAGE_PATH
     return os.path.join(os.path.expanduser("~"), "VirtualBox VMs")
+
+
+def get_iso_dir() -> str:
+    return settings.ISO_DIR or os.path.join(get_storage_base(), "isos")
+
+
+def get_export_dir() -> str:
+    return settings.EXPORT_DIR or os.path.join(get_storage_base(), "exports")
+
+
+def get_user_export_dir(user_id: str) -> str:
+    """Per-user export folder; user_id comes from a verified JWT and must be a UUID."""
+    return os.path.join(get_export_dir(), str(uuid.UUID(user_id)))
+
+
+def resolve_inside(path: str, base: str) -> str:
+    """Resolve symlinks and '..' in path; raise ValueError unless it lies inside base."""
+    real = os.path.realpath(path)
+    root = os.path.realpath(base)
+    try:
+        inside = os.path.commonpath([os.path.normcase(real), os.path.normcase(root)]) == os.path.normcase(root)
+    except ValueError:  # different drives on Windows
+        inside = False
+    if not inside:
+        raise ValueError(f"Path must be inside {root}")
+    return real
 
 
 def get_vm_disk_path(vm_name: str) -> str:
