@@ -7,20 +7,20 @@
 
 | ID | Title | Feature | Est. | Status |
 |---|---|---|---|---|
-| T001 | Branch + settings `ISO_DIR` / `EXPORT_DIR` | F2 | 0.5 h | pending |
-| T002 | `resolve_inside()` helper + path validators | F2 | 1.5 h | pending |
-| T003 | `vm_service`: address VMs by `vbox_id`, unique names, drop auto-purge | F1 | 3 h | pending |
-| T004 | Tests: VM isolation | F1 | 1.5 h | pending |
-| T005 | Tests: path confinement | F2 | 1 h | pending |
-| T006 | [P] Remove `GET /vm/public` | F4 | 0.25 h | pending |
-| T007 | Routes + dependencies `async def` → `def`; drop `ensure_profile_exists` | F3, F7 | 1.5 h | pending |
-| T008 | Test: API stays responsive during slow VBoxManage call | F3 | 1 h | pending |
-| T009 | AI backend: `delete_vm` → `pending_action` | F5 | 2 h | pending |
-| T010 | AI frontend: Confirm / Cancel | F5 | 2 h | pending |
-| T011 | [P] No default NAT rule + host-port conflict check | F6 | 1.5 h | pending |
-| T012 | [P] Snapshot / port-rule name validation | F8 | 0.5 h | pending |
-| T013 | Docs: `.env.example`, input placeholders, release note | F2 | 0.5 h | pending |
-| T014 | Verify: ruff + pytest + tsc + lint + build + manual test | all | 1.5 h | pending |
+| T001 | Branch + settings `ISO_DIR` / `EXPORT_DIR` | F2 | 0.5 h | done |
+| T002 | `resolve_inside()` helper + path validators | F2 | 1.5 h | done |
+| T003 | `vm_service`: address VMs by `vbox_id`, unique names, drop auto-purge | F1 | 3 h | done |
+| T004 | Tests: VM isolation | F1 | 1.5 h | done |
+| T005 | Tests: path confinement | F2 | 1 h | done |
+| T006 | [P] Remove `GET /vm/public` | F4 | 0.25 h | done |
+| T007 | Routes + dependencies `async def` → `def`; drop `ensure_profile_exists` | F3, F7 | 1.5 h | done |
+| T008 | Test: API stays responsive during slow VBoxManage call | F3 | 1 h | done |
+| T009 | AI backend: `delete_vm` → `pending_action` | F5 | 2 h | done |
+| T010 | AI frontend: Confirm / Cancel | F5 | 2 h | done |
+| T011 | [P] No default NAT rule + host-port conflict check | F6 | 1.5 h | done |
+| T012 | [P] Snapshot / port-rule name validation | F8 | 0.5 h | done |
+| T013 | Docs: `.env.example`, input placeholders, release note | F2 | 0.5 h | done |
+| T014 | Verify: ruff + pytest + tsc + lint + build + manual test | all | 1.5 h | automated done; manual pending |
 
 ---
 

@@ -26,7 +26,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Request failed with status ${res.status}`);
+    throw new Error(formatDetail(body.detail) ?? `Request failed with status ${res.status}`);
   }
 
   return res.json() as Promise<T>;
@@ -39,3 +39,16 @@ export const api = {
   delete: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "DELETE", body: JSON.stringify(body) }),
 };
+
+// FastAPI returns a string for HTTPException and a list of {msg} objects for 422s.
+function formatDetail(detail: unknown): string | undefined {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((d) => (d && typeof d === "object" && "msg" in d ? String(d.msg) : null))
+      .filter((m): m is string => !!m)
+      .map((m) => m.replace(/^Value error, /, ""));
+    return messages.length ? messages.join("; ") : undefined;
+  }
+  return undefined;
+}

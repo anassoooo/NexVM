@@ -249,7 +249,7 @@ export default function VMCard({
       {/* ISO inline input */}
       {isoInputVisible && (
         <div className="flex gap-2 mb-2">
-          <input type="text" value={isoInputValue} onChange={(e) => setIsoInputValue(e.target.value)} placeholder="C:\ISOs\ubuntu.iso" className="flex-1" style={inputStyle}
+          <input type="text" value={isoInputValue} onChange={(e) => setIsoInputValue(e.target.value)} placeholder="…\isos\ubuntu.iso (server ISO folder)" className="flex-1" style={inputStyle}
             onKeyDown={(e) => { if (e.key === "Enter") handleAttachISO(); if (e.key === "Escape") setIsoInputVisible(false); }} autoFocus />
           <Btn onClick={handleAttachISO} disabled={!isoInputValue.trim() || loading} color="green">OK</Btn>
           <Btn onClick={() => setIsoInputVisible(false)} color="muted">✕</Btn>
@@ -462,7 +462,7 @@ export default function VMCard({
         )}
         {exportVisible && (
           <div className="flex gap-2 mb-2">
-            <input type="text" value={exportPath} onChange={(e) => setExportPath(e.target.value)} placeholder="/path/to/export.ova" className="flex-1" style={inputStyle}
+            <input type="text" value={exportPath} onChange={(e) => setExportPath(e.target.value)} placeholder="…\exports\my-vm.ova (server export folder)" className="flex-1" style={inputStyle}
               onKeyDown={(e) => { if (e.key === "Enter") handleExport(); if (e.key === "Escape") setExportVisible(false); }} autoFocus />
             <Btn onClick={handleExport} disabled={!exportPath.trim() || loading} color="blue">Export</Btn>
             <Btn onClick={() => { setExportVisible(false); setExportPath(""); }} color="muted">✕</Btn>

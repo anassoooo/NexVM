@@ -98,6 +98,13 @@ Integration tests require a real VirtualBox setup and are marked separately. The
 
 Do not put real API keys or service-role credentials in example files, screenshots, or issue reports.
 
+## Upgrading to spec 012 (security hardening)
+
+- **ISO and OVA folders.** Users can only attach ISOs from `ISO_DIR` and export or import OVAs in `EXPORT_DIR` (defaults: `isos` and `exports` inside the VM storage folder; both are created at startup). Set them in `backend/.env` to your existing folders, or move your files there.
+- **VirtualBox names.** New VMs are registered as `<name>-<8 hex chars>` and addressed by UUID, so two users can use the same VM name. Existing VMs keep their names.
+- **No default SSH forward.** New VMs no longer forward host port 2222; add a rule under Port forwarding when needed.
+- **AI deletions** now ask for confirmation in the chat.
+
 ## Credential incident and migration
 
 An earlier public revision of `backend/.env.example` contained values resembling a Supabase legacy service-role key and a Groq API key. Replacing that file does **not** revoke those values or erase copies of the Git history.
