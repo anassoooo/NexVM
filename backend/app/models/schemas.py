@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import LogAction, LogStatus, VMStatus
+from app.services.vbox_wrapper import get_export_dir, get_iso_dir, resolve_inside
 
 _VM_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 \-]{0,49}$")
 
@@ -69,7 +70,7 @@ class ISOAttachRequest(BaseModel):
             raise ValueError("iso_path must be an absolute path")
         if not v.lower().endswith(".iso"):
             raise ValueError("iso_path must end with .iso")
-        return v
+        return resolve_inside(v, get_iso_dir())
 
 
 class ISODetachRequest(BaseModel):
@@ -154,7 +155,7 @@ class OVAExportRequest(BaseModel):
             raise ValueError("output_path must be an absolute path")
         if not v.lower().endswith(".ova"):
             raise ValueError("output_path must end with .ova")
-        return v
+        return resolve_inside(v, get_export_dir())
 
 
 class OVAImportRequest(BaseModel):
@@ -170,7 +171,7 @@ class OVAImportRequest(BaseModel):
             raise ValueError("source_path must be an absolute path")
         if not v.lower().endswith((".ova", ".ovf")):
             raise ValueError("source_path must end with .ova or .ovf")
-        return v
+        return resolve_inside(v, get_export_dir())
 
     @field_validator("name")
     @classmethod
@@ -282,6 +283,8 @@ class AIAttachISO(BaseModel):
     action: Literal["attach_iso"]
     vm_id: uuid.UUID
     iso_path: str = Field(min_length=1)
+
+    _validate_iso_path = field_validator("iso_path")(ISOAttachRequest.validate_iso_path.__func__)
 
 
 class AIDetachISO(BaseModel):

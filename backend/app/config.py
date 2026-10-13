@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     VBOXMANAGE_PATH: str = ""
     VM_STORAGE_PATH: str = ""
+    ISO_DIR: str = ""
+    EXPORT_DIR: str = ""
     VM_QUOTA_PER_USER: int = 5
     VM_DISK_QUOTA_MB: int = 200000
 

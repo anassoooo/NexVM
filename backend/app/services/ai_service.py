@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.db import get_supabase_client
+from app.services.vbox_wrapper import get_iso_dir
 from app.models.enums import LogAction, LogStatus
 from app.models.schemas import (
     AIAttachISO,
@@ -214,7 +215,7 @@ def _build_system_prompt(user_id: str) -> str:
         }
         for vm in vms
     ]
-    return SYSTEM_PROMPT.format(vm_list_json=json.dumps(vm_list, indent=2))
+    return SYSTEM_PROMPT.format(vm_list_json=json.dumps(vm_list, indent=2), iso_dir=get_iso_dir())
 
 
 def _call_groq(system_prompt: str, user_prompt: str) -> tuple[str, int]:

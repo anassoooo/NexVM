@@ -63,6 +63,27 @@ def get_storage_base() -> str:
     return os.path.join(os.path.expanduser("~"), "VirtualBox VMs")
 
 
+def get_iso_dir() -> str:
+    return settings.ISO_DIR or os.path.join(get_storage_base(), "isos")
+
+
+def get_export_dir() -> str:
+    return settings.EXPORT_DIR or os.path.join(get_storage_base(), "exports")
+
+
+def resolve_inside(path: str, base: str) -> str:
+    """Resolve symlinks and '..' in path; raise ValueError unless it lies inside base."""
+    real = os.path.realpath(path)
+    root = os.path.realpath(base)
+    try:
+        inside = os.path.commonpath([os.path.normcase(real), os.path.normcase(root)]) == os.path.normcase(root)
+    except ValueError:  # different drives on Windows
+        inside = False
+    if not inside:
+        raise ValueError(f"Path must be inside {root}")
+    return real
+
+
 def get_vm_disk_path(vm_name: str) -> str:
     return os.path.join(get_storage_base(), vm_name, f"{vm_name}.vdi")
 
