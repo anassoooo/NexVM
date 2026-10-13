@@ -234,6 +234,10 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
         )
     _check_disk_quota(user_id, data.disk_size)
 
+    name_check = supabase.table("vms").select("id").eq("user_id", user_id).eq("name", data.name).execute()
+    if name_check.data:
+        raise HTTPException(status_code=409, detail=f"A VM named '{data.name}' already exists")
+
     vbox = build_vbox_path()
     os_type = get_ostype(data.os)
     vbox_name = _unique_vbox_name(data.name)

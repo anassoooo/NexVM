@@ -230,6 +230,7 @@ def test_create_vm_has_no_default_port_rule(_patch_supabase):
     from app.models.schemas import VMCreate
 
     _patch_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.count = 0
+    _patch_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
     _patch_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[_vm_row()])
     created = MagicMock(returncode=0, stderr="", stdout="UUID: 12345678-1234-1234-1234-123456789012")
     with patch("app.services.vm_service.run_vbox_command", return_value=created) as run:

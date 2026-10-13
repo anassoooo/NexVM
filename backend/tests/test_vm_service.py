@@ -69,6 +69,8 @@ def _setup_select_vm(mock_sb, row=None):
 
 def _setup_quota_check(mock_sb, count=0):
     mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.count = count
+    # No existing VM with the requested name
+    mock_sb.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
 
 
 # ── create_vm ──────────────────────────────────────────────
@@ -351,3 +353,15 @@ def test_create_vm_quota_exceeded_409(_patch_supabase):
         assert "quota" in exc_info.value.detail.lower()
 
     mock_vbox.assert_not_called()
+
+
+def test_create_vm_duplicate_name_for_same_user_409(_patch_supabase):
+    _setup_quota_check(_patch_supabase, count=0)
+    _patch_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = (
+        MagicMock(data=[{"id": VM_ID}])
+    )
+    with patch("app.services.vm_service.run_vbox_command") as run:
+        with pytest.raises(Exception) as exc_info:
+            vm_service.create_vm(VMCreate(name="test-vm", os="Ubuntu", ram=512), USER_ID)
+    assert exc_info.value.status_code == 409
+    run.assert_not_called()
