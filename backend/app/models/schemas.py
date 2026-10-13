@@ -10,6 +10,17 @@ from app.models.enums import LogAction, LogStatus, VMStatus
 from app.services.vbox_wrapper import get_export_dir, get_iso_dir, resolve_inside
 
 _VM_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 \-]{0,49}$")
+# Snapshot and port-rule names are passed to VBoxManage; no leading '-' or ',' (§XI.7).
+_ARG_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,49}$")
+
+
+def _validate_arg_name(v: str) -> str:
+    if not _ARG_NAME_RE.match(v):
+        raise ValueError(
+            "Name must be 1-50 characters, start with a letter or digit, "
+            "and contain only letters, digits, spaces, '_', '.' or '-'"
+        )
+    return v
 
 
 class VMCreate(BaseModel):
@@ -105,10 +116,14 @@ class PortFwdAddRequest(BaseModel):
     host_port: int = Field(ge=1024, le=65535)
     guest_port: int = Field(ge=1, le=65535)
 
+    _validate_name = field_validator("name")(_validate_arg_name)
+
 
 class PortFwdDeleteRequest(BaseModel):
     vm_id: uuid.UUID
     name: str = Field(min_length=1)
+
+    _validate_name = field_validator("name")(_validate_arg_name)
 
 
 class SnapshotTakeRequest(BaseModel):
@@ -116,10 +131,14 @@ class SnapshotTakeRequest(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     description: str = Field(default="", max_length=200)
 
+    _validate_name = field_validator("name")(_validate_arg_name)
+
 
 class SnapshotActionRequest(BaseModel):
     vm_id: uuid.UUID
     name: str = Field(min_length=1)
+
+    _validate_name = field_validator("name")(_validate_arg_name)
 
 
 class SnapshotResponse(BaseModel):

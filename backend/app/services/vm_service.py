@@ -287,8 +287,7 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
     # Step 6 — NAT network adapter
     _run_vbox(
         [vbox, "modifyvm", ref,
-         "--nic1", "nat", "--nictype1", "82540EM",
-         "--natpf1", "ssh,tcp,,2222,,22"],
+         "--nic1", "nat", "--nictype1", "82540EM"],
         user_id, LogAction.create_vm, "modifyvm network", cleanup,
     )
 
@@ -701,6 +700,20 @@ def save_state(vm_id: str, user_id: str) -> VMResponse:
     return _vm_row_to_response(updated.data[0])
 
 
+def _host_ports_in_use() -> set[int]:
+    """Host ports claimed by any VM's NAT rules or VRDE server."""
+    rows = get_supabase_client().table("vms").select("nat_rules,vrde_port").execute().data or []
+    ports: set[int] = set()
+    for row in rows:
+        rules = row.get("nat_rules") or []
+        if isinstance(rules, str):  # stored via json.dumps
+            rules = json.loads(rules)
+        ports.update(int(r["host_port"]) for r in rules)
+        if row.get("vrde_port"):
+            ports.add(int(row["vrde_port"]))
+    return ports
+
+
 def add_port_rule(
     vm_id: str, name: str, protocol: str, host_port: int, guest_port: int, user_id: str
 ) -> VMResponse:
@@ -711,6 +724,8 @@ def add_port_rule(
     existing: list[dict] = vm.get("nat_rules") or []
     if any(r["name"] == name for r in existing):
         raise HTTPException(status_code=409, detail=f"Port rule '{name}' already exists on this VM")
+    if host_port in _host_ports_in_use():
+        raise HTTPException(status_code=409, detail=f"Host port {host_port} is already used by another VM")
 
     _run_vbox(
         [build_vbox_path(), "modifyvm", _vbox_ref(vm), "--natpf1", f"{name},{protocol},,{host_port},,{guest_port}"],
