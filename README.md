@@ -1,60 +1,97 @@
 # NexVM
 
-A full-stack prototype for managing local VirtualBox virtual machines through a web UI and validated natural-language commands. The backend is FastAPI; the frontend is Next.js; Supabase supplies authentication and application data.
+A web portal for VirtualBox virtual machines, with **Autopilot**: an AI agent that plans multi-step work with real tools, proves each plan in a simulator, asks you to approve it, and then executes it deterministically — repairing the plan if a step fails. FastAPI + Next.js + Supabase, measured by an evaluation suite that runs in CI.
 
-> **Status:** development prototype for a single VirtualBox host. A running deployment needs your own Supabase project, Groq key, and VirtualBox host. No production availability or autonomous agent behavior is claimed.
+> **Status:** prototype for a single VirtualBox host. Running it needs your own Supabase project, Groq key and VirtualBox. Autopilot never changes anything without your approval.
+
+## Autopilot
+
+```text
+You  ▸ Set up a 3-node Kubernetes lab with 4 GB RAM each and start the nodes
+
+Plan · waiting for approval
+  ○ 1. Create VM 'k8s-1' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)   uses resources
+  ○ 2. Create VM 'k8s-2' (…)                                               uses resources
+  ○ 3. Create VM 'k8s-3' (…)                                               uses resources
+  ○ 4. Start 'k8s-1'   ○ 5. Start 'k8s-2'   ○ 6. Start 'k8s-3'
+  Adds 3 VMs · 12 GB RAM · 6 vCPU · 60 GB disk          [Cancel] [Approve plan]
+
+You  ▸ why is web so slow?
+  warning · web — Guest RAM is 1990 of 2048 MB (97%) → Stop it and raise RAM to 4096 MB
+  ○ 1. Power off 'web'                destructive
+  ○ 2. Resize 'web' to 4096 MB RAM    low risk
+```
+
+### How it works
+
+```mermaid
+flowchart LR
+  U[User prompt] --> P[Planner<br/>LLM + typed tools]
+  P -- read tools --> W[(User's world:<br/>VMs, quota, ports, ISOs)]
+  P -- write tool call --> V{Validate args<br/>+ simulate}
+  V -- rejected: reason + hint --> P
+  V -- accepted --> PL[Plan steps]
+  PL --> A{User approves<br/>plan version N}
+  A --> E[Executor — no LLM<br/>re-validates each step]
+  E --> VM[vm_service → VBoxManage]
+  E -- step failed --> R[Repair: planner proposes<br/>plan version N+1]
+  R --> A
+```
+
+**Design decisions**
+
+- **The model proposes, code executes.** Write tools are real, typed tools in the schema the model sees, but calling one never runs it: the planner validates the arguments (Pydantic), applies the step to a simulated copy of your VMs, and queues it. Only the approved plan runs, through a deterministic executor that re-checks every step against the live state.
+- **A simulator as the model's feedback loop.** It mirrors the backend's state rules (a VM must be stopped to resize it…), quotas, host ports and name uniqueness, including VMs created by earlier steps. Rejections go back to the model with a hint (*"port 2201 is in use; the next free port is 2204"*) so it corrects itself within the same planning turn.
+- **Diagnostics are rules, not vibes.** `diagnose_vm` produces deterministic findings from live metrics, VM state and recent failures; the model explains them and may propose a fix as an ordinary plan.
+- **Bounded, traced, scoped.** Max 8 model turns, 24 tool calls, 12 steps per plan. Every model call, tool call and executed step is a span in the run's trace (shown as a waterfall at `/ai/runs/<id>`). Identity comes from the JWT; no tool accepts a user id.
+- **Self-repair with consent.** A failed step hands the error, completed steps and fresh state back to the planner; the revised plan needs a new approval (plan versions prevent approving a stale plan).
+
+Code: [`backend/app/agent/`](backend/app/agent) · spec: [`specs/013-autopilot`](specs/013-autopilot) · principles: constitution [§XIV](.specify/memory/constitution.md).
+
+### Evaluation
+
+[`backend/evals/`](backend/evals) holds **65 scenarios in 9 categories**: single actions, multi-step plans, reference resolution ("start it", "the stopped one"), clarification, diagnostics, plain answers, multilingual (French, Spanish, Arabic, German), **safety red-teaming** (instructions injected through VM names and logs, other users' VM ids, shell commands, system-prompt extraction, approval bypass) and repair after an injected failure. Scoring is deterministic: required plan steps in order, forbidden tools, required reads, clarifying questions.
+
+Model responses are recorded by request hash, so re-runs are free and identical, and CI replays them on every push with no API key. A prompt or tool change that isn't re-recorded fails CI; a pass-rate drop of more than 5 points below [`baseline.json`](backend/evals/baseline.json) fails CI. A weekly job re-runs everything live to catch model drift.
+
+```bash
+cd backend
+python -m evals.run                      # record what's missing, replay the rest
+python -m evals.run --mode replay        # offline, as in CI
+python -m evals.run --category safety    # one category
+```
+
+Latest report: [`evals/reports/openai__gpt-oss-20b.md`](backend/evals/reports/openai__gpt-oss-20b.md).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   U[User] --> W[Next.js portal]
-  W -->|Login and JWT + REST| F[FastAPI routes]
-  F -->|Sign in and JWKS discovery| S[(Supabase Auth)]
-  F --> DB[(Supabase data)]
-  F --> AI[AI command service]
-  AI -->|JSON action| V[Pydantic validation]
-  V --> VM[VM service]
+  W -->|JWT + REST| F[FastAPI]
+  F -->|Sign-in, JWKS| S[(Supabase Auth)]
+  F --> DB[(Supabase data<br/>vms, logs, agent_runs)]
+  F --> AG[Autopilot agent]
+  AG --> G[Groq: tool calling]
+  AG --> VM[VM service]
+  F --> VM
   VM --> CLI[VBoxManage wrapper]
-  CLI --> H[Local VirtualBox host]
-  AI --> G[Groq API]
-  F --> SCH[Scheduler]
-  SCH --> VM
-```
-
-The language model interprets a request as a structured action. The backend validates the action and runs the corresponding service method; the model does not execute shell commands. The VM service and wrapper enforce the application rules before calling `VBoxManage`.
-
-## Example command path
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant UI as Next.js portal
-  participant API as FastAPI
-  participant AI as AI service
-  participant VM as VM service
-  participant VBox as VBoxManage
-  User->>UI: "Start my Ubuntu VM"
-  UI->>API: POST /api/v1/ai/command + JWT
-  API->>AI: Interpret request with VM context
-  AI->>VM: Validated start_vm action
-  VM->>VBox: startvm with resolved VM ID
-  VBox-->>VM: Exit status
-  VM-->>API: Result
-  API-->>UI: Structured response
+  CLI --> H[VirtualBox host]
+  F --> SCH[Scheduler] --> VM
 ```
 
 ## Repository map
 
 | Path | Purpose |
 | --- | --- |
+| [`backend/app/agent`](backend/app/agent) | Autopilot: tools, planner, simulator, executor, diagnostics, traces |
+| [`backend/evals`](backend/evals) | Eval scenarios, runner, recordings, reports, baseline |
 | [`backend/app/routes`](backend/app/routes) | HTTP endpoints and auth dependencies |
-| [`backend/app/services`](backend/app/services) | AI interpretation, VM operations, scheduling, analytics |
-| [`backend/app/models`](backend/app/models) | Pydantic command and response schemas |
-| [`backend/tests`](backend/tests) | Unit and integration tests |
-| [`frontend/app`](frontend/app) | Next.js pages for login, VMs, AI, logs, and analytics |
+| [`backend/app/services`](backend/app/services) | VM operations, scheduling, analytics |
+| [`backend/tests`](backend/tests) | Unit tests (agent tests use a scripted LLM, no network) |
+| [`frontend/app`](frontend/app) | Next.js pages: Autopilot chat, run traces, VMs, logs, analytics |
 | [`supabase/migrations`](supabase/migrations) | Database schema migrations |
-| [`docs/implementation-plan.md`](docs/implementation-plan.md) | Historical design plan; consult the code for current behavior |
+| [`specs`](specs) · [`.specify`](.specify/memory/constitution.md) | Feature specs and the project constitution |
 
 ## Local setup
 
@@ -85,15 +122,18 @@ The frontend checks `nexvm_token` against backend `/api/v1/auth/me` before servi
 ```bash
 cd backend
 pip install -r dev-requirements.txt
-pytest -q -m "not integration"
+ruff check .
+pytest -q                               # includes the agent tests (scripted LLM, no network)
+python -m evals.run --mode replay       # agent evals from recordings
 ```
 
-Integration tests require a real VirtualBox setup and are marked separately. The frontend can be checked with `npx tsc --noEmit` from `frontend/`.
+Integration tests require a real VirtualBox setup and skip themselves otherwise. Frontend: `npx tsc --noEmit`, `npm run lint`, `npm run build` from `frontend/`. CI runs all of these on every push.
+
+**Groq free tier:** about 8,000 tokens per minute and 200,000 per day. One Autopilot plan uses roughly 2,000–8,000 tokens, so recording the full eval suite needs most of a day's quota; the Dev tier removes the wait.
 
 ## Portfolio evidence still to add
 
 - A short screen recording or screenshots from a configured, non-sensitive demo environment.
-- A command evaluation set reporting action accuracy and ambiguous-request behavior.
 - A verified deployment diagram and setup guide for one supported host configuration.
 
 Do not put real API keys or service-role credentials in example files, screenshots, or issue reports.
