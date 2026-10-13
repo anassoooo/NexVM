@@ -88,6 +88,21 @@ def test_lifecycle_actions_use_vbox_id(_patch_supabase, action, status):
     assert vm_args and all(arg == VBOX_UUID for arg in vm_args)
 
 
-def test_vbox_ref_falls_back_to_name():
-    assert vm_service._vbox_ref({"name": "legacy", "vbox_id": None}) == "legacy"
+def test_vbox_ref_never_falls_back_to_display_name():
     assert vm_service._vbox_ref({"name": "x", "vbox_id": VBOX_UUID}) == VBOX_UUID
+    with pytest.raises(HTTPException) as exc_info:
+        vm_service._vbox_ref({"name": "ubuntu", "vbox_id": None})
+    assert exc_info.value.status_code == 409
+
+
+def test_create_without_parsable_uuid_removes_the_new_vm(_patch_supabase):
+    _setup_quota_check(_patch_supabase, count=0)
+    with patch("app.services.vm_service.run_vbox_command", return_value=_ok("no uuid here")) as run:
+        with pytest.raises(HTTPException) as exc_info:
+            vm_service.create_vm(VMCreate(name="ubuntu", os="Ubuntu", ram=1024), USER_ID)
+
+    assert exc_info.value.status_code == 500
+    calls = [c.args[0] for c in run.call_args_list]
+    created_as = _createvm_name(calls)
+    assert calls[-1][1:] == ["unregistervm", created_as, "--delete"]
+    _patch_supabase.table.return_value.insert.assert_not_called()

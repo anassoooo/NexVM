@@ -21,7 +21,7 @@ def _vm_response(**overrides) -> VMResponse:
         "ram": 1024,
         "cpu": 2,
         "disk_size": 20480,
-        "vbox_id": None,
+        "vbox_id": "12345678-1234-1234-1234-123456789012",
         "status": "stopped",
         "error_message": None,
         "iso_path": None,

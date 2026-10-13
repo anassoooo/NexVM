@@ -202,7 +202,8 @@ def test_add_port_rule_duplicate(_patch_supabase):
 
 
 def _setup_all_vms(mock_sb, rows):
-    mock_sb.table.return_value.select.return_value.execute.return_value = MagicMock(data=rows)
+    (mock_sb.table.return_value.select.return_value
+     .order.return_value.range.return_value.execute.return_value) = MagicMock(data=rows)
 
 
 @pytest.mark.parametrize(

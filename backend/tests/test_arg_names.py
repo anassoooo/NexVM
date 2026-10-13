@@ -28,7 +28,7 @@ def test_valid_names_accepted(build, name):
 
 
 @pytest.mark.parametrize("build", BUILDERS.values(), ids=BUILDERS.keys())
-@pytest.mark.parametrize("name", ["--delete", "-x", "a,tcp,,22,,22", " lead", "x" * 51])
+@pytest.mark.parametrize("name", ["--delete", "-x", "a,tcp,,22,,22", " lead", "x" * 51, "snap\n"])
 def test_unsafe_names_rejected(build, name):
     with pytest.raises(ValidationError):
         build(name)

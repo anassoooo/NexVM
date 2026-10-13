@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import uuid
 
 from app.config import settings
 
@@ -69,6 +70,11 @@ def get_iso_dir() -> str:
 
 def get_export_dir() -> str:
     return settings.EXPORT_DIR or os.path.join(get_storage_base(), "exports")
+
+
+def get_user_export_dir(user_id: str) -> str:
+    """Per-user export folder; user_id comes from a verified JWT and must be a UUID."""
+    return os.path.join(get_export_dir(), str(uuid.UUID(user_id)))
 
 
 def resolve_inside(path: str, base: str) -> str:

@@ -98,6 +98,8 @@ export default function AIChat() {
       await api.post("/api/v1/vm/delete", { vm_id: pending.vm_id });
       addAssistantMessage(`Deleted VM '${pending.vm_name}'.`);
     } catch (err) {
+      // Re-enable the buttons so the user can retry or cancel.
+      setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, resolved: false } : m)));
       addAssistantMessage(err instanceof Error ? err.message : "Delete failed", true);
     }
   }

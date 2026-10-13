@@ -42,36 +42,41 @@ def test_case_difference_is_accepted_on_windows(tmp_path):
 
 
 @pytest.fixture
-def dirs(tmp_path):
-    iso_dir, export_dir = tmp_path / "isos", tmp_path / "exports"
-    with (
-        patch("app.models.schemas.get_iso_dir", return_value=str(iso_dir)),
-        patch("app.models.schemas.get_export_dir", return_value=str(export_dir)),
-    ):
-        yield iso_dir, export_dir
+def iso_dir(tmp_path):
+    with patch("app.models.schemas.get_iso_dir", return_value=str(tmp_path / "isos")):
+        yield tmp_path / "isos"
 
 
-def test_request_schemas_enforce_directories(dirs, tmp_path):
-    iso_dir, export_dir = dirs
+def test_iso_schemas_enforce_directory(iso_dir, tmp_path):
     vm_id = uuid.uuid4()
-    outside = str(tmp_path / "x")
-
     ISOAttachRequest(vm_id=vm_id, iso_path=str(iso_dir / "a.iso"))
     AIAttachISO(action="attach_iso", vm_id=vm_id, iso_path=str(iso_dir / "a.iso"))
-    OVAExportRequest(vm_id=vm_id, output_path=str(export_dir / "a.ova"))
-    OVAImportRequest(source_path=str(export_dir / "a.ova"), name="imported")
-
     for build in (
-        lambda: ISOAttachRequest(vm_id=vm_id, iso_path=outside + ".iso"),
-        lambda: AIAttachISO(action="attach_iso", vm_id=vm_id, iso_path=outside + ".iso"),
-        lambda: OVAExportRequest(vm_id=vm_id, output_path=outside + ".ova"),
-        lambda: OVAImportRequest(source_path=outside + ".ova", name="imported"),
+        lambda: ISOAttachRequest(vm_id=vm_id, iso_path=str(tmp_path / "x.iso")),
+        lambda: AIAttachISO(action="attach_iso", vm_id=vm_id, iso_path=str(tmp_path / "x.iso")),
     ):
         with pytest.raises(ValidationError):
             build()
 
 
-def test_export_outside_directory_returns_422(dirs, tmp_path):
+@pytest.mark.parametrize("name", ["my-vm.ova", "Backup 2026.ova"])
+def test_ova_file_names_accepted(name):
+    OVAExportRequest(vm_id=uuid.uuid4(), output_path=name)
+    OVAImportRequest(source_path=name, name="imported")
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["C:\\Windows\\x.ova", "/etc/x.ova", "../x.ova", "sub/x.ova", "x.ova\n", ".hidden.ova", "x.iso"],
+)
+def test_ova_paths_and_bad_names_rejected(name):
+    with pytest.raises(ValidationError):
+        OVAExportRequest(vm_id=uuid.uuid4(), output_path=name)
+    with pytest.raises(ValidationError):
+        OVAImportRequest(source_path=name, name="imported")
+
+
+def test_export_with_folder_returns_422():
     app = FastAPI()
     app.include_router(vm_router, prefix="/api/v1/vm")
     app.dependency_overrides[get_current_user] = lambda: None
@@ -79,7 +84,7 @@ def test_export_outside_directory_returns_422(dirs, tmp_path):
     with patch("app.services.vm_service.export_ova") as export:
         resp = TestClient(app).post(
             "/api/v1/vm/export",
-            json={"vm_id": str(uuid.uuid4()), "output_path": str(tmp_path / "evil.ova")},
+            json={"vm_id": str(uuid.uuid4()), "output_path": "C:/Windows/evil.ova"},
         )
 
     assert resp.status_code == 422

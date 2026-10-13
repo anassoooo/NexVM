@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.enums import LogAction, LogStatus, VMStatus
-from app.services.vbox_wrapper import get_export_dir, get_iso_dir, resolve_inside
+from app.services.vbox_wrapper import get_iso_dir, resolve_inside
 
 _VM_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 \-]{0,49}$")
 # Snapshot and port-rule names are passed to VBoxManage; no leading '-' or ',' (§XI.7).
@@ -15,10 +15,23 @@ _ARG_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,49}$")
 
 
 def _validate_arg_name(v: str) -> str:
-    if not _ARG_NAME_RE.match(v):
+    if not _ARG_NAME_RE.fullmatch(v):
         raise ValueError(
             "Name must be 1-50 characters, start with a letter or digit, "
             "and contain only letters, digits, spaces, '_', '.' or '-'"
+        )
+    return v
+
+
+# Export/import take a bare file name; the server keeps each user's files in their own folder.
+_OVA_FILE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,95}\.(ova|ovf)$", re.IGNORECASE)
+
+
+def _validate_ova_file_name(v: str, extensions: tuple[str, ...]) -> str:
+    if not _OVA_FILE_RE.fullmatch(v) or not v.lower().endswith(extensions):
+        raise ValueError(
+            f"Enter a file name like my-vm{extensions[0]} (no folders); "
+            "files are kept in your export folder on the server"
         )
     return v
 
@@ -33,7 +46,7 @@ class VMCreate(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:
-        if not _VM_NAME_RE.match(v):
+        if not _VM_NAME_RE.fullmatch(v):
             raise ValueError(
                 "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
             )
@@ -156,7 +169,7 @@ class VMCloneRequest(BaseModel):
     @field_validator("new_name")
     @classmethod
     def validate_new_name(cls, v: str) -> str:
-        if not _VM_NAME_RE.match(v):
+        if not _VM_NAME_RE.fullmatch(v):
             raise ValueError(
                 "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
             )
@@ -170,11 +183,7 @@ class OVAExportRequest(BaseModel):
     @field_validator("output_path")
     @classmethod
     def validate_output_path(cls, v: str) -> str:
-        if not os.path.isabs(v):
-            raise ValueError("output_path must be an absolute path")
-        if not v.lower().endswith(".ova"):
-            raise ValueError("output_path must end with .ova")
-        return resolve_inside(v, get_export_dir())
+        return _validate_ova_file_name(v, (".ova",))
 
 
 class OVAImportRequest(BaseModel):
@@ -186,16 +195,12 @@ class OVAImportRequest(BaseModel):
     @field_validator("source_path")
     @classmethod
     def validate_source_path(cls, v: str) -> str:
-        if not os.path.isabs(v):
-            raise ValueError("source_path must be an absolute path")
-        if not v.lower().endswith((".ova", ".ovf")):
-            raise ValueError("source_path must end with .ova or .ovf")
-        return resolve_inside(v, get_export_dir())
+        return _validate_ova_file_name(v, (".ova", ".ovf"))
 
     @field_validator("name")
     @classmethod
     def validate_import_name(cls, v: str) -> str:
-        if not _VM_NAME_RE.match(v):
+        if not _VM_NAME_RE.fullmatch(v):
             raise ValueError(
                 "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
             )
@@ -262,7 +267,7 @@ class AICreateVM(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:
-        if not _VM_NAME_RE.match(v):
+        if not _VM_NAME_RE.fullmatch(v):
             raise ValueError(
                 "Name must be 1-50 characters: alphanumeric, hyphens, and spaces only"
             )

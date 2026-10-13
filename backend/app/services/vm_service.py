@@ -20,6 +20,7 @@ from app.services.vbox_wrapper import (
     get_ostype,
     get_vm_disk_path,
     get_storage_base,
+    get_user_export_dir,
     parse_vbox_state,
     run_vbox_command,
 )
@@ -32,8 +33,23 @@ from app.utils.logger import logger
 
 
 def _vbox_ref(vm: dict) -> str:
-    """VirtualBox identifier for a VM row. Display names are not unique on the host."""
-    return vm.get("vbox_id") or vm["name"]
+    """VirtualBox UUID for a VM row. Display names are not unique on the host, so
+    falling back to one could act on another user's VM."""
+    if not vm.get("vbox_id"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"VM '{vm['name']}' has no VirtualBox UUID recorded — ask an admin to repair it",
+        )
+    return vm["vbox_id"]
+
+
+def _discard_unidentified_vm(vbox: str, vbox_name: str) -> None:
+    """Remove a VM we just registered under a host-unique name but couldn't read a UUID for."""
+    try:
+        run_vbox_command([vbox, "unregistervm", vbox_name, "--delete"])
+    except Exception:  # noqa: BLE001
+        pass
+    raise HTTPException(status_code=500, detail="Could not determine the new VM's VirtualBox UUID")
 
 
 def _unique_vbox_name(display_name: str) -> str:
@@ -235,8 +251,9 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
                   "--basefolder", storage_base]
     result = _run_vbox(create_cmd, user_id, LogAction.create_vm, "createvm")
     vbox_id = extract_vbox_uuid(result.stdout)
-    # The host-unique name is a safe fallback if the UUID can't be parsed.
-    ref = vbox_id or vbox_name
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, vbox_name)
+    ref = vbox_id
 
     def cleanup() -> None:
         """Best-effort cleanup of the VM this call just registered."""
@@ -702,7 +719,17 @@ def save_state(vm_id: str, user_id: str) -> VMResponse:
 
 def _host_ports_in_use() -> set[int]:
     """Host ports claimed by any VM's NAT rules or VRDE server."""
-    rows = get_supabase_client().table("vms").select("nat_rules,vrde_port").execute().data or []
+    supabase = get_supabase_client()
+    rows: list[dict] = []
+    page = 1000  # PostgREST's default max rows per request
+    while True:
+        batch = (
+            supabase.table("vms").select("nat_rules,vrde_port")
+            .order("id").range(len(rows), len(rows) + page - 1).execute().data
+        ) or []
+        rows.extend(batch)
+        if len(batch) < page:
+            break
     ports: set[int] = set()
     for row in rows:
         rules = row.get("nat_rules") or []
@@ -873,6 +900,8 @@ def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
     )
 
     vbox_id = _read_vbox_uuid(vbox, clone_vbox_name)
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, clone_vbox_name)
 
     now = datetime.now(timezone.utc).isoformat()
     inserted = supabase.table("vms").insert({
@@ -891,13 +920,19 @@ def clone_vm(vm_id: str, new_name: str, user_id: str) -> VMResponse:
     return _vm_row_to_response(inserted.data[0])
 
 
-def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
+def export_ova(vm_id: str, file_name: str, user_id: str) -> dict:
     vm = _get_vm_or_404(vm_id, user_id)
     if vm["status"] != "stopped":
         raise HTTPException(
             status_code=409,
             detail=f"Cannot export VM in '{vm['status']}' state (must be stopped)",
         )
+
+    export_dir = get_user_export_dir(user_id)
+    os.makedirs(export_dir, exist_ok=True)
+    output_path = os.path.join(export_dir, file_name)
+    if os.path.exists(output_path):
+        raise HTTPException(status_code=409, detail=f"An export named '{file_name}' already exists")
 
     vbox = build_vbox_path()
     try:
@@ -914,11 +949,15 @@ def export_ova(vm_id: str, output_path: str, user_id: str) -> dict:
         _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.failure, stderr)
         raise HTTPException(status_code=500, detail=f"VBoxManage export failed: {stderr}")
 
-    _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.success, output_path)
-    return {"message": f"Exported to {output_path}"}
+    _log_action(user_id, LogAction.export_vm, vm["name"], LogStatus.success, file_name)
+    return {"message": f"Exported as {file_name}"}
 
 
-def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) -> VMResponse:
+def import_ova(file_name: str, name: str, ram: int, cpu: int, user_id: str) -> VMResponse:
+    source_path = os.path.join(get_user_export_dir(user_id), file_name)
+    if not os.path.isfile(source_path):
+        raise HTTPException(status_code=404, detail=f"No export named '{file_name}' in your export folder")
+
     supabase = get_supabase_client()
 
     count_result = (
@@ -958,6 +997,8 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
         raise HTTPException(status_code=500, detail=f"VBoxManage import failed: {stderr}")
 
     vbox_id = _read_vbox_uuid(vbox, import_vbox_name)
+    if vbox_id is None:
+        _discard_unidentified_vm(vbox, import_vbox_name)
 
     now = datetime.now(timezone.utc).isoformat()
     inserted = supabase.table("vms").insert({
@@ -972,7 +1013,7 @@ def import_ova(source_path: str, name: str, ram: int, cpu: int, user_id: str) ->
         "created_at": now,
         "updated_at": now,
     }).execute()
-    _log_action(user_id, LogAction.import_vm, name, LogStatus.success, source_path)
+    _log_action(user_id, LogAction.import_vm, name, LogStatus.success, file_name)
     return _vm_row_to_response(inserted.data[0])
 
 
