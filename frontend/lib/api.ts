@@ -21,11 +21,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
 
-  // 401 = invalid/expired token  |  403 = missing token (HTTPBearer raises 403)
-  if (res.status === 401 || res.status === 403) return handleUnauthorized();
+  if (res.status === 401) return handleUnauthorized();
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    // Older FastAPI versions answer a missing token with 403 "Not authenticated".
+    // Any other 403 (e.g. "Admin access required") is a permission error, not a logout.
+    if (res.status === 403 && body.detail === "Not authenticated") return handleUnauthorized();
     throw new Error(formatDetail(body.detail) ?? `Request failed with status ${res.status}`);
   }
 
