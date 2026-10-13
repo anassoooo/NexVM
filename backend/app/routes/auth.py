@@ -17,7 +17,7 @@ def _get_is_admin(supabase, user_id: str) -> bool:
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(body: LoginRequest):
+def login(body: LoginRequest):
     try:
         res = new_auth_client().auth.sign_in_with_password(
             {"email": body.email, "password": body.password}
@@ -41,7 +41,7 @@ async def login(body: LoginRequest):
 
 
 @router.post("/signup", response_model=SignupResponse, status_code=201)
-async def signup(body: SignupRequest):
+def signup(body: SignupRequest):
     try:
         res = new_auth_client().auth.sign_up(
             {"email": body.email, "password": body.password}
@@ -76,7 +76,7 @@ async def signup(body: SignupRequest):
 
 
 @router.get("/me", response_model=UserInfo)
-async def get_me(claims: UserClaims = Depends(get_current_user)):
+def get_me(claims: UserClaims = Depends(get_current_user)):
     """Returns the current user's profile from JWT claims — no admin API call."""
     supabase = get_supabase_client()
     return UserInfo(
