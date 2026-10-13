@@ -16,6 +16,7 @@ from app import db
 from app.services import schedule_service
 from app.services.vbox_wrapper import get_export_dir, get_iso_dir, get_storage_base
 from app.routes.admin_vm import router as admin_vm_router
+from app.routes.agent import router as agent_router
 from app.routes.ai import router as ai_router
 from app.routes.analytics import router as analytics_router
 from app.routes.auth import router as auth_router
@@ -110,6 +111,7 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(vm_router, prefix="/api/v1/vm", tags=["vm"])
 app.include_router(admin_vm_router, prefix="/api/v1/admin/vm", tags=["admin-vm"])
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(agent_router, prefix="/api/v1/agent", tags=["agent"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(logs_router, prefix="/api/v1/logs", tags=["logs"])
 app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["schedules"])

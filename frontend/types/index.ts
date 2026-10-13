@@ -129,3 +129,65 @@ export interface VMSchedule {
   last_run: string | null;
   created_at: string;
 }
+
+// ─── Autopilot (spec 013) ─────────────────────────────────────────────────
+
+export type RunStatus = "answered" | "needs_approval" | "running" | "completed" | "failed" | "cancelled";
+export type StepStatus = "pending" | "running" | "done" | "failed" | "skipped";
+export type Risk = "low" | "costly" | "destructive";
+
+export interface PlanStep {
+  index: number;
+  tool: string;
+  args: Record<string, unknown>;
+  risk: Risk;
+  description: string;
+  effect: string;
+  status: StepStatus;
+  result: string;
+  duration_ms: number;
+}
+
+export interface Finding {
+  vm: string;
+  severity: "info" | "warning" | "critical";
+  code: string;
+  message: string;
+  suggestion: string;
+}
+
+export interface TraceSpan {
+  kind: "llm" | "tool" | "step";
+  name: string;
+  start_ms: number;
+  duration_ms: number;
+  ok: boolean;
+  tokens_in: number;
+  tokens_out: number;
+  detail: string;
+}
+
+export interface AgentRun {
+  id: string;
+  conversation_id: string;
+  prompt: string;
+  status: RunStatus;
+  answer: string | null;
+  plan: PlanStep[];
+  plan_version: number;
+  findings: Finding[];
+  trace: TraceSpan[];
+  model: string | null;
+  total_tokens: number;
+  latency_ms: number;
+  repairs: number;
+  error: string | null;
+  created_at: string;
+  risk: Partial<Record<Risk, number>>;
+  resources: { new_vms: number; ram_mb: number; cpu: number; disk_mb: number };
+}
+
+export type AgentRunSummary = Pick<
+  AgentRun,
+  "id" | "conversation_id" | "prompt" | "status" | "answer" | "plan_version" | "model" | "total_tokens" | "latency_ms" | "created_at"
+>;
