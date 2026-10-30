@@ -415,3 +415,26 @@ def test_groq_other_bad_requests_are_not_retried():
         with pytest.raises(LLMError):
             llm.complete([], [])
     assert create.call_count == 1
+
+
+def test_live_world_syncs_vms_left_mid_transition():
+    """start_vm leaves "starting" until a sync; the agent must not see it stuck there."""
+    from types import SimpleNamespace as NS
+    from unittest.mock import MagicMock
+
+    from app.agent import backend as live
+    from app.models.enums import VMStatus
+
+    row = {"id": "v1", "name": "web", "status": "starting", "os": "Ubuntu 22.04", "ram": 1024, "cpu": 1,
+           "disk_size": 20480, "iso_path": None, "nat_rules": [], "vrde_port": None, "error_message": None}
+    sb = MagicMock()
+    sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [row]
+    sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = []
+    with (
+        patch.object(live, "get_supabase_client", return_value=sb),
+        patch.object(live.vm_service, "sync_vm_status", return_value=NS(status=VMStatus.running)) as sync,
+        patch.object(live.vm_service, "_host_ports_in_use", return_value=set()),
+    ):
+        world = live.LiveBackend().world(USER)
+    sync.assert_called_once_with("v1", USER)
+    assert world.get("web").status == "running"

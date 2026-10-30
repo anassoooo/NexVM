@@ -30,6 +30,13 @@ class VMBackend(Protocol):
     def execute(self, user_id: str, tool: str, args: BaseModel, world: World) -> str: ...
 
 
+TRANSITIONAL = ("starting", "stopping")
+
+
+def _status_value(status) -> str:
+    return getattr(status, "value", status)
+
+
 def _rules(raw) -> list[dict]:
     if isinstance(raw, str):
         raw = json.loads(raw)
@@ -40,6 +47,11 @@ class LiveBackend:
     def world(self, user_id: str) -> World:
         sb = get_supabase_client()
         rows = sb.table("vms").select("*").eq("user_id", user_id).execute().data or []
+        for r in rows:
+            # start/stop leave "starting"/"stopping" until someone syncs with VirtualBox (the VMs
+            # page polls for it). Sync here, or the agent would see a VM stuck mid-transition.
+            if r["status"] in TRANSITIONAL:
+                r["status"] = _status_value(vm_service.sync_vm_status(r["id"], user_id).status)
         snaps: dict[str, list[str]] = {}
         if rows:
             ids = [r["id"] for r in rows]
