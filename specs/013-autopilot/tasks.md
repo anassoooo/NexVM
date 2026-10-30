@@ -14,13 +14,22 @@
 | T007 | Executor + repair | F3, F4 | 3 h | done |
 | T008 | `/api/v1/agent` routes | F3, F6 | 2 h | done |
 | T009 | Unit tests: ScriptedLLM + FakeBackend (planner, simulator, executor, routes) | all | 4 h | done |
-| T010 | Eval suite: scenarios, runner, report, baseline | F7, F8 | 4 h | in progress — 37/65 recorded (Groq daily quota) |
+| T010 | Eval suite: scenarios, runner, report, baseline | F7, F8 | 4 h | in progress — 49/65 recorded (Groq daily quota) |
 | T011 | Frontend: plan-and-approve chat | F3 | 4 h | done |
 | T012 | Frontend: runs list + trace timeline | F6 | 3 h | done |
 | T013 | CI: agent eval job; docs | F7 | 1.5 h | done |
-| T014 | Verify: checks + live run of eval suite + manual UI test | all | 2 h | pending |
+| T014 | Verify: checks + live run of eval suite + manual UI test | all | 2 h | in progress — UI + live end-to-end done; eval suite pending |
 
 Each task is done when its tests pass and `ruff check .` is clean.
+
+## Notes (2026-10-31)
+
+- Live end-to-end check (recorded as the README demo, `docs/demo/`): create + start, diagnose, then
+  stop + delete through `/ai` on the real host, all runs `completed`.
+- It found a bug: `start_vm`/`stop_vm` leave `starting`/`stopping` until a sync, and only the VMs
+  page polls for it, so Autopilot saw VMs stuck mid-transition and refused to act. `LiveBackend.world`
+  now syncs transitional VMs with VirtualBox first (test: `test_live_world_syncs_vms_left_mid_transition`).
+- Evals: 49/65 recorded; the rest wait for Groq's daily quota.
 
 ## Notes (2026-10-13)
 

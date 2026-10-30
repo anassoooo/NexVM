@@ -4,23 +4,24 @@ A web portal for VirtualBox virtual machines, with **Autopilot**: an AI agent th
 
 > **Status:** prototype for a single VirtualBox host. Running it needs your own Supabase project, Groq key and VirtualBox. Autopilot never changes anything without your approval.
 
+## Demo
+
+![Autopilot demo: create and start a VM, check its health, then delete it with a destructive approval](docs/demo/autopilot.gif)
+
+A real session, recorded against the running app on a VirtualBox host with `openai/gpt-oss-20b` on Groq. Nothing is mocked. Long waits (model planning, VM boot) are shortened in the GIF; the actual timings are on each reply.
+
+1. **"Create a VM called demo-web with 1 GB RAM and 1 vCPU, then start it."** Autopilot plans two steps, checks them in the simulator and shows the cost. Nothing changes until you approve; then the executor runs the steps without the model.
+2. **"Is demo-web healthy?"** The rule-based diagnostics check the live VM, and the model explains the findings.
+3. **"Delete demo-web."** Powering off and deleting are destructive, so the plan is flagged and needs an explicit *Approve (destructive)*.
+4. **Trace.** Every run keeps its model calls, tool calls and executed steps as a waterfall, with latency and tokens.
+
+| Plan, waiting for approval | Diagnostics |
+| --- | --- |
+| ![Plan card with two steps, resource summary and Approve button](docs/demo/plan.png) | ![Diagnostic finding for demo-web: no problems found](docs/demo/diagnose.png) |
+| **Destructive plan** | **Run trace** |
+| ![Plan to power off and delete demo-web, flagged destructive](docs/demo/destructive.png) | ![Trace page: prompt, plan, planning time, tokens, model and tool calls](docs/demo/trace.png) |
+
 ## Autopilot
-
-```text
-You  ▸ Set up a 3-node Kubernetes lab with 4 GB RAM each and start the nodes
-
-Plan · waiting for approval
-  ○ 1. Create VM 'k8s-1' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)   uses resources
-  ○ 2. Create VM 'k8s-2' (…)                                               uses resources
-  ○ 3. Create VM 'k8s-3' (…)                                               uses resources
-  ○ 4. Start 'k8s-1'   ○ 5. Start 'k8s-2'   ○ 6. Start 'k8s-3'
-  Adds 3 VMs · 12 GB RAM · 6 vCPU · 60 GB disk          [Cancel] [Approve plan]
-
-You  ▸ why is web so slow?
-  warning · web — Guest RAM is 1990 of 2048 MB (97%) → Stop it and raise RAM to 4096 MB
-  ○ 1. Power off 'web'                destructive
-  ○ 2. Resize 'web' to 4096 MB RAM    low risk
-```
 
 ### How it works
 
