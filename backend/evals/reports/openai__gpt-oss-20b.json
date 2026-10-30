@@ -1,19 +1,442 @@
 {
  "model": "openai/gpt-oss-20b",
- "mode": "replay",
- "scenarios": 6,
- "pass_rate": 100.0,
+ "mode": "record",
+ "scenarios": 51,
+ "pass_rate": 94.1,
  "safety_pass_rate": 0.0,
  "categories": {
+  "answer": {
+   "passed": 5,
+   "total": 5,
+   "pass_rate": 100.0
+  },
   "clarify": {
    "passed": 6,
    "total": 6,
    "pass_rate": 100.0
+  },
+  "diagnose": {
+   "passed": 6,
+   "total": 6,
+   "pass_rate": 100.0
+  },
+  "multi_step": {
+   "passed": 9,
+   "total": 10,
+   "pass_rate": 90.0
+  },
+  "multilingual": {
+   "passed": 3,
+   "total": 5,
+   "pass_rate": 60.0
+  },
+  "reference": {
+   "passed": 6,
+   "total": 6,
+   "pass_rate": 100.0
+  },
+  "single": {
+   "passed": 13,
+   "total": 13,
+   "pass_rate": 100.0
   }
  },
- "avg_llm_calls": 1.17,
- "avg_tokens": 2172,
+ "avg_llm_calls": 2.18,
+ "avg_tokens": 4088,
  "results": [
+  {
+   "id": "single-create",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'lab' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)"
+   ],
+   "answer": "Your VM “lab” (Ubuntu 22.04, 4 GB RAM) is queued for creation. It will be created as a stopped VM and will need your approval to proceed.",
+   "llm_calls": 2,
+   "tokens": 3668,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-start",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'db'"
+   ],
+   "answer": "The “db” VM has been queued to start. It’s waiting for your approval.",
+   "llm_calls": 2,
+   "tokens": 3529,
+   "latency_ms": 2
+  },
+  {
+   "id": "single-stop",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'web'"
+   ],
+   "answer": "The “web” VM has been queued for shutdown. It will stop once you approve the action.",
+   "llm_calls": 2,
+   "tokens": 3542,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-pause",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Pause 'web'"
+   ],
+   "answer": "The pause command for **web** is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3547,
+   "latency_ms": 4
+  },
+  {
+   "id": "single-resume",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Resume 'web'"
+   ],
+   "answer": "The VM “web” has been queued to resume. It will start running once you approve the action.",
+   "llm_calls": 2,
+   "tokens": 3368,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-delete",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Delete 'ci'"
+   ],
+   "answer": "The deletion of **ci** is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3572,
+   "latency_ms": 4
+  },
+  {
+   "id": "single-modify-cpu",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Resize 'db' to 4 vCPU"
+   ],
+   "answer": "I’ve queued a step to resize the **db** VM to 4 vCPU. It’s waiting for your approval.",
+   "llm_calls": 2,
+   "tokens": 3682,
+   "latency_ms": 4
+  },
+  {
+   "id": "single-snapshot",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Snapshot 'ci' as 'clean-install'"
+   ],
+   "answer": "Snapshot “clean-install” for VM “ci” is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3574,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-restore",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Restore 'db' to snapshot 'nightly'"
+   ],
+   "answer": "I’ve queued a step to restore the **db** VM to the **nightly** snapshot.  \nPlease approve the plan to proceed.",
+   "llm_calls": 2,
+   "tokens": 3730,
+   "latency_ms": 2
+  },
+  {
+   "id": "single-port",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Forward host port 2201 → 'ci' port 22 (tcp, rule 'ssh')"
+   ],
+   "answer": "The port rule has been queued: host 2201 → ci 22 (ssh). It’s waiting for your approval.",
+   "llm_calls": 2,
+   "tokens": 3704,
+   "latency_ms": 2
+  },
+  {
+   "id": "single-clone",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Clone 'db' as 'db-staging'"
+   ],
+   "answer": "The clone of **db** to **db‑staging** is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3712,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-attach-iso",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Attach debian-12.iso to 'ci'"
+   ],
+   "answer": "The ISO has been queued for attachment to the “ci” VM. It will boot from debian‑12.iso once approved.",
+   "llm_calls": 2,
+   "tokens": 3599,
+   "latency_ms": 3
+  },
+  {
+   "id": "single-detach-iso",
+   "category": "single",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Detach the ISO from 'ci'"
+   ],
+   "answer": "The ISO has been detached from **ci**. The change is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3340,
+   "latency_ms": 2
+  },
+  {
+   "id": "multi-k8s-lab",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'k8s-1' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)",
+    "Create VM 'k8s-2' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)",
+    "Create VM 'k8s-3' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)",
+    "Start 'k8s-1'",
+    "Start 'k8s-2'",
+    "Start 'k8s-3'"
+   ],
+   "answer": "The following steps are queued for your approval:\n\n1. Create VM `k8s-1` (Ubuntu 22.04, 4 GB RAM, 2 vCPU, 20 GB disk)  \n2. Create VM `k8s-2` (Ubuntu 22.04, 4 GB RAM, 2 vCPU, 20 GB disk)  \n3. Create VM `k8s-3` (Ubuntu 22.04, 4 GB RAM, 2 vCPU, 20 GB disk)  \n4. Start `k8s-1`  \n5. Start `k8s-2`  \n6. Start `k8s-3`",
+   "llm_calls": 7,
+   "tokens": 15124,
+   "latency_ms": 3
+  },
+  {
+   "id": "multi-resize-running",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'web'",
+    "Resize 'web' to 4096 MB RAM"
+   ],
+   "answer": "I’ve queued the following steps for your approval:  \n1. Power off the “web” VM.  \n2. Resize “web” to 4096 MB RAM.",
+   "llm_calls": 3,
+   "tokens": 5723,
+   "latency_ms": 2
+  },
+  {
+   "id": "multi-resize-and-restart",
+   "category": "multi_step",
+   "passed": false,
+   "problems": [
+    "expected steps [('stop_vm', {'vm': 'web'}), ('modify_vm', {'vm': 'web', 'ram': 8192}), ('start_vm', {'vm': 'web'})], got [('stop_vm', {'vm': 'web'}), ('modify_vm', {'vm': 'web', 'ram': 8192, 'cpu': None})]",
+    "expected exactly 3 step(s), got 2"
+   ],
+   "steps": [
+    "Power off 'web'",
+    "Resize 'web' to 8192 MB RAM"
+   ],
+   "answer": "I prepared a plan with 2 step(s). Review it and approve to run it.",
+   "llm_calls": 3,
+   "tokens": 7657,
+   "latency_ms": 2
+  },
+  {
+   "id": "multi-stop-all",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'a'",
+    "Power off 'b'"
+   ],
+   "answer": "I’ve queued the following steps to stop all running VMs:  \n1. Power off “a”  \n2. Power off “b”  \n\nThese are waiting for your approval.",
+   "llm_calls": 3,
+   "tokens": 5506,
+   "latency_ms": 3
+  },
+  {
+   "id": "multi-delete-stopped",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Delete 'db'",
+    "Delete 'ci'"
+   ],
+   "answer": "I’ve queued the deletion of your stopped VMs: “db” and “ci”. They’ll be removed once you approve.",
+   "llm_calls": 3,
+   "tokens": 5564,
+   "latency_ms": 4
+  },
+  {
+   "id": "multi-clone-start",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Clone 'db' as 'db-test'",
+    "Start 'db-test'"
+   ],
+   "answer": "The steps to clone “db” as “db-test” and start it are queued and awaiting your approval.",
+   "llm_calls": 3,
+   "tokens": 5642,
+   "latency_ms": 4
+  },
+  {
+   "id": "multi-new-from-iso",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'installer' (Ubuntu 22.04, 2 vCPU, 2048 MB RAM, 20 GB disk)",
+    "Attach ubuntu-22.04.iso to 'installer'",
+    "Start 'installer'"
+   ],
+   "answer": "The following steps have been queued and are waiting for your approval:\n\n1. Create VM “installer” (Ubuntu 22.04, 2 vCPU, 2048 MB RAM, 20 GB disk)  \n2. Attach `ubuntu-22.04.iso` to “installer”  \n3. Start “installer” (boot from the ISO)",
+   "llm_calls": 4,
+   "tokens": 7296,
+   "latency_ms": 5
+  },
+  {
+   "id": "multi-web2",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'web2' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)",
+    "Forward host port 8081 → 'web2' port 80 (tcp, rule 'http-8081')"
+   ],
+   "answer": "The VM **web2** will be created with 4 GB RAM and a port rule forwarding host 8081 to guest 80.  \nThese steps are queued and waiting for your approval.",
+   "llm_calls": 3,
+   "tokens": 6640,
+   "latency_ms": 5
+  },
+  {
+   "id": "multi-snapshot-then-delete",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Snapshot 'ci' as 'final'",
+    "Delete 'ci'"
+   ],
+   "answer": "The snapshot “final” already exists for the “ci” VM, so it was skipped. The VM has been queued for deletion.",
+   "llm_calls": 4,
+   "tokens": 7774,
+   "latency_ms": 4
+  },
+  {
+   "id": "multi-two-test-vms",
+   "category": "multi_step",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'test-1' (Ubuntu 22.04, 2 vCPU, 1024 MB RAM, 20 GB disk)",
+    "Create VM 'test-2' (Ubuntu 22.04, 2 vCPU, 1024 MB RAM, 20 GB disk)"
+   ],
+   "answer": "I’ve queued the creation of two VMs named **test‑1** and **test‑2** (each with 1 GB RAM). They’re ready to be created once you approve.",
+   "llm_calls": 3,
+   "tokens": 5401,
+   "latency_ms": 5
+  },
+  {
+   "id": "ref-only-vm",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'solo'"
+   ],
+   "answer": "The step to start VM “solo” is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3356,
+   "latency_ms": 4
+  },
+  {
+   "id": "ref-by-status",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'b'"
+   ],
+   "answer": "The step to start VM **b** is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3448,
+   "latency_ms": 4
+  },
+  {
+   "id": "ref-case",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'db'"
+   ],
+   "answer": "The “db” VM is queued to start.",
+   "llm_calls": 2,
+   "tokens": 3523,
+   "latency_ms": 4
+  },
+  {
+   "id": "ref-history",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'api'"
+   ],
+   "answer": "Queued: start 'api'. (Plan completed: 1. Start VM 'api')",
+   "llm_calls": 2,
+   "tokens": 3464,
+   "latency_ms": 4
+  },
+  {
+   "id": "ref-running",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Pause 'web'"
+   ],
+   "answer": "The pause of **web** is queued and awaiting your approval.",
+   "llm_calls": 2,
+   "tokens": 3627,
+   "latency_ms": 4
+  },
+  {
+   "id": "ref-ambiguous",
+   "category": "reference",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "Which VM would you like to start?",
+   "llm_calls": 1,
+   "tokens": 1783,
+   "latency_ms": 3
+  },
   {
    "id": "clarify-no-name",
    "category": "clarify",
@@ -23,7 +446,7 @@
    "answer": "Sure! What would you like to name the new VM?",
    "llm_calls": 1,
    "tokens": 1722,
-   "latency_ms": 3
+   "latency_ms": 2
   },
   {
    "id": "clarify-delete-it",
@@ -45,7 +468,7 @@
    "answer": "Could you specify what you’d like to resize on the **db** VM—RAM, CPU, or disk size?",
    "llm_calls": 1,
    "tokens": 1873,
-   "latency_ms": 2
+   "latency_ms": 4
   },
   {
    "id": "clarify-unknown-vm",
@@ -56,7 +479,7 @@
    "answer": "I don’t see a VM named “mail” in your account. Would you like me to create a new VM called “mail” (Ubuntu 22.04, 2048 MB RAM, 2 vCPU, 20 GB disk) and then start it, or do you have a different VM in mind?",
    "llm_calls": 1,
    "tokens": 1949,
-   "latency_ms": 4
+   "latency_ms": 3
   },
   {
    "id": "clarify-port-taken",
@@ -67,7 +490,7 @@
    "answer": "It looks like host port 2222 is already in use. Would you like to use the next free port 2223 instead, or do you have another port in mind?",
    "llm_calls": 2,
    "tokens": 3815,
-   "latency_ms": 3
+   "latency_ms": 4
   },
   {
    "id": "clarify-quota",
@@ -78,7 +501,201 @@
    "answer": "I’m limited to 5 VMs total and you already have 3. How many new VMs would you like to create?",
    "llm_calls": 1,
    "tokens": 1864,
+   "latency_ms": 3
+  },
+  {
+   "id": "diag-memory",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'web'",
+    "Resize 'web' to 4096 MB RAM"
+   ],
+   "answer": "The “web” VM is under memory pressure (≈97 % RAM used). I’ve queued steps to stop it and increase its RAM to 4096 MB. These actions are waiting for your approval.",
+   "llm_calls": 4,
+   "tokens": 7779,
+   "latency_ms": 3
+  },
+  {
+   "id": "diag-cpu",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'web'",
+    "Resize 'web' to 4 vCPU"
+   ],
+   "answer": "I’ve detected high CPU usage on **web** (97 % load). I’ve queued two steps:  \n1️⃣ Power off **web**  \n2️⃣ Increase its vCPUs to 4 (keeping RAM at 2048 MB)  \n\nThese are waiting for your approval.",
+   "llm_calls": 4,
+   "tokens": 7944,
+   "latency_ms": 3
+  },
+  {
+   "id": "diag-error",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "The VM **ci** is in an error state.  \nWhen it tried to start, VirtualBox returned `VERR_NO_MEMORY`, meaning the host didn’t have enough free RAM to allocate to the VM.  \nYou can try starting it again, or check the VirtualBox logs for more details.",
+   "llm_calls": 2,
+   "tokens": 3447,
    "latency_ms": 2
+  },
+  {
+   "id": "diag-healthy",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "The `db` VM is healthy (stopped). No issues detected.",
+   "llm_calls": 2,
+   "tokens": 3546,
+   "latency_ms": 3
+  },
+  {
+   "id": "diag-iso",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Detach the ISO from 'ci'"
+   ],
+   "answer": "I found that the ISO is still attached, so the VM boots into the installer.  \nI’ve queued a step to detach the ISO from **ci**.  \nPlease approve the queued action.",
+   "llm_calls": 3,
+   "tokens": 5369,
+   "latency_ms": 3
+  },
+  {
+   "id": "diag-failures",
+   "category": "diagnose",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "The `db` VM failed to start because virtualization is disabled on the host (VERR_VMX_NO_VMX).  \nYou’ll need to enable VT‑x/AMD‑V in your BIOS/UEFI settings and then try starting the VM again.",
+   "llm_calls": 2,
+   "tokens": 3640,
+   "latency_ms": 2
+  },
+  {
+   "id": "answer-general",
+   "category": "answer",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "Debian and Ubuntu are both Linux distributions, but they differ mainly in their release philosophy, target audience, and default software choices:\n\n| Aspect | Debian | Ubuntu |\n|--------|--------|--------|\n| **Release cycle** | Long‑term stable releases every ~2 years; testing/unstable branches for newer packages. | Regular releases every 6 months; LTS (Long‑Term Support) every 2 years with 5‑year support. |\n| **Target users** | Developers, sysadmins, and users who want a highly stable, configurable system. | Desktop users, developers, and enterprises looking for a ready‑to‑use system with frequent updates. |\n| **Package management** | Uses `apt` with `.deb` packages; default repository is the “stable” branch. | Uses `apt` too, but adds its own repositories (e.g., `universe`, `multiverse`) and Snap/Flatpak support. |\n| **Software selection** | Very conservative; packages are frozen at release time. | More up‑to‑date; includes newer drivers, desktop environments, and proprietary drivers. |\n| **Community vs. Canonical** | Community‑driven, no single corporate owner. | Developed by Canonical Ltd., with commercial support options. |\n| **Desktop experience** | Minimal default install; users choose their own desktop environment. | Comes with GNOME (or other flavors) pre‑installed, with a polished user interface. |\n\nIn short, Debian prioritises stability and freedom, while Ubuntu focuses on ease of use, frequent updates, and commercial backing.",
+   "llm_calls": 1,
+   "tokens": 2064,
+   "latency_ms": 4
+  },
+  {
+   "id": "answer-count",
+   "category": "answer",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "You have 3 VMs.",
+   "llm_calls": 2,
+   "tokens": 3685,
+   "latency_ms": 4
+  },
+  {
+   "id": "answer-running",
+   "category": "answer",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "The only VM currently running is **web**.",
+   "llm_calls": 2,
+   "tokens": 3709,
+   "latency_ms": 4
+  },
+  {
+   "id": "answer-quota",
+   "category": "answer",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "You have 138 560 MB (about 138.6 GB) of disk quota left.",
+   "llm_calls": 2,
+   "tokens": 3603,
+   "latency_ms": 4
+  },
+  {
+   "id": "answer-capabilities",
+   "category": "answer",
+   "passed": true,
+   "problems": [],
+   "steps": [],
+   "answer": "I can manage your VirtualBox VMs: create, start, stop, pause, resume, delete, clone, modify resources, take or restore snapshots, attach/detach ISOs, and set port forwarding rules. I can also diagnose problems and report your quota and recent activity. Just let me know what you’d like to do!",
+   "llm_calls": 1,
+   "tokens": 1800,
+   "latency_ms": 4
+  },
+  {
+   "id": "ml-fr-start",
+   "category": "multilingual",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Start 'db'"
+   ],
+   "answer": "Étape mise en file d’attente : démarrage de « db ». Veuillez l’approuver.",
+   "llm_calls": 2,
+   "tokens": 3583,
+   "latency_ms": 4
+  },
+  {
+   "id": "ml-fr-create",
+   "category": "multilingual",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Create VM 'lab' (Ubuntu 22.04, 2 vCPU, 4096 MB RAM, 20 GB disk)"
+   ],
+   "answer": "Les étapes sont en attente d’approbation : création de la VM « lab » (Ubuntu 22.04, 4 Go RAM, 2 vCPU, 20 GB disque).",
+   "llm_calls": 2,
+   "tokens": 3639,
+   "latency_ms": 4
+  },
+  {
+   "id": "ml-es-stop",
+   "category": "multilingual",
+   "passed": true,
+   "problems": [],
+   "steps": [
+    "Power off 'web'"
+   ],
+   "answer": "He estado preparando la acción.  \n**Paso en cola:** apagar “web”.  \nAguardando tu aprobación.",
+   "llm_calls": 2,
+   "tokens": 3561,
+   "latency_ms": 4
+  },
+  {
+   "id": "ml-ar-start",
+   "category": "multilingual",
+   "passed": false,
+   "problems": [
+    "LLM error: The AI service failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kkdezcxkf3v8mt8j68fg756q` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199905, Requested 1815. Please try again in 12m23.04s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}. Please try again."
+   ],
+   "steps": [],
+   "answer": "",
+   "llm_calls": 0,
+   "tokens": 0,
+   "latency_ms": 0
+  },
+  {
+   "id": "ml-fr-diag",
+   "category": "multilingual",
+   "passed": false,
+   "problems": [
+    "LLM error: The AI service failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kkdezcxkf3v8mt8j68fg756q` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199905, Requested 1750. Please try again in 11m54.959999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}. Please try again."
+   ],
+   "steps": [],
+   "answer": "",
+   "llm_calls": 0,
+   "tokens": 0,
+   "latency_ms": 0
   }
  ]
 }
