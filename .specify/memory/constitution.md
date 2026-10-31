@@ -1,22 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change:    1.0.0 → 1.1.0 (MINOR — new security principles, project rename)
-Modified principles:
-  - §I   Project Identity — NexVM renamed to NexVM; Python 3.12+
-  - §VII Data Access Rules — secret key replaces service role; shared-client rule;
-         Data API grant rule; migrations-only schema changes
-  - §IX  Backend Conventions — blocking I/O handlers MUST be sync `def`
+Version change:    1.1.0 → 1.2.0 (MINOR — new AI engineering principles)
+Modified principles: none
 Added sections:
-  - §XI.4 Host Filesystem Confinement
-  - §XI.5 VirtualBox Resource Isolation
-  - §XI.6 Destructive AI Actions Require Confirmation
-  - §XI.7 CLI Argument Safety
+  - §XIV AI Engineering (§XIV.1–§XIV.5)
 Removed sections: none
+History:
+  - 1.1.0 (2026-10-13): renamed myVMS to NexVM; §VII and §IX rules; §XI.4–§XI.7
 Templates:
   ⚠ .specify/templates/* — not restored (deleted in 696a23e); no blocking dependency
 Dependent specs:
-  ✅ specs/012-security-hardening/ — created to bring the codebase into compliance
+  ✅ specs/013-autopilot/ — first spec built under §XIV
 Known discrepancies (not amended, needs owner decision):
   ⚠ §IV says /vms is admin-only; the current app routes regular users to /vms
 Deferred TODOs: none
@@ -24,7 +19,7 @@ Deferred TODOs: none
 
 # NexVM Project Constitution
 
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Ratification Date**: 2026-04-20
 **Last Amended**: 2026-10-13
 
@@ -262,6 +257,37 @@ and `message`. Read-only operations (GET analytics, list VMs) do NOT require aud
 
 All AI assistant interactions MUST be inserted into the `ai_usage` table with:
 `user_id`, `prompt`, `response`, and `tokens`. This applies regardless of success or failure.
+
+---
+
+## §XIV — AI Engineering
+
+### §XIV.1 — The Model Proposes, Code Executes
+
+LLM output MUST NOT change state directly. State-changing tool calls become plan steps that
+are validated, simulated and approved by the user; a deterministic executor then performs them.
+
+### §XIV.2 — Typed Tools, Server-side Identity
+
+Every tool the model can call MUST have a Pydantic argument model, and its JSON schema MUST be
+generated from that model. Identity (user id, admin role) MUST come from the authenticated
+request, never from tool arguments or model output.
+
+### §XIV.3 — Bounded Agents
+
+Agent loops MUST have explicit limits on model turns, tool calls and plan size, and MUST stop
+with a clear message when a limit is reached.
+
+### §XIV.4 — Measured, Not Assumed
+
+Changes to prompts, tools, model choice or agent logic MUST be evaluated with the eval suite
+(`backend/evals/`). A change that lowers the pass rate by more than 5 points below the
+committed baseline MUST NOT be merged without an explicit, documented reason.
+
+### §XIV.5 — Traced
+
+Every agent run MUST record a trace of model and tool calls with duration, tokens and outcome,
+viewable by the user who owns the run.
 
 ---
 

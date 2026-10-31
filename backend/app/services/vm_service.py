@@ -84,6 +84,8 @@ def _log_action(
 
 
 def _vm_row_to_response(row: dict) -> VMResponse:
+    if isinstance(row.get("nat_rules"), str):  # stored via json.dumps
+        row = {**row, "nat_rules": json.loads(row["nat_rules"])}
     return VMResponse(**row)
 
 
@@ -190,8 +192,11 @@ def get_vm_status(vm_id: str, user_id: str) -> VMResponse:
     return _vm_row_to_response(row)
 
 
-def sync_vm_status(vm_id: str, user_id: str) -> VMResponse:
-    """Query VBoxManage for the real VM state and update DB if it differs."""
+def sync_vm_status(vm_id: str, user_id: str, accept: tuple[str, ...] | None = None) -> VMResponse:
+    """Query VBoxManage for the real VM state and update DB if it differs.
+
+    With `accept`, only those statuses are written; any other state leaves the row unchanged.
+    """
     vm = _get_vm_or_404(vm_id, user_id)
     vbox = build_vbox_path()
 
@@ -206,7 +211,7 @@ def sync_vm_status(vm_id: str, user_id: str) -> VMResponse:
     vbox_state = parse_vbox_state(result.stdout)
     new_status = VBOX_STATE_MAP.get(vbox_state or "", vm["status"])
 
-    if new_status != vm["status"]:
+    if new_status != vm["status"] and (accept is None or new_status in accept):
         supabase = get_supabase_client()
         now = datetime.now(timezone.utc).isoformat()
         updated = (
@@ -233,6 +238,10 @@ def create_vm(data: VMCreate, user_id: str) -> VMResponse:
             detail=f"VM quota reached — maximum {settings.VM_QUOTA_PER_USER} VMs per user",
         )
     _check_disk_quota(user_id, data.disk_size)
+
+    name_check = supabase.table("vms").select("id").eq("user_id", user_id).eq("name", data.name).execute()
+    if name_check.data:
+        raise HTTPException(status_code=409, detail=f"A VM named '{data.name}' already exists")
 
     vbox = build_vbox_path()
     os_type = get_ostype(data.os)
