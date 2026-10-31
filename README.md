@@ -8,7 +8,7 @@ A web portal for VirtualBox virtual machines, with **Autopilot**: an AI agent th
 
 ![Autopilot demo: create and start a VM, check its health, then delete it with a destructive approval](docs/demo/autopilot.gif)
 
-A real session, recorded against the running app on a VirtualBox host with `openai/gpt-oss-20b` on Groq. Nothing is mocked. Long waits (model planning, VM boot) are shortened in the GIF; the actual timings are on each reply.
+A real session, recorded against the running app on a VirtualBox host with `openai/gpt-oss-20b` on Groq. Nothing is mocked. Long waits (model planning, VM boot) are shortened in the GIF; the actual timings are on each reply. The app has a light and a dark theme: it follows your system setting, and the toggle in the header overrides it.
 
 1. **"Create a VM called demo-web with 1 GB RAM and 1 vCPU, then start it."** Autopilot plans two steps, checks them in the simulator and shows the cost. Nothing changes until you approve; then the executor runs the steps without the model.
 2. **"Is demo-web healthy?"** The rule-based diagnostics check the live VM, and the model explains the findings.

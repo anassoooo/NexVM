@@ -3,9 +3,9 @@
 import type { AgentRun, PlanStep, Risk, StepStatus } from "@/types";
 
 const RISK_STYLE: Record<Risk, { label: string; color: string; bg: string }> = {
-  low: { label: "low risk", color: "var(--text-muted)", bg: "rgba(255,255,255,0.05)" },
-  costly: { label: "uses resources", color: "#40c4ff", bg: "rgba(64,196,255,0.08)" },
-  destructive: { label: "destructive", color: "var(--warning)", bg: "rgba(255,109,0,0.1)" },
+  low: { label: "low risk", color: "var(--text-muted)", bg: "color-mix(in srgb, var(--ink) 5%, transparent)" },
+  costly: { label: "uses resources", color: "var(--info)", bg: "color-mix(in srgb, var(--info) 8%, transparent)" },
+  destructive: { label: "destructive", color: "var(--warning)", bg: "color-mix(in srgb, var(--warning) 10%, transparent)" },
 };
 
 const STATUS_ICON: Record<StepStatus, { glyph: string; color: string }> = {
@@ -69,7 +69,7 @@ export default function PlanCard({
   const destructive = run.plan.some((s) => s.status === "pending" && s.risk === "destructive");
 
   return (
-    <div className="mt-3 rounded-lg" style={{ border: "1px solid var(--border)", background: "rgba(0,0,0,0.25)" }}>
+    <div className="mt-3 rounded-lg" style={{ border: "1px solid var(--border)", background: "var(--surface-inset)" }}>
       <div className="flex items-center justify-between px-3 py-2">
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
           Plan{run.plan_version > 1 ? ` · revision ${run.plan_version}` : ""}
@@ -97,7 +97,7 @@ export default function PlanCard({
               Cancel
             </button>
             <button type="button" onClick={onApprove} disabled={busy} className="btn-primary"
-              style={{ padding: "6px 18px", ...(destructive ? { background: "linear-gradient(135deg, #ff6d00, #ff9100)" } : {}) }}>
+              style={{ padding: "6px 18px", ...(destructive ? { background: "var(--warning)" } : {}) }}>
               {destructive ? "Approve (destructive)" : "Approve plan"}
             </button>
           </div>

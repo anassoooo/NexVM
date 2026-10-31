@@ -11,16 +11,16 @@ const ACTION_COLOR: Record<string, string> = {
   start_vm:         "var(--success)",
   stop_vm:          "var(--text-muted)",
   delete_vm:        "var(--warning)",
-  login:            "#64b4ff",
-  ai_command:       "#b47fff",
+  login:            "var(--info)",
+  ai_command:       "var(--violet)",
   modify_vm:        "var(--accent)",
-  pause_vm:         "#64b4ff",
+  pause_vm:         "var(--info)",
   resume_vm:        "var(--success)",
-  save_state:       "#64b4ff",
+  save_state:       "var(--info)",
   add_port_rule:    "var(--accent)",
   remove_port_rule: "var(--warning)",
   take_snapshot:    "var(--accent)",
-  restore_snapshot: "#b47fff",
+  restore_snapshot: "var(--violet)",
   delete_snapshot:  "var(--warning)",
 };
 
@@ -69,7 +69,7 @@ export default function LogsClient() {
     cursor: "pointer",
     border: "1px solid",
     borderColor: tab === t ? "var(--accent)" : "var(--border)",
-    background: tab === t ? "rgba(0,230,118,0.08)" : "transparent",
+    background: tab === t ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
     color: tab === t ? "var(--accent)" : "var(--text-muted)",
     transition: "all .15s",
   });
@@ -99,7 +99,7 @@ export default function LogsClient() {
       {error && (
         <div
           className="mb-4 p-3 rounded text-sm"
-          style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
+          style={{ background: "color-mix(in srgb, var(--warning) 10%, transparent)", color: "var(--warning)", border: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}
         >
           {error}
         </div>
@@ -140,7 +140,7 @@ function ActivityTable({ logs }: { logs: Log[] }) {
           {logs.map((log) => (
             <tr
               key={log.id}
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--ink) 4%, transparent)" }}
             >
               <td style={{ padding: "9px 14px" }}>
                 <span
@@ -162,7 +162,7 @@ function ActivityTable({ logs }: { logs: Log[] }) {
                     fontSize: 11,
                     padding: "2px 8px",
                     borderRadius: 4,
-                    background: log.status === "success" ? "rgba(0,230,118,0.12)" : "rgba(255,109,0,0.12)",
+                    background: log.status === "success" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--warning) 12%, transparent)",
                     color: log.status === "success" ? "var(--success)" : "var(--warning)",
                   }}
                 >
@@ -202,7 +202,7 @@ function AIUsageTable({ rows }: { rows: AIUsage[] }) {
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 6 }}>
             {truncate(row.response, 160)}
           </p>
-          <span style={{ fontSize: 11, color: "#b47fff" }}>
+          <span style={{ fontSize: 11, color: "var(--violet)" }}>
             {row.tokens} tokens
           </span>
         </div>

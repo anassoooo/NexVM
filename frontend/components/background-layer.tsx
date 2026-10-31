@@ -4,7 +4,7 @@ export default function BackgroundLayer() {
   return (
     <div
       className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 0 }}
+      style={{ zIndex: 0, display: "var(--decor)" }}
       aria-hidden="true"
     >
       {/* Blob 1 — top left */}
@@ -16,7 +16,7 @@ export default function BackgroundLayer() {
           width: "45vw",
           height: "45vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,230,118,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 70%)",
         }}
       />
       {/* Blob 2 — bottom right */}
@@ -28,7 +28,7 @@ export default function BackgroundLayer() {
           width: "50vw",
           height: "50vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,200,83,0.05) 0%, transparent 70%)",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--success) 5%, transparent) 0%, transparent 70%)",
         }}
       />
       {/* Blob 3 — center */}
@@ -40,7 +40,7 @@ export default function BackgroundLayer() {
           width: "30vw",
           height: "30vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,230,118,0.03) 0%, transparent 70%)",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 70%)",
         }}
       />
 
@@ -55,7 +55,7 @@ export default function BackgroundLayer() {
           height: 64,
           opacity: 0.08,
           animation: "float 7s ease-in-out infinite",
-          color: "#00e676",
+          color: "var(--accent)",
         }}
         viewBox="0 0 24 24"
         fill="currentColor"
@@ -74,7 +74,7 @@ export default function BackgroundLayer() {
           height: 72,
           opacity: 0.08,
           animation: "float 9s ease-in-out infinite 1.5s",
-          color: "#00e676",
+          color: "var(--accent)",
         }}
         viewBox="0 0 24 24"
         fill="currentColor"
@@ -93,7 +93,7 @@ export default function BackgroundLayer() {
           height: 56,
           opacity: 0.08,
           animation: "float 11s ease-in-out infinite 3s",
-          color: "#00e676",
+          color: "var(--accent)",
         }}
         viewBox="0 0 24 24"
         fill="currentColor"

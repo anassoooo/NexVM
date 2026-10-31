@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,7 +9,7 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
         className="flex items-center justify-between px-6"
         style={{
           height: 56,
-          background: "rgba(10,15,13,0.85)",
+          background: "var(--chrome)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           borderBottom: "1px solid var(--border)",
@@ -19,6 +20,7 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
       >
         <Logo size="sm" />
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/login" className="text-sm font-medium nav-link">
             Sign In
           </Link>

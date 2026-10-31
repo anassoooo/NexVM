@@ -2,15 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens. Light is the default; dark applies when the OS prefers it, unless the
+   user picked a theme (data-theme on <html>, set by ThemeToggle and the script in layout.tsx).
+   Components use only these tokens; tints are color-mix(in srgb, var(--token) N%, transparent).
+   --ink is the color overlays are mixed from: dark on light, white on dark. */
 :root {
+  color-scheme: light;
+  --bg: #f4f6f5;
+  --surface: #ffffff;
+  --surface-solid: #ffffff;
+  --surface-inset: #f7f9f8;
+  --chrome: rgba(255, 255, 255, 0.92);
+  --border: #dce3df;
+  --border-strong: #c3cdc7;
+  --ink: #0f1a15;
+  --text: #111a16;
+  --text-muted: #56675d;
+  --accent: #0a7d45;
+  --success: #138a4b;
+  --on-accent: #ffffff;
+  --warning: #c2410c;
+  --danger: #d92d20;
+  --info: #1767c4;
+  --caution: #a15c07;
+  --violet: #7c3aed;
+  --overlay: rgba(15, 23, 20, 0.45);
+  --shadow-card: 0 1px 2px rgba(16, 24, 20, 0.05), 0 2px 8px rgba(16, 24, 20, 0.05);
+  --shadow-lg: 0 16px 48px rgba(16, 24, 20, 0.18);
+  --glow: 0 4px 20px rgba(16, 24, 20, 0.1);
+  --decor: none; /* background blobs and floating icons: dark theme only */
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0a0f0d;
-  --surface: rgba(255, 255, 255, 0.04);
-  --border: rgba(0, 255, 128, 0.12);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-solid: #0f1613;
+  --surface-inset: rgba(0, 0, 0, 0.25);
+  --chrome: rgba(9, 13, 11, 0.92);
+  --border: rgba(0, 255, 128, 0.16);
+  --border-strong: rgba(0, 255, 128, 0.22);
+  --ink: #ffffff;
+  --text: #e8f5e9;
+  --text-muted: #8aab97;
   --accent: #00e676;
   --success: #00c853;
-  --warning: #ff6d00;
-  --text-muted: #7a9e8a;
-  --text: #e8f5e9;
+  --on-accent: #03140b;
+  --warning: #ff7a1a;
+  --danger: #ff5252;
+  --info: #64b4ff;
+  --caution: #ffc800;
+  --violet: #b388ff;
+  --overlay: rgba(0, 0, 0, 0.65);
+  --shadow-card: none;
+  --shadow-lg: 0 6px 32px rgba(0, 0, 0, 0.5);
+  --glow: 0 0 40px rgba(0, 230, 118, 0.15);
+  --decor: block;
+}
+
+/* Same values as above, for users who haven't picked a theme and whose OS prefers dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0a0f0d;
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-solid: #0f1613;
+    --surface-inset: rgba(0, 0, 0, 0.25);
+    --chrome: rgba(9, 13, 11, 0.92);
+    --border: rgba(0, 255, 128, 0.16);
+    --border-strong: rgba(0, 255, 128, 0.22);
+    --ink: #ffffff;
+    --text: #e8f5e9;
+    --text-muted: #8aab97;
+    --accent: #00e676;
+    --success: #00c853;
+    --on-accent: #03140b;
+    --warning: #ff7a1a;
+    --danger: #ff5252;
+    --info: #64b4ff;
+    --caution: #ffc800;
+    --violet: #b388ff;
+    --overlay: rgba(0, 0, 0, 0.65);
+    --shadow-card: none;
+    --shadow-lg: 0 6px 32px rgba(0, 0, 0, 0.5);
+    --glow: 0 0 40px rgba(0, 230, 118, 0.15);
+    --decor: block;
+  }
 }
 
 body {
@@ -27,13 +104,14 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow-card);
 }
 
 /* Dark input pattern */
 .input-dark {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
   border: none;
-  border-bottom: 1px solid rgba(0, 255, 128, 0.2);
+  border-bottom: 1px solid var(--border-strong);
   color: var(--text);
   border-radius: 4px 4px 0 0;
   outline: none;
@@ -53,7 +131,7 @@ body {
 /* Primary gradient button */
 .btn-primary {
   background: linear-gradient(135deg, var(--success), var(--accent));
-  color: var(--text);
+  color: var(--on-accent);
   font-weight: 700;
   border-radius: 9999px;
   padding: 10px 28px;
@@ -64,7 +142,7 @@ body {
   font-size: 0.875rem;
 }
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 0 24px rgba(0, 230, 118, 0.35);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .btn-primary:disabled {
   opacity: 0.45;

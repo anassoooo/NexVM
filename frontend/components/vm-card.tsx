@@ -10,7 +10,7 @@ const STATUS_COLOR: Record<VM["status"], string> = {
   stopped:  "var(--text-muted)",
   starting: "var(--accent)",
   stopping: "var(--warning)",
-  paused:   "#64b4ff",
+  paused:   "var(--info)",
   error:    "var(--warning)",
 };
 
@@ -194,9 +194,9 @@ export default function VMCard({
   }
 
   const inputStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.06)",
+    background: "color-mix(in srgb, var(--ink) 6%, transparent)",
     color: "var(--text)",
-    border: "1px solid rgba(0,230,118,0.2)",
+    border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
     outline: "none",
     borderRadius: "4px",
     padding: "2px 6px",
@@ -207,8 +207,8 @@ export default function VMCard({
     <div
       className="glass transition-shadow duration-300"
       style={{ padding: "1.25rem" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 40px rgba(0,230,118,0.15)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--glow)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -228,22 +228,22 @@ export default function VMCard({
       {(vm.iso_path || vm.vrde_enabled) && (
         <div className="flex flex-wrap gap-2 mb-3">
           {vm.iso_path && (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(0,230,118,0.08)", color: "var(--accent)", border: "1px solid rgba(0,230,118,0.2)" }}>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}>
               ISO: {basename(vm.iso_path)}
             </span>
           )}
           {vm.vrde_enabled && vm.vrde_port && (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(100,180,255,0.08)", color: "#64b4ff", border: "1px solid rgba(100,180,255,0.2)" }}>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--info) 8%, transparent)", color: "var(--info)", border: "1px solid color-mix(in srgb, var(--info) 20%, transparent)" }}>
               RDP :{vm.vrde_port}
             </span>
           )}
         </div>
       )}
 
-      {showOwner && <p className="text-xs mb-2 truncate" style={{ color: "rgba(122,158,138,0.5)" }}>{vm.user_id}</p>}
+      {showOwner && <p className="text-xs mb-2 truncate" style={{ color: "color-mix(in srgb, var(--text-muted) 50%, transparent)" }}>{vm.user_id}</p>}
 
       {vm.status === "error" && vm.error_message && (
-        <p className="text-xs mb-3 p-2 rounded" style={{ color: "var(--warning)", background: "rgba(255,109,0,0.08)" }}>{vm.error_message}</p>
+        <p className="text-xs mb-3 p-2 rounded" style={{ color: "var(--warning)", background: "color-mix(in srgb, var(--warning) 8%, transparent)" }}>{vm.error_message}</p>
       )}
 
       {/* ISO inline input */}
@@ -259,7 +259,7 @@ export default function VMCard({
       {/* VRDE inline input */}
       {vrdeInputVisible && (
         <div className="flex gap-2 mb-2">
-          <input type="number" value={vrdePortValue} onChange={(e) => setVrdePortValue(e.target.value)} placeholder="3389" min={1024} max={65535} className="flex-1" style={{ ...inputStyle, border: "1px solid rgba(100,180,255,0.2)" }}
+          <input type="number" value={vrdePortValue} onChange={(e) => setVrdePortValue(e.target.value)} placeholder="3389" min={1024} max={65535} className="flex-1" style={{ ...inputStyle, border: "1px solid color-mix(in srgb, var(--info) 20%, transparent)" }}
             onKeyDown={(e) => { if (e.key === "Enter") handleEnableVRDE(); if (e.key === "Escape") setVrdeInputVisible(false); }} autoFocus />
           <Btn onClick={handleEnableVRDE} disabled={!vrdePortValue || loading} color="blue">OK</Btn>
           <Btn onClick={() => setVrdeInputVisible(false)} color="muted">✕</Btn>
@@ -279,8 +279,8 @@ export default function VMCard({
       {/* ISO boot indicator — shown while VM is on and an ISO is attached */}
       {vm.iso_path && (isRunning || transitional) && (
         <div style={{
-          background: "rgba(255,200,0,0.06)",
-          border: "1px solid rgba(255,200,0,0.22)",
+          background: "color-mix(in srgb, var(--caution) 6%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--caution) 22%, transparent)",
           borderRadius: "8px",
           padding: "0.55rem 0.8rem",
           marginBottom: "0.7rem",
@@ -288,12 +288,12 @@ export default function VMCard({
           alignItems: "center",
           gap: "8px",
         }}>
-          <span className="animate-pulse" style={{ color: "#ffc800", fontSize: "13px", flexShrink: 0 }}>◉</span>
+          <span className="animate-pulse" style={{ color: "var(--caution)", fontSize: "13px", flexShrink: 0 }}>◉</span>
           <div>
-            <p style={{ color: "#ffc800", fontSize: "11px", fontWeight: 700, marginBottom: "1px" }}>
+            <p style={{ color: "var(--caution)", fontSize: "11px", fontWeight: 700, marginBottom: "1px" }}>
               Booting from ISO
             </p>
-            <p style={{ color: "rgba(255,200,0,0.6)", fontSize: "10px", lineHeight: 1.4 }}>
+            <p style={{ color: "color-mix(in srgb, var(--caution) 60%, transparent)", fontSize: "10px", lineHeight: 1.4 }}>
               {vm.status === "starting"
                 ? "Starting the virtual machine…"
                 : "OS is loading — this can take several minutes. Watch VirtualBox for progress."}
@@ -511,7 +511,7 @@ export default function VMCard({
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateSchedule(); }} />
               <Btn onClick={handleCreateSchedule} disabled={!schedCron.trim() || loading} color="green">Add</Btn>
             </div>
-            <p className="text-xs mt-1" style={{ color: "rgba(122,158,138,0.4)", fontSize: "9px" }}>
+            <p className="text-xs mt-1" style={{ color: "color-mix(in srgb, var(--text-muted) 40%, transparent)", fontSize: "9px" }}>
               Format: minute hour day month weekday — e.g. &apos;0 8 * * *&apos; = daily at 8:00, &apos;*/30 * * * *&apos; = every 30 min
             </p>
           </div>
@@ -529,10 +529,10 @@ function Btn({ onClick, disabled, color, children }: {
   onClick: () => void; disabled?: boolean; color: BtnColor; children: React.ReactNode;
 }) {
   const colors: Record<BtnColor, [string, string]> = {
-    green: ["rgba(0,230,118,0.15)", "var(--accent)"],
-    blue:  ["rgba(100,180,255,0.15)", "#64b4ff"],
+    green: ["color-mix(in srgb, var(--accent) 15%, transparent)", "var(--accent)"],
+    blue:  ["color-mix(in srgb, var(--info) 15%, transparent)", "var(--info)"],
     muted: ["transparent", "var(--text-muted)"],
-    red:   ["rgba(255,50,50,0.15)", "#ff4444"],
+    red:   ["color-mix(in srgb, var(--danger) 15%, transparent)", "var(--danger)"],
   };
   const [bg, fg] = colors[color];
   return (
@@ -550,15 +550,15 @@ function ActionBtn({ onClick, disabled, color, children }: {
   onClick: () => void; disabled?: boolean; color: ActionColor; children: React.ReactNode;
 }) {
   const styles: Record<ActionColor, { bg: string; fg: string; border: string }> = {
-    green:      { bg: "rgba(0,200,83,0.12)",    fg: "var(--success)",          border: "rgba(0,200,83,0.25)" },
-    orange:     { bg: "rgba(255,109,0,0.12)",   fg: "var(--warning)",          border: "rgba(255,109,0,0.25)" },
-    blue:       { bg: "rgba(100,180,255,0.12)", fg: "#64b4ff",                 border: "rgba(100,180,255,0.25)" },
-    cyan:       { bg: "rgba(0,150,230,0.12)",   fg: "var(--accent)",           border: "rgba(0,150,230,0.25)" },
-    red:        { bg: "rgba(255,50,50,0.12)",   fg: "#ff4444",                 border: "rgba(255,50,50,0.3)" },
-    "red-soft": { bg: "rgba(255,109,0,0.08)",   fg: "rgba(255,109,0,0.7)",     border: "rgba(255,109,0,0.15)" },
-    "green-soft":{ bg: "rgba(0,230,118,0.07)",  fg: "var(--accent)",           border: "rgba(0,230,118,0.15)" },
-    "blue-soft": { bg: "rgba(100,180,255,0.07)",fg: "#64b4ff",                 border: "rgba(100,180,255,0.15)" },
-    "muted-soft":{ bg: "rgba(0,230,118,0.07)",  fg: "var(--text-muted)",       border: "rgba(0,230,118,0.15)" },
+    green:      { bg: "color-mix(in srgb, var(--success) 12%, transparent)",    fg: "var(--success)",          border: "color-mix(in srgb, var(--success) 25%, transparent)" },
+    orange:     { bg: "color-mix(in srgb, var(--warning) 12%, transparent)",   fg: "var(--warning)",          border: "color-mix(in srgb, var(--warning) 25%, transparent)" },
+    blue:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)", fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 25%, transparent)" },
+    cyan:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)",   fg: "var(--accent)",           border: "color-mix(in srgb, var(--info) 25%, transparent)" },
+    red:        { bg: "color-mix(in srgb, var(--danger) 12%, transparent)",   fg: "var(--danger)",                 border: "color-mix(in srgb, var(--danger) 30%, transparent)" },
+    "red-soft": { bg: "color-mix(in srgb, var(--warning) 8%, transparent)",   fg: "color-mix(in srgb, var(--warning) 70%, transparent)",     border: "color-mix(in srgb, var(--warning) 15%, transparent)" },
+    "green-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--accent)",           border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
+    "blue-soft": { bg: "color-mix(in srgb, var(--info) 7%, transparent)",fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 15%, transparent)" },
+    "muted-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--text-muted)",       border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
   };
   const s = styles[color];
   return (

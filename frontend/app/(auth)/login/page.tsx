@@ -76,7 +76,7 @@ function LoginForm() {
             <div
               role="alert"
               className="mb-4 p-3 rounded text-sm"
-              style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
+              style={{ background: "color-mix(in srgb, var(--warning) 10%, transparent)", color: "var(--warning)", border: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}
             >
               Your session has expired. Please log in again.
             </div>
@@ -85,7 +85,7 @@ function LoginForm() {
           {error && (
             <div
               className="mb-4 p-3 rounded text-sm"
-              style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
+              style={{ background: "color-mix(in srgb, var(--warning) 10%, transparent)", color: "var(--warning)", border: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}
             >
               {error}
             </div>

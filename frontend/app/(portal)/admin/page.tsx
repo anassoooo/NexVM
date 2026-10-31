@@ -98,7 +98,7 @@ export default async function AdminPage() {
                 <span>{usedGb} GB used</span>
                 <span>{quotaGb} GB quota</span>
               </div>
-              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
+              <div style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
                 <div style={{ width: `${pct.toFixed(1)}%`, height: "100%", background: barColor, transition: "width 0.3s" }} />
               </div>
               <p className="text-xs mt-2 text-right" style={{ color: barColor }}>{pct.toFixed(1)}% used</p>

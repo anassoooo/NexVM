@@ -41,35 +41,35 @@ export default function AnalyticsClient({ analytics, timeseries }: AnalyticsClie
             <AreaChart data={timeseries.vms_by_day}>
               <defs>
                 <linearGradient id="vmGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00e676" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00e676" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#7a9e8a" }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 10, fill: "#7a9e8a" }} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: "#0d1210", border: "1px solid rgba(0,230,118,0.2)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "#7a9e8a" }} itemStyle={{ color: "#00e676" }} />
-              <Area type="monotone" dataKey="count" stroke="#00e676" fill="url(#vmGrad)" strokeWidth={2} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--ink) 5%, transparent)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} allowDecimals={false} />
+              <Tooltip contentStyle={{ background: "var(--surface-solid)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "var(--text-muted)" }} itemStyle={{ color: "var(--accent)" }} />
+              <Area type="monotone" dataKey="count" stroke="var(--accent)" fill="url(#vmGrad)" strokeWidth={2} />
             </AreaChart>
           </ChartCard>
 
           <ChartCard title="VMs Created Per Day">
             <BarChart data={timeseries.vms_created}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#7a9e8a" }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 10, fill: "#7a9e8a" }} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: "#0d1210", border: "1px solid rgba(0,230,118,0.2)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "#7a9e8a" }} itemStyle={{ color: "#00e676" }} />
-              <Bar dataKey="count" fill="#00e676" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--ink) 5%, transparent)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} allowDecimals={false} />
+              <Tooltip contentStyle={{ background: "var(--surface-solid)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "var(--text-muted)" }} itemStyle={{ color: "var(--accent)" }} />
+              <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartCard>
 
           <ChartCard title="AI Commands Per Day">
             <BarChart data={timeseries.ai_commands_by_day}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#7a9e8a" }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 10, fill: "#7a9e8a" }} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: "#0d1210", border: "1px solid rgba(100,180,255,0.2)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "#7a9e8a" }} itemStyle={{ color: "#64b4ff" }} />
-              <Bar dataKey="count" fill="#64b4ff" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--ink) 5%, transparent)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} allowDecimals={false} />
+              <Tooltip contentStyle={{ background: "var(--surface-solid)", border: "1px solid color-mix(in srgb, var(--info) 20%, transparent)", borderRadius: "8px", fontSize: 12 }} labelStyle={{ color: "var(--text-muted)" }} itemStyle={{ color: "var(--info)" }} />
+              <Bar dataKey="count" fill="var(--info)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartCard>
         </div>

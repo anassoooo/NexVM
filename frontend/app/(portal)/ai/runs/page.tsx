@@ -7,7 +7,7 @@ import type { AgentRunSummary, RunStatus } from "@/types";
 
 const STATUS_COLOR: Record<RunStatus, string> = {
   answered: "var(--text-muted)",
-  needs_approval: "#40c4ff",
+  needs_approval: "var(--info)",
   running: "var(--accent)",
   completed: "var(--success)",
   failed: "var(--warning)",

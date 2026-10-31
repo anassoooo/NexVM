@@ -75,7 +75,7 @@ export default function ProfileClient({ profile, analytics: initialAnalytics }: 
                 {((analytics.total_disk_used_mb / analytics.disk_quota_mb) * 100).toFixed(1)}%
               </span>
             </div>
-            <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
+            <div style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
               <div
                 style={{
                   width: `${Math.min(100, (analytics.total_disk_used_mb / analytics.disk_quota_mb) * 100).toFixed(1)}%`,
@@ -94,15 +94,15 @@ export default function ProfileClient({ profile, analytics: initialAnalytics }: 
 
 function ProfileField({ label, value, mono, badge }: { label: string; value: string; mono?: boolean; badge?: string }) {
   return (
-    <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid rgba(0,230,118,0.06)" }}>
+    <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--accent) 6%, transparent)" }}>
       <span className="text-sm" style={{ color: "var(--text-muted)" }}>{label}</span>
       {badge ? (
         <span
           className="text-xs font-semibold px-3 py-1 rounded-full"
           style={{
-            background: badge === "admin" ? "rgba(0,230,118,0.12)" : "rgba(255,255,255,0.06)",
+            background: badge === "admin" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--ink) 6%, transparent)",
             color: badge === "admin" ? "var(--accent)" : "var(--text)",
-            border: `1px solid ${badge === "admin" ? "rgba(0,230,118,0.25)" : "rgba(255,255,255,0.1)"}`,
+            border: `1px solid ${badge === "admin" ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--ink) 10%, transparent)"}`,
           }}
         >
           {value}

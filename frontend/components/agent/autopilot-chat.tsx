@@ -110,7 +110,7 @@ export default function AutopilotChat() {
         {messages.map((m) =>
           m.kind === "user" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[72%] text-sm font-bold" style={{ background: "var(--success)", color: "var(--text)", borderRadius: 9999, padding: "10px 18px", wordBreak: "break-word" }}>
+              <div className="max-w-[72%] text-sm font-bold" style={{ background: "var(--success)", color: "var(--on-accent)", borderRadius: 9999, padding: "10px 18px", wordBreak: "break-word" }}>
                 {m.text}
               </div>
             </div>

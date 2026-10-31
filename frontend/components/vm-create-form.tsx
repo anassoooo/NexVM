@@ -74,7 +74,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
       {error && (
         <div
           className="mb-4 p-3 rounded text-sm"
-          style={{ background: "rgba(255,109,0,0.1)", color: "var(--warning)", border: "1px solid rgba(255,109,0,0.2)" }}
+          style={{ background: "color-mix(in srgb, var(--warning) 10%, transparent)", color: "var(--warning)", border: "1px solid color-mix(in srgb, var(--warning) 20%, transparent)" }}
         >
           {error}
         </div>
@@ -148,7 +148,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
         {/* Summary */}
         <div
           className="text-xs p-3 rounded"
-          style={{ background: "rgba(0,230,118,0.05)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+          style={{ background: "color-mix(in srgb, var(--accent) 5%, transparent)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
         >
           {cpu} vCPU · {ram >= 1024 ? `${ram / 1024} GB` : `${ram} MB`} RAM ·{" "}
           {DISK_OPTIONS.find(d => d.value === diskSize)?.label} Disk · {os}
@@ -162,7 +162,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
             type="button"
             onClick={onCancel}
             className="text-sm px-5 py-2 rounded-full font-medium transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+            style={{ background: "color-mix(in srgb, var(--ink) 4%, transparent)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
           >
             Cancel
           </button>

@@ -11,7 +11,7 @@ export default function LandingPage() {
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "calc(100vh - 56px)" }}>
         <div
           className="mb-6"
-          style={{ width: 88, height: 88, borderRadius: "22px", overflow: "hidden", border: "1px solid rgba(0,230,118,0.2)" }}
+          style={{ width: 88, height: 88, borderRadius: "22px", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}
         >
           <Image src="/logo.png" alt="NexVM" width={88} height={88} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
         </div>
@@ -222,8 +222,8 @@ function StepCard({ step, title, description }: { step: number; title: string; d
           width: 48,
           height: 48,
           borderRadius: "50%",
-          background: "rgba(0,230,118,0.1)",
-          border: "1px solid rgba(0,230,118,0.25)",
+          background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
           color: "var(--accent)",
           display: "flex",
           alignItems: "center",

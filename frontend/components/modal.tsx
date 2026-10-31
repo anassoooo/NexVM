@@ -23,9 +23,9 @@ export function Modal({
   onCancel,
   loading = false,
 }: ModalProps) {
-  const color  = variant === "danger" ? "var(--warning)" : "#ffc800";
-  const border = variant === "danger" ? "rgba(255,109,0,0.4)" : "rgba(255,200,0,0.4)";
-  const bg     = variant === "danger" ? "rgba(255,109,0,0.15)" : "rgba(255,200,0,0.12)";
+  const color  = variant === "danger" ? "var(--warning)" : "var(--caution)";
+  const border = variant === "danger" ? "color-mix(in srgb, var(--warning) 40%, transparent)" : "color-mix(in srgb, var(--caution) 40%, transparent)";
+  const bg     = variant === "danger" ? "color-mix(in srgb, var(--warning) 15%, transparent)" : "color-mix(in srgb, var(--caution) 12%, transparent)";
 
   // Close on Escape
   useEffect(() => {
@@ -41,7 +41,7 @@ export function Modal({
         position: "fixed",
         inset: 0,
         zIndex: 9998,
-        background: "rgba(0,0,0,0.65)",
+        background: "var(--overlay)",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
         display: "flex",
@@ -59,7 +59,7 @@ export function Modal({
           width: "100%",
           borderRadius: "14px",
           border: `1px solid ${border}`,
-          boxShadow: `0 0 60px rgba(0,0,0,0.6)`,
+          boxShadow: `var(--shadow-lg)`,
         }}
       >
         {/* Icon */}
@@ -92,7 +92,7 @@ export function Modal({
             style={{
               padding: "8px 22px",
               borderRadius: "999px",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid color-mix(in srgb, var(--ink) 10%, transparent)",
               background: "transparent",
               color: "var(--text-muted)",
               fontSize: "13px",
