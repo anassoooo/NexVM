@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { ToastProvider } from "@/components/toast";
-import { THEME_SCRIPT } from "@/components/theme-toggle";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({

@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { THEME_KEY } from "@/lib/theme";
 
 type Theme = "light" | "dark";
-
-export const THEME_KEY = "nexvm-theme";
-
-/** Runs before first paint (see app/layout.tsx) so a saved theme never flashes the other one. */
-export const THEME_SCRIPT = `try{var t=localStorage.getItem("${THEME_KEY}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 function currentTheme(): Theme {
   const picked = document.documentElement.dataset.theme;
@@ -21,7 +17,16 @@ const MOON = "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z";
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
-  useEffect(() => setTheme(currentTheme()), []);
+  useEffect(() => {
+    setTheme(currentTheme());
+    // Without a picked theme the OS setting applies, so follow it when it changes.
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      if (!document.documentElement.dataset.theme) setTheme(currentTheme());
+    };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
 
   function toggle() {
     const next: Theme = currentTheme() === "dark" ? "light" : "dark";

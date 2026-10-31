@@ -5,7 +5,8 @@
 /* Theme tokens. Light is the default; dark applies when the OS prefers it, unless the
    user picked a theme (data-theme on <html>, set by ThemeToggle and the script in layout.tsx).
    Components use only these tokens; tints are color-mix(in srgb, var(--token) N%, transparent).
-   --ink is the color overlays are mixed from: dark on light, white on dark. */
+   --ink is the color overlays are mixed from: dark on light, white on dark.
+   Light status colors are dark enough for 4.5:1 text on their own 8-15% tints and for white text. */
 :root {
   color-scheme: light;
   --bg: #f4f6f5;
@@ -18,12 +19,12 @@
   --ink: #0f1a15;
   --text: #111a16;
   --text-muted: #56675d;
-  --accent: #0a7d45;
-  --success: #138a4b;
+  --accent: #0a7542;
+  --success: #0e7540;
   --on-accent: #ffffff;
-  --warning: #c2410c;
+  --warning: #b23a0a;
   --danger: #d92d20;
-  --info: #1767c4;
+  --info: #155fb5;
   --caution: #a15c07;
   --violet: #7c3aed;
   --overlay: rgba(15, 23, 20, 0.45);

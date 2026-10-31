@@ -240,7 +240,7 @@ export default function VMCard({
         </div>
       )}
 
-      {showOwner && <p className="text-xs mb-2 truncate" style={{ color: "color-mix(in srgb, var(--text-muted) 50%, transparent)" }}>{vm.user_id}</p>}
+      {showOwner && <p className="text-xs mb-2 truncate" style={{ color: "var(--text-muted)" }}>{vm.user_id}</p>}
 
       {vm.status === "error" && vm.error_message && (
         <p className="text-xs mb-3 p-2 rounded" style={{ color: "var(--warning)", background: "color-mix(in srgb, var(--warning) 8%, transparent)" }}>{vm.error_message}</p>
@@ -293,7 +293,7 @@ export default function VMCard({
             <p style={{ color: "var(--caution)", fontSize: "11px", fontWeight: 700, marginBottom: "1px" }}>
               Booting from ISO
             </p>
-            <p style={{ color: "color-mix(in srgb, var(--caution) 60%, transparent)", fontSize: "10px", lineHeight: 1.4 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: "10px", lineHeight: 1.4 }}>
               {vm.status === "starting"
                 ? "Starting the virtual machine…"
                 : "OS is loading — this can take several minutes. Watch VirtualBox for progress."}
@@ -511,7 +511,7 @@ export default function VMCard({
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateSchedule(); }} />
               <Btn onClick={handleCreateSchedule} disabled={!schedCron.trim() || loading} color="green">Add</Btn>
             </div>
-            <p className="text-xs mt-1" style={{ color: "color-mix(in srgb, var(--text-muted) 40%, transparent)", fontSize: "9px" }}>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)", fontSize: "10px" }}>
               Format: minute hour day month weekday — e.g. &apos;0 8 * * *&apos; = daily at 8:00, &apos;*/30 * * * *&apos; = every 30 min
             </p>
           </div>
@@ -555,7 +555,7 @@ function ActionBtn({ onClick, disabled, color, children }: {
     blue:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)", fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 25%, transparent)" },
     cyan:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)",   fg: "var(--accent)",           border: "color-mix(in srgb, var(--info) 25%, transparent)" },
     red:        { bg: "color-mix(in srgb, var(--danger) 12%, transparent)",   fg: "var(--danger)",                 border: "color-mix(in srgb, var(--danger) 30%, transparent)" },
-    "red-soft": { bg: "color-mix(in srgb, var(--warning) 8%, transparent)",   fg: "color-mix(in srgb, var(--warning) 70%, transparent)",     border: "color-mix(in srgb, var(--warning) 15%, transparent)" },
+    "red-soft": { bg: "color-mix(in srgb, var(--warning) 8%, transparent)",   fg: "var(--warning)",                                         border: "color-mix(in srgb, var(--warning) 15%, transparent)" },
     "green-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--accent)",           border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
     "blue-soft": { bg: "color-mix(in srgb, var(--info) 7%, transparent)",fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 15%, transparent)" },
     "muted-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--text-muted)",       border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
