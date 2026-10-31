@@ -417,24 +417,73 @@ def test_groq_other_bad_requests_are_not_retried():
     assert create.call_count == 1
 
 
-def test_live_world_syncs_vms_left_mid_transition():
-    """start_vm leaves "starting" until a sync; the agent must not see it stuck there."""
-    from types import SimpleNamespace as NS
+def _live_world(rows, sync):
     from unittest.mock import MagicMock
 
     from app.agent import backend as live
-    from app.models.enums import VMStatus
 
-    row = {"id": "v1", "name": "web", "status": "starting", "os": "Ubuntu 22.04", "ram": 1024, "cpu": 1,
-           "disk_size": 20480, "iso_path": None, "nat_rules": [], "vrde_port": None, "error_message": None}
     sb = MagicMock()
-    sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [row]
+    sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = rows
     sb.table.return_value.select.return_value.in_.return_value.execute.return_value.data = []
     with (
         patch.object(live, "get_supabase_client", return_value=sb),
-        patch.object(live.vm_service, "sync_vm_status", return_value=NS(status=VMStatus.running)) as sync,
+        patch.object(live.vm_service, "sync_vm_status", side_effect=sync) as sync_mock,
         patch.object(live.vm_service, "_host_ports_in_use", return_value=set()),
     ):
-        world = live.LiveBackend().world(USER)
-    sync.assert_called_once_with("v1", USER)
+        return live.LiveBackend().world(USER), sync_mock
+
+
+def _vm_row(name, status, seconds_ago):
+    from datetime import datetime, timedelta, timezone
+
+    changed = datetime.now(timezone.utc) - timedelta(seconds=seconds_ago)
+    return {"id": name, "name": name, "status": status, "os": "Ubuntu 22.04", "ram": 1024, "cpu": 1,
+            "disk_size": 20480, "iso_path": None, "nat_rules": [], "vrde_port": None, "error_message": None,
+            "updated_at": changed.isoformat()}
+
+
+def test_live_world_syncs_vms_left_mid_transition():
+    """start_vm leaves "starting" until a sync; the agent must not see it stuck there."""
+    from types import SimpleNamespace as NS
+
+    from app.models.enums import VMStatus
+
+    world, sync = _live_world([_vm_row("web", "starting", 300)], lambda *a, **k: NS(status=VMStatus.running))
+    sync.assert_called_once_with("web", USER, accept=None)
     assert world.get("web").status == "running"
+
+
+def test_live_world_only_accepts_finishing_states_while_a_command_may_run():
+    """A sync racing an in-flight start must not write the old "stopped" state back."""
+    from types import SimpleNamespace as NS
+
+    rows = [_vm_row("web", "starting", 5), _vm_row("db", "stopping", 5)]
+    world, sync = _live_world(rows, lambda vm_id, user, accept: NS(status="starting" if vm_id == "web" else "stopped"))
+    assert [c.kwargs["accept"] for c in sync.call_args_list] == [("running", "paused"), ("stopped",)]
+    assert world.get("db").status == "stopped"
+
+
+def test_live_world_keeps_loading_when_one_vm_cannot_sync():
+    from types import SimpleNamespace as NS
+
+    def sync(vm_id, user, accept):
+        if vm_id == "broken":
+            raise HTTPException(status_code=500, detail="VBoxManage failed")
+        return NS(status="running")
+
+    world, _ = _live_world([_vm_row("broken", "starting", 300), _vm_row("web", "starting", 300)], sync)
+    assert world.get("broken").status == "starting"
+    assert world.get("web").status == "running"
+
+
+def test_vm_row_with_port_rules_stored_as_json_string_converts():
+    import uuid
+
+    from app.services.vm_service import _vm_row_to_response
+
+    row = {"id": str(uuid.uuid4()), "user_id": USER, "name": "web", "os": "Ubuntu 22.04", "ram": 1024, "cpu": 1,
+           "disk_size": 20480, "vbox_id": None, "status": "running", "error_message": None, "iso_path": None,
+           "vrde_enabled": False, "vrde_port": None,
+           "nat_rules": json.dumps([{"name": "ssh", "protocol": "tcp", "host_port": 2201, "guest_port": 22}]),
+           "created_at": "2026-10-31T00:00:00+00:00", "updated_at": "2026-10-31T00:00:00+00:00"}
+    assert _vm_row_to_response(row).nat_rules[0].host_port == 2201

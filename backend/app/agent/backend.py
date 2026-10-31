@@ -5,7 +5,9 @@ database; evals/fake_backend.py provides an in-memory version for tests and eval
 """
 
 import json
+import logging
 import os
+from datetime import datetime, timezone
 from typing import Protocol
 
 from fastapi import HTTPException
@@ -30,11 +32,37 @@ class VMBackend(Protocol):
     def execute(self, user_id: str, tool: str, args: BaseModel, world: World) -> str: ...
 
 
-TRANSITIONAL = ("starting", "stopping")
+# Statuses that finish each transition. While a start/stop command may still be running, a sync
+# could read VirtualBox before the command takes effect (e.g. still "poweroff" while starting)
+# and write the old state back, so only a finishing state is accepted until the command's
+# timeout has passed.
+COMPLETES = {"starting": ("running", "paused"), "stopping": ("stopped",)}
+IN_FLIGHT_SECONDS = 60  # run_vbox_command's default timeout
+
+log = logging.getLogger(__name__)
 
 
 def _status_value(status) -> str:
     return getattr(status, "value", status)
+
+
+def _in_flight(row: dict) -> bool:
+    try:
+        changed = datetime.fromisoformat(row["updated_at"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (datetime.now(timezone.utc) - changed).total_seconds() < IN_FLIGHT_SECONDS
+
+
+def _sync_transitional(row: dict, user_id: str) -> str:
+    """start/stop leave "starting"/"stopping" until someone syncs with VirtualBox (the VMs page
+    polls for it). Sync here, or the agent would see a VM stuck mid-transition."""
+    accept = COMPLETES[row["status"]] if _in_flight(row) else None
+    try:
+        return _status_value(vm_service.sync_vm_status(row["id"], user_id, accept=accept).status)
+    except Exception:  # one VM's sync must not block planning for the others
+        log.warning("Could not sync VM %s; keeping status %r", row["id"], row["status"], exc_info=True)
+        return row["status"]
 
 
 def _rules(raw) -> list[dict]:
@@ -48,10 +76,8 @@ class LiveBackend:
         sb = get_supabase_client()
         rows = sb.table("vms").select("*").eq("user_id", user_id).execute().data or []
         for r in rows:
-            # start/stop leave "starting"/"stopping" until someone syncs with VirtualBox (the VMs
-            # page polls for it). Sync here, or the agent would see a VM stuck mid-transition.
-            if r["status"] in TRANSITIONAL:
-                r["status"] = _status_value(vm_service.sync_vm_status(r["id"], user_id).status)
+            if r["status"] in COMPLETES:
+                r["status"] = _sync_transitional(r, user_id)
         snaps: dict[str, list[str]] = {}
         if rows:
             ids = [r["id"] for r in rows]
