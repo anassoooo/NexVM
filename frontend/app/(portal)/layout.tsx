@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { UserInfo } from "@/types";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/theme-toggle";
+import { Button } from "@/components/ui";
 
 const NAV_ITEMS = [
   { href: "/ai", label: "AI Assistant", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
@@ -66,13 +67,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 style={{
                   padding: collapsed ? "10px 0" : "10px 12px",
                   justifyContent: collapsed ? "center" : "flex-start",
-                  background: active ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
-                  color: active ? "var(--accent)" : "var(--text-muted)",
-                  borderLeft: active && !collapsed ? "2px solid var(--accent)" : "2px solid transparent",
+                  background: active ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
+                  color: active ? "var(--text)" : "var(--text-muted)",
                 }}
                 title={collapsed ? item.label : undefined}
+                aria-current={active ? "page" : undefined}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--accent)" : "currentColor"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={item.icon} />
                 </svg>
                 {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
@@ -91,7 +92,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   justifyContent: collapsed ? "center" : "flex-start",
                   background: pathname.startsWith("/admin") ? "color-mix(in srgb, var(--warning) 8%, transparent)" : "transparent",
                   color: pathname.startsWith("/admin") ? "var(--warning)" : "var(--text-muted)",
-                  borderLeft: pathname.startsWith("/admin") && !collapsed ? "2px solid var(--warning)" : "2px solid transparent",
                 }}
                 title={collapsed ? "Admin Panel" : undefined}
               >
@@ -108,6 +108,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="px-2 pb-3 shrink-0">
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="flex items-center gap-2 w-full rounded-lg transition-colors"
             style={{
               padding: "8px 12px",
@@ -181,19 +182,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   </div>
                 )}
               </Link>
-              <button
-                onClick={handleLogout}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                style={{
-                  color: "var(--text-muted)",
-                  background: "color-mix(in srgb, var(--ink) 4%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--ink) 6%, transparent)",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Logout
-              </button>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                Log out
+              </Button>
             </div>
           </div>
         </header>

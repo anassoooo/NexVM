@@ -108,7 +108,7 @@ export default function LogsClient() {
       {loading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="glass animate-pulse h-12" style={{ opacity: 0.4 }} />
+            <div key={i} className="card animate-pulse h-12" style={{ opacity: 0.4 }} />
           ))}
         </div>
       ) : tab === "activity" ? (
@@ -125,7 +125,7 @@ function ActivityTable({ logs }: { logs: Log[] }) {
     return <Empty text="No activity yet" />;
   }
   return (
-    <div className="glass" style={{ overflow: "hidden" }}>
+    <div className="card" style={{ overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -190,7 +190,7 @@ function AIUsageTable({ rows }: { rows: AIUsage[] }) {
   return (
     <div className="flex flex-col gap-3">
       {rows.map((row) => (
-        <div key={row.id} className="glass" style={{ padding: "14px 18px" }}>
+        <div key={row.id} className="card" style={{ padding: "14px 18px" }}>
           <div className="flex items-start justify-between gap-4 mb-2">
             <p style={{ color: "var(--text)", fontSize: 14, flex: 1 }}>
               {truncate(row.prompt, 120)}

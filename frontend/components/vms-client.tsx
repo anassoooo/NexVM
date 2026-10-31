@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { UserAnalytics, VM } from "@/types";
 import { api } from "@/lib/api";
 import VMList from "@/components/vm-list";
+import { Button } from "@/components/ui";
 import VMCreateForm from "@/components/vm-create-form";
 import { useToast } from "@/components/toast";
 
@@ -143,7 +144,7 @@ export default function VMsClient({
     const quotaGb  = (quota / 1024).toFixed(1);
     const barColor = pct > 90 ? "var(--warning)" : "var(--accent)";
     return (
-      <div className="glass mb-6" style={{ padding: "1rem 1.25rem" }}>
+      <div className="card mb-6" style={{ padding: "1rem 1.25rem" }}>
         <div className="flex justify-between text-xs mb-2" style={{ color: "var(--text-muted)" }}>
           <span>Disk usage</span>
           <span style={{ color: barColor }}>{usedGb} GB / {quotaGb} GB ({pct.toFixed(1)}%)</span>
@@ -159,29 +160,25 @@ export default function VMsClient({
     <div>
       {quotaBar}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-          Virtual Machines
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+          Virtual machines
         </h1>
         <div className="flex gap-2">
-          <button onClick={() => setShowImport(true)} className="btn-primary" style={{ padding: "8px 20px", background: "color-mix(in srgb, var(--info) 12%, transparent)", color: "var(--info)", border: "1px solid color-mix(in srgb, var(--info) 25%, transparent)" }}>
-            Import OVA
-          </button>
-          <button onClick={() => setShowForm(true)} className="btn-primary" style={{ padding: "8px 20px" }}>
-            Create VM
-          </button>
+          <Button variant="secondary" onClick={() => setShowImport(true)}>Import OVA</Button>
+          <Button variant="primary" onClick={() => setShowForm(true)}>Create VM</Button>
         </div>
       </div>
 
       {showImport && (
-        <div className="glass mb-4" style={{ padding: "1rem" }}>
+        <div className="card mb-4" style={{ padding: "1rem" }}>
           <p className="text-sm font-semibold mb-3" style={{ color: "var(--text)" }}>Import OVA / OVF</p>
           <div className="flex gap-2 flex-wrap">
-            <input type="text" value={importPath} onChange={(e) => setImportPath(e.target.value)} placeholder="my-vm.ova (from your exports)" className="flex-1" style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", color: "var(--text)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", minWidth: "200px" }} />
-            <input type="text" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="VM name" className="flex-1" style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", color: "var(--text)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", minWidth: "120px" }} />
-            <input type="number" value={importRam} onChange={(e) => setImportRam(e.target.value)} placeholder="RAM (MB)" min={512} max={16384} style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", color: "var(--text)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", width: "90px" }} />
-            <input type="number" value={importCpu} onChange={(e) => setImportCpu(e.target.value)} placeholder="CPU" min={1} max={32} style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", color: "var(--text)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", outline: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "13px", width: "70px" }} />
-            <button onClick={handleImport} disabled={!importPath.trim() || !importName.trim() || loading} className="btn-primary" style={{ padding: "6px 16px" }}>Import</button>
-            <button onClick={() => { setShowImport(false); setImportPath(""); setImportName(""); }} className="btn-primary" style={{ padding: "6px 16px", background: "transparent", color: "var(--text-muted)" }}>Cancel</button>
+            <input type="text" value={importPath} onChange={(e) => setImportPath(e.target.value)} placeholder="my-vm.ova (from your exports)" className="field flex-1" style={{ minWidth: "200px" }} />
+            <input type="text" value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="VM name" className="field flex-1" style={{ minWidth: "120px" }} />
+            <input type="number" value={importRam} onChange={(e) => setImportRam(e.target.value)} placeholder="RAM (MB)" min={512} max={16384} className="field" style={{ width: "90px" }} />
+            <input type="number" value={importCpu} onChange={(e) => setImportCpu(e.target.value)} placeholder="CPU" min={1} max={32} className="field" style={{ width: "70px" }} />
+            <Button variant="primary" onClick={handleImport} disabled={!importPath.trim() || !importName.trim() || loading}>Import</Button>
+            <Button variant="ghost" onClick={() => { setShowImport(false); setImportPath(""); setImportName(""); }}>Cancel</Button>
           </div>
         </div>
       )}

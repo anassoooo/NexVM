@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <style>
+    .m { color: #1d6b47; }
+    @media (prefers-color-scheme: dark) { .m { color: #6cc79a; } }
+  </style>
+  <g class="m">
+    <rect x="2.25" y="2.25" width="19.5" height="19.5" rx="5" stroke="currentColor" stroke-width="2.5" />
+    <rect x="10" y="10" width="8" height="8" rx="2" fill="currentColor" />
+  </g>
+</svg>

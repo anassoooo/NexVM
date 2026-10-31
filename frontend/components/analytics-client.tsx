@@ -80,7 +80,7 @@ export default function AnalyticsClient({ analytics, timeseries }: AnalyticsClie
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="glass" style={{ padding: "1.5rem" }}>
+    <div className="card" style={{ padding: "1.5rem" }}>
       <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-muted)" }}>
         {title}
       </h2>
@@ -93,7 +93,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
-    <div className="glass text-center" style={{ padding: "1rem" }}>
+    <div className="card text-center" style={{ padding: "1rem" }}>
       <p className="text-2xl font-bold" style={{ color: color ?? "var(--text)" }}>{value}</p>
       <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{label}</p>
     </div>

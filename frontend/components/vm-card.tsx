@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PortFwdRule, Snapshot, VM, VMMetrics, VMSchedule } from "@/types";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/modal";
+import { Button, type Tone } from "@/components/ui";
 
 const STATUS_COLOR: Record<VM["status"], string> = {
   running:  "var(--success)",
@@ -205,10 +206,8 @@ export default function VMCard({
 
   return (
     <div
-      className="glass transition-shadow duration-300"
+      className="card transition-shadow duration-300"
       style={{ padding: "1.25rem" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--glow)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -521,51 +520,27 @@ export default function VMCard({
   );
 }
 
-/* ── Tiny reusable button components ── */
+/* ── Small buttons for the card, on the shared Button ── */
 
 type BtnColor = "green" | "blue" | "muted" | "red";
+const BTN_TONE: Record<Exclude<BtnColor, "muted">, Tone> = { green: "accent", blue: "info", red: "danger" };
 
 function Btn({ onClick, disabled, color, children }: {
   onClick: () => void; disabled?: boolean; color: BtnColor; children: React.ReactNode;
 }) {
-  const colors: Record<BtnColor, [string, string]> = {
-    green: ["color-mix(in srgb, var(--accent) 15%, transparent)", "var(--accent)"],
-    blue:  ["color-mix(in srgb, var(--info) 15%, transparent)", "var(--info)"],
-    muted: ["transparent", "var(--text-muted)"],
-    red:   ["color-mix(in srgb, var(--danger) 15%, transparent)", "var(--danger)"],
-  };
-  const [bg, fg] = colors[color];
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className="text-xs font-semibold px-2 py-1 rounded"
-      style={{ background: bg, color: fg, opacity: disabled ? 0.4 : 1 }}>
-      {children}
-    </button>
-  );
+  return color === "muted"
+    ? <Button variant="ghost" size="sm" onClick={onClick} disabled={disabled}>{children}</Button>
+    : <Button variant="tone" tone={BTN_TONE[color]} size="sm" onClick={onClick} disabled={disabled}>{children}</Button>;
 }
 
 type ActionColor = "green" | "orange" | "blue" | "cyan" | "red" | "red-soft" | "green-soft" | "blue-soft" | "muted-soft";
+const ACTION_TONE: Record<ActionColor, Tone> = {
+  green: "accent", orange: "warning", blue: "info", cyan: "neutral", red: "danger",
+  "red-soft": "warning", "green-soft": "accent", "blue-soft": "info", "muted-soft": "neutral",
+};
 
 function ActionBtn({ onClick, disabled, color, children }: {
   onClick: () => void; disabled?: boolean; color: ActionColor; children: React.ReactNode;
 }) {
-  const styles: Record<ActionColor, { bg: string; fg: string; border: string }> = {
-    green:      { bg: "color-mix(in srgb, var(--success) 12%, transparent)",    fg: "var(--success)",          border: "color-mix(in srgb, var(--success) 25%, transparent)" },
-    orange:     { bg: "color-mix(in srgb, var(--warning) 12%, transparent)",   fg: "var(--warning)",          border: "color-mix(in srgb, var(--warning) 25%, transparent)" },
-    blue:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)", fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 25%, transparent)" },
-    cyan:       { bg: "color-mix(in srgb, var(--info) 12%, transparent)",   fg: "var(--accent)",           border: "color-mix(in srgb, var(--info) 25%, transparent)" },
-    red:        { bg: "color-mix(in srgb, var(--danger) 12%, transparent)",   fg: "var(--danger)",                 border: "color-mix(in srgb, var(--danger) 30%, transparent)" },
-    "red-soft": { bg: "color-mix(in srgb, var(--warning) 8%, transparent)",   fg: "var(--warning)",                                         border: "color-mix(in srgb, var(--warning) 15%, transparent)" },
-    "green-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--accent)",           border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
-    "blue-soft": { bg: "color-mix(in srgb, var(--info) 7%, transparent)",fg: "var(--info)",                 border: "color-mix(in srgb, var(--info) 15%, transparent)" },
-    "muted-soft":{ bg: "color-mix(in srgb, var(--accent) 7%, transparent)",  fg: "var(--text-muted)",       border: "color-mix(in srgb, var(--accent) 15%, transparent)" },
-  };
-  const s = styles[color];
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className="text-xs font-semibold px-3 py-1 rounded-full transition-all"
-      style={{ background: s.bg, color: s.fg, border: `1px solid ${s.border}`, opacity: disabled ? 0.4 : 1 }}>
-      {children}
-    </button>
-  );
+  return <Button variant="tone" tone={ACTION_TONE[color]} size="sm" onClick={onClick} disabled={disabled}>{children}</Button>;
 }

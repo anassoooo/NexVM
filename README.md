@@ -12,7 +12,7 @@ A real session, recorded against the running app on a VirtualBox host with `open
 
 1. **"Create a VM called demo-web with 1 GB RAM and 1 vCPU, then start it."** Autopilot plans two steps, checks them in the simulator and shows the cost. Nothing changes until you approve; then the executor runs the steps without the model.
 2. **"Is demo-web healthy?"** The rule-based diagnostics check the live VM, and the model explains the findings.
-3. **"Delete demo-web."** Powering off and deleting are destructive, so the plan is flagged and needs an explicit *Approve (destructive)*.
+3. **"Delete demo-web."** Powering off and deleting are destructive, so the plan is flagged and needs an explicit *Approve destructive plan*.
 4. **Trace.** Every run keeps its model calls, tool calls and executed steps as a waterfall, with latency and tokens.
 
 | Plan, waiting for approval | Diagnostics |

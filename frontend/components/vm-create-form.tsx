@@ -63,11 +63,11 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
     }
   }
 
-  const selectClass = "input-dark";
+  const selectClass = "field";
 
   return (
-    <div className="glass mb-6" style={{ padding: "1.5rem" }}>
-      <h2 className="font-bold mb-5 text-base" style={{ color: "var(--text)" }}>
+    <div className="card mb-6" style={{ padding: "1.5rem" }}>
+      <h2 className="font-semibold mb-5 text-base" style={{ color: "var(--text)" }}>
         Create Virtual Machine
       </h2>
 
@@ -83,7 +83,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
         <div>
-          <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
             Name
           </label>
           <input
@@ -92,14 +92,14 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
             onChange={(e) => setName(e.target.value)}
             maxLength={50}
             required
-            className="input-dark"
+            className="field"
             placeholder="my-vm-01"
           />
         </div>
 
         {/* OS */}
         <div>
-          <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
             Operating System
           </label>
           <select value={os} onChange={(e) => setOs(e.target.value)} className={selectClass}>
@@ -112,7 +112,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
         {/* CPU + RAM — side by side */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
               CPU (vCores)
             </label>
             <select value={cpu} onChange={(e) => setCpu(Number(e.target.value))} className={selectClass}>
@@ -122,7 +122,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
               RAM (MB)
             </label>
             <select value={ram} onChange={(e) => setRam(Number(e.target.value))} className={selectClass}>
@@ -135,7 +135,7 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
 
         {/* Disk */}
         <div>
-          <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
             Disk Size
           </label>
           <select value={diskSize} onChange={(e) => setDiskSize(Number(e.target.value))} className={selectClass}>
@@ -155,14 +155,13 @@ export default function VMCreateForm({ onSuccess, onCancel }: VMCreateFormProps)
         </div>
 
         <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={submitting} className="btn-primary">
+          <button type="submit" disabled={submitting} className="btn btn-primary">
             {submitting ? "Creating..." : "Create VM"}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="text-sm px-5 py-2 rounded-full font-medium transition-colors"
-            style={{ background: "color-mix(in srgb, var(--ink) 4%, transparent)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+            className="btn btn-secondary"
           >
             Cancel
           </button>

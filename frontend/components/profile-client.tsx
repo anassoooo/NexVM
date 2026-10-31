@@ -24,7 +24,7 @@ export default function ProfileClient({ profile, analytics: initialAnalytics }: 
 
   if (!me) {
     return (
-      <div className="glass" style={{ padding: "2rem" }}>
+      <div className="card" style={{ padding: "2rem" }}>
         <p style={{ color: "var(--text-muted)" }}>Loading profile…</p>
       </div>
     );
@@ -36,7 +36,7 @@ export default function ProfileClient({ profile, analytics: initialAnalytics }: 
         Profile
       </h1>
 
-      <div className="glass mb-6" style={{ padding: "1.5rem" }}>
+      <div className="card mb-6" style={{ padding: "1.5rem" }}>
         <div className="grid gap-4">
           <ProfileField label="Email" value={me.email} />
           <ProfileField label="User ID" value={me.id} mono />
@@ -68,7 +68,7 @@ export default function ProfileClient({ profile, analytics: initialAnalytics }: 
             />
           </div>
 
-          <div className="glass" style={{ padding: "1rem" }}>
+          <div className="card" style={{ padding: "1rem" }}>
             <div className="flex justify-between text-xs mb-2" style={{ color: "var(--text-muted)" }}>
               <span>Disk Quota</span>
               <span>
@@ -121,7 +121,7 @@ function ProfileField({ label, value, mono, badge }: { label: string; value: str
 
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
-    <div className="glass text-center" style={{ padding: "1rem" }}>
+    <div className="card text-center" style={{ padding: "1rem" }}>
       <p className="text-2xl font-bold" style={{ color: color ?? "var(--text)" }}>
         {value}
       </p>

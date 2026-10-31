@@ -3,8 +3,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import BackgroundLayer from "@/components/background-layer";
 import { setAuth } from "@/lib/auth";
+import Logo from "@/components/Logo";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -55,22 +55,15 @@ function LoginForm() {
       className="relative min-h-screen flex items-center justify-center"
       style={{ background: "var(--bg)", zIndex: 1 }}
     >
-      <BackgroundLayer />
 
       <div className="relative z-10 w-full max-w-sm px-4">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="NexVM" width={72} height={72} style={{ borderRadius: "18px", objectFit: "cover" }} />
-          </div>
-          <h1 className="text-3xl font-bold" style={{ color: "var(--accent)" }}>NexVM</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Virtual Machine Management</p>
+        <div className="mb-6">
+          <Logo size="md" />
         </div>
 
-        <div className="glass" style={{ padding: "2rem" }}>
-          <h2 className="text-xl font-bold mb-6 text-center" style={{ color: "var(--text)" }}>
-            Sign In
-          </h2>
+        <div className="card" style={{ padding: "1.75rem" }}>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Sign in</h1>
+          <p className="text-sm mt-1 mb-6" style={{ color: "var(--text-muted)" }}>Plan and approve changes to your VirtualBox VMs.</p>
 
           {sessionExpired && (
             <div
@@ -93,7 +86,7 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
                 Email
               </label>
               <input
@@ -101,13 +94,13 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="input-dark"
+                className="field"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>
                 Password
               </label>
               <input
@@ -115,20 +108,20 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="input-dark"
+                className="field"
                 placeholder="••••••••"
               />
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-              {loading ? "Signing in..." : "Sign In"}
+            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">
+              {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
           <p className="text-sm text-center mt-6" style={{ color: "var(--text-muted)" }}>
-            No account?{" "}
+            No account yet?{" "}
             <Link href="/signup" style={{ color: "var(--accent)" }} className="hover:underline font-medium">
-              Sign up
+              Create one
             </Link>
           </p>
         </div>

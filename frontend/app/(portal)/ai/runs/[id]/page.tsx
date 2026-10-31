@@ -11,9 +11,9 @@ import type { AgentRun } from "@/types";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass px-4 py-3">
-      <div className="text-xs uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{label}</div>
-      <div className="text-lg font-bold tabular-nums" style={{ color: "var(--text)" }}>{value}</div>
+    <div className="card px-4 py-3">
+      <div className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</div>
+      <div className="text-lg font-semibold tabular-nums" style={{ color: "var(--text)" }}>{value}</div>
     </div>
   );
 }
@@ -45,12 +45,12 @@ export default function RunDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto w-full px-6 py-6 space-y-5">
-      <Link href="/ai/runs" className="text-xs nav-link">← All runs</Link>
+      <Link href="/ai/runs" className="text-sm nav-link">All runs</Link>
 
-      <div className="glass px-5 py-4">
-        <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>Prompt</div>
-        <div className="text-sm font-bold" style={{ color: "var(--text)" }}>{run.prompt}</div>
-        <div className="text-xs uppercase tracking-wider mt-3 mb-1" style={{ color: "var(--text-muted)" }}>Reply</div>
+      <div className="card px-5 py-4">
+        <div className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Request</div>
+        <div className="text-base font-semibold" style={{ color: "var(--text)" }}>{run.prompt}</div>
+        <div className="text-xs mt-3 mb-1" style={{ color: "var(--text-muted)" }}>Reply</div>
         <div className="text-sm whitespace-pre-wrap" style={{ color: "var(--text)" }}>{run.answer}</div>
         <Findings findings={run.findings} />
         <PlanCard run={run} busy readOnly onApprove={() => {}} onCancel={() => {}} />
@@ -63,10 +63,10 @@ export default function RunDetailPage() {
         <Stat label="Tool calls" value={`${toolCalls}${rejected ? ` (${rejected} fixed)` : ""}`} />
       </div>
 
-      <div className="glass px-5 py-4">
+      <div className="card px-5 py-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>Trace</span>
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{run.model}</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Trace</span>
+          <code className="text-xs" style={{ color: "var(--text-muted)" }}>{run.model}</code>
         </div>
         <TraceTimeline spans={run.trace} />
       </div>

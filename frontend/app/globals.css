@@ -6,169 +6,225 @@
    user picked a theme (data-theme on <html>, set by ThemeToggle and the script in layout.tsx).
    Components use only these tokens; tints are color-mix(in srgb, var(--token) N%, transparent).
    --ink is the color overlays are mixed from: dark on light, white on dark.
-   Light status colors are dark enough for 4.5:1 text on their own 8-15% tints and for white text. */
+   Every status color reaches 4.5:1 as text on its own 8-15% tint and on page, card and inset. */
 :root {
   color-scheme: light;
-  --bg: #f4f6f5;
+  --bg: #f3f5f2;
   --surface: #ffffff;
   --surface-solid: #ffffff;
-  --surface-inset: #f7f9f8;
-  --chrome: rgba(255, 255, 255, 0.92);
-  --border: #dce3df;
-  --border-strong: #c3cdc7;
-  --ink: #0f1a15;
-  --text: #111a16;
-  --text-muted: #56675d;
-  --accent: #0a7542;
-  --success: #0e7540;
+  --surface-inset: #f6f8f5;
+  --chrome: rgba(255, 255, 255, 0.94);
+  --border: #dce2da;
+  --border-strong: #bfc9c0;
+  --ink: #14211b;
+  --text: #14211b;
+  --text-muted: #55665c;
+  --accent: #1d6b47;
+  --success: #1d6b47;
   --on-accent: #ffffff;
-  --warning: #b23a0a;
-  --danger: #d92d20;
+  --warning: #a33508;
+  --danger: #ad2419;
   --info: #155fb5;
-  --caution: #a15c07;
-  --violet: #7c3aed;
-  --overlay: rgba(15, 23, 20, 0.45);
-  --shadow-card: 0 1px 2px rgba(16, 24, 20, 0.05), 0 2px 8px rgba(16, 24, 20, 0.05);
-  --shadow-lg: 0 16px 48px rgba(16, 24, 20, 0.18);
-  --glow: 0 4px 20px rgba(16, 24, 20, 0.1);
-  --decor: none; /* background blobs and floating icons: dark theme only */
+  --caution: #7a4e05;
+  --violet: #6d3fd6;
+  --overlay: rgba(20, 33, 27, 0.45);
+  --shadow-card: 0 1px 2px rgba(20, 33, 27, 0.05);
+  --shadow-lg: 0 16px 40px rgba(20, 33, 27, 0.16);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0f0d;
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-solid: #0f1613;
-  --surface-inset: rgba(0, 0, 0, 0.25);
-  --chrome: rgba(9, 13, 11, 0.92);
-  --border: rgba(0, 255, 128, 0.16);
-  --border-strong: rgba(0, 255, 128, 0.22);
+  --bg: #0f1613;
+  --surface: #151e1a;
+  --surface-solid: #151e1a;
+  --surface-inset: #111915;
+  --chrome: rgba(15, 22, 19, 0.94);
+  --border: #25332c;
+  --border-strong: #344539;
   --ink: #ffffff;
-  --text: #e8f5e9;
-  --text-muted: #8aab97;
-  --accent: #00e676;
-  --success: #00c853;
-  --on-accent: #03140b;
-  --warning: #ff7a1a;
-  --danger: #ff5252;
-  --info: #64b4ff;
-  --caution: #ffc800;
-  --violet: #b388ff;
-  --overlay: rgba(0, 0, 0, 0.65);
+  --text: #e4ede7;
+  --text-muted: #93a79b;
+  --accent: #6cc79a;
+  --success: #6cc79a;
+  --on-accent: #0b1a12;
+  --warning: #f08a4b;
+  --danger: #f07167;
+  --info: #7ab2f0;
+  --caution: #e2b54a;
+  --violet: #b49cf2;
+  --overlay: rgba(0, 0, 0, 0.6);
   --shadow-card: none;
-  --shadow-lg: 0 6px 32px rgba(0, 0, 0, 0.5);
-  --glow: 0 0 40px rgba(0, 230, 118, 0.15);
-  --decor: block;
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 /* Same values as above, for users who haven't picked a theme and whose OS prefers dark. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0a0f0d;
-    --surface: rgba(255, 255, 255, 0.05);
-    --surface-solid: #0f1613;
-    --surface-inset: rgba(0, 0, 0, 0.25);
-    --chrome: rgba(9, 13, 11, 0.92);
-    --border: rgba(0, 255, 128, 0.16);
-    --border-strong: rgba(0, 255, 128, 0.22);
+    --bg: #0f1613;
+    --surface: #151e1a;
+    --surface-solid: #151e1a;
+    --surface-inset: #111915;
+    --chrome: rgba(15, 22, 19, 0.94);
+    --border: #25332c;
+    --border-strong: #344539;
     --ink: #ffffff;
-    --text: #e8f5e9;
-    --text-muted: #8aab97;
-    --accent: #00e676;
-    --success: #00c853;
-    --on-accent: #03140b;
-    --warning: #ff7a1a;
-    --danger: #ff5252;
-    --info: #64b4ff;
-    --caution: #ffc800;
-    --violet: #b388ff;
-    --overlay: rgba(0, 0, 0, 0.65);
+    --text: #e4ede7;
+    --text-muted: #93a79b;
+    --accent: #6cc79a;
+    --success: #6cc79a;
+    --on-accent: #0b1a12;
+    --warning: #f08a4b;
+    --danger: #f07167;
+    --info: #7ab2f0;
+    --caution: #e2b54a;
+    --violet: #b49cf2;
+    --overlay: rgba(0, 0, 0, 0.6);
     --shadow-card: none;
-    --shadow-lg: 0 6px 32px rgba(0, 0, 0, 0.5);
-    --glow: 0 0 40px rgba(0, 230, 118, 0.15);
-    --decor: block;
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
   }
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Glass card pattern */
-.glass {
-  background: var(--surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
+code, kbd, .mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Dark input pattern */
-.input-dark {
-  background: color-mix(in srgb, var(--ink) 3%, transparent);
-  border: none;
-  border-bottom: 1px solid var(--border-strong);
-  color: var(--text);
-  border-radius: 4px 4px 0 0;
-  outline: none;
-  width: 100%;
-  padding: 10px 12px;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: border-bottom-color 0.2s;
-}
-.input-dark:focus {
-  border-bottom: 2px solid var(--accent);
-}
-.input-dark::placeholder {
-  color: var(--text-muted);
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-/* Primary gradient button */
-.btn-primary {
-  background: linear-gradient(135deg, var(--success), var(--accent));
-  color: var(--on-accent);
-  font-weight: 700;
-  border-radius: 9999px;
-  padding: 10px 28px;
-  border: none;
-  cursor: pointer;
-  transition: box-shadow 0.2s, opacity 0.2s;
-  font-family: inherit;
-  font-size: 0.875rem;
-}
-.btn-primary:hover:not(:disabled) {
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-.btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+@layer components {
+  /* Surfaces. Radius follows hierarchy: card 10px, button 8px, badge 6px. */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-card);
+  }
 
-/* Nav links — pure CSS hover, no JS event handlers */
-.nav-logo {
-  color: var(--accent);
-}
-.nav-link {
-  color: var(--text-muted);
-  transition: color 0.15s;
-}
-.nav-link:hover {
-  color: var(--accent);
-}
+  .field {
+    width: 100%;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .field::placeholder {
+    color: var(--text-muted);
+  }
 
-/* Floating background icon animation */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-14px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .float-icon { animation: none !important; }
+  /* Buttons: .btn plus one variant, optionally .btn-sm. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-sm {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    border-radius: 6px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 86%, var(--ink));
+  }
+  .btn-danger {
+    background: var(--warning);
+    color: var(--on-accent);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--warning) 86%, var(--ink));
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface-inset);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--text);
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+  /* Tinted buttons for dense controls (VM card); --tone is set by the tone class. */
+  .btn-tone {
+    background: color-mix(in srgb, var(--tone) 10%, transparent);
+    color: var(--tone);
+    border-color: color-mix(in srgb, var(--tone) 28%, transparent);
+  }
+  .btn-tone:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--tone) 16%, transparent);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--tone) 12%, transparent);
+    color: var(--tone);
+  }
+
+  .tone-neutral { --tone: var(--text-muted); }
+  .tone-accent  { --tone: var(--accent); }
+  .tone-info    { --tone: var(--info); }
+  .tone-warning { --tone: var(--warning); }
+  .tone-danger  { --tone: var(--danger); }
+  .tone-caution { --tone: var(--caution); }
+
+  .nav-link {
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+  .nav-link:hover {
+    color: var(--text);
+  }
 }
 
 @layer utilities {

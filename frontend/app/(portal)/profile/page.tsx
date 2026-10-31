@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserInfo, UserAnalytics } from "@/types";
-import BackgroundLayer from "@/components/background-layer";
 import ProfileClient from "@/components/profile-client";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -31,7 +30,6 @@ export default async function ProfilePage() {
 
   return (
     <div className="relative min-h-screen" style={{ background: "var(--bg)" }}>
-      <BackgroundLayer />
       <div className="relative z-10 max-w-3xl mx-auto px-6 py-8">
         <ProfileClient profile={profile} analytics={analytics} />
       </div>

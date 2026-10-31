@@ -51,7 +51,7 @@ export function Modal({
       }}
     >
       <div
-        className="glass"
+        className="card"
         onClick={(e) => e.stopPropagation()}
         style={{
           padding: "2rem",

@@ -1,269 +1,181 @@
-import Image from "next/image";
 import Link from "next/link";
-import BackgroundLayer from "@/components/background-layer";
+import PlanPreview from "@/components/landing/plan-preview";
+import { Badge, buttonClass } from "@/components/ui";
+
+const STAGES = [
+  {
+    name: "Plan",
+    text: "The model picks from 18 typed tools. Calling a tool only queues a step; nothing touches the host.",
+    sample: <code>create_vm(name=&quot;demo-web&quot;, ram=1024)</code>,
+  },
+  {
+    name: "Simulate",
+    text: "Each step is applied to a copy of your VMs. Invalid states, quotas, host ports and name clashes are rejected, and the model gets the reason.",
+    sample: <code>&apos;demo-web&apos; will exist (stopped)</code>,
+  },
+  {
+    name: "Approve",
+    text: "You see every step, its effect and its cost. Destructive steps are marked and need their own approval.",
+    sample: <Badge tone="warning">destructive</Badge>,
+  },
+  {
+    name: "Execute",
+    text: "Code, not the model, runs the approved plan and checks each step against the live host first.",
+    sample: <code>created &apos;demo-web&apos; (1.7 s)</code>,
+  },
+  {
+    name: "Trace",
+    text: "Every model call, tool call and step is recorded with its timing and token count.",
+    sample: <code>3 model calls, 2 tool calls</code>,
+  },
+];
+
+const GUARANTEES = [
+  ["The model can't run commands", "It can only propose steps from a fixed set of tools, and their arguments are validated."],
+  ["Your login decides what a plan can touch", "Plans only see your own VMs. The model never chooses whose VMs it works on."],
+  ["Nothing destructive without you", "Powering off, deleting a VM or restoring a snapshot is marked destructive and needs an explicit approval."],
+  ["A failed step stops the plan", "The rest is skipped and Autopilot proposes a revised plan, which needs a new approval."],
+];
+
+const EVALS: [string, number, string][] = [
+  ["Single step", 13, "Create, start, resize, snapshot and the other tools on their own"],
+  ["Multi-step", 10, "Several steps in the right order, such as a three-node lab"],
+  ["Safety", 10, "Prompt injection, requests outside its scope, destructive asks"],
+  ["Follow-ups", 6, "References like “start it” that depend on the conversation"],
+  ["Clarification", 6, "Ambiguous requests answered with a question instead of a guess"],
+  ["Diagnostics", 6, "“Why is web slow?” answered from rule-based checks"],
+  ["Other languages", 6, "The same requests in French, Spanish, German and Arabic"],
+  ["Questions", 5, "Answers that must not change anything"],
+  ["Repair", 3, "A revised plan after a step fails on the host"],
+];
+
+const CONSOLE = [
+  ["Lifecycle", "Start, stop, pause, resume and save state"],
+  ["Snapshots and clones", "Take, restore and delete snapshots; clone stopped VMs"],
+  ["Media and access", "Attach ISOs and turn on remote desktop (RDP)"],
+  ["Networking", "Port-forwarding rules from the host to the guest"],
+  ["Schedules", "Start or stop VMs on a cron schedule"],
+  ["Import and export", "Move VMs in and out as OVA files"],
+  ["Analytics and logs", "VM counts over time, AI usage and a full activity log"],
+];
+
+function Section({ title, lede, children }: { title: string; lede?: string; children: React.ReactNode }) {
+  return (
+    <section className="py-16 sm:py-20" style={{ borderTop: "1px solid var(--border)" }}>
+      <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>{title}</h2>
+      {lede && <p className="mt-3 max-w-2xl text-base leading-relaxed" style={{ color: "var(--text-muted)" }}>{lede}</p>}
+      <div className="mt-10">{children}</div>
+    </section>
+  );
+}
 
 export default function LandingPage() {
   return (
-    <div className="relative" style={{ background: "var(--bg)" }}>
-      <BackgroundLayer />
-
-      {/* Hero */}
-      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "calc(100vh - 56px)" }}>
-        <div
-          className="mb-6"
-          style={{ width: 88, height: 88, borderRadius: "22px", overflow: "hidden", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}
-        >
-          <Image src="/logo.png" alt="NexVM" width={88} height={88} style={{ objectFit: "cover", width: "100%", height: "100%" }} priority />
-        </div>
-
-        <h1 className="text-5xl md:text-6xl font-bold mb-4 text-balance" style={{ color: "var(--text)" }}>
-          Manage Your VMs<br />
-          <span style={{ color: "var(--accent)" }}>From Your Browser</span>
-        </h1>
-
-        <p className="text-lg md:text-xl max-w-2xl mb-10" style={{ color: "var(--text-muted)" }}>
-          Create, control, and monitor VirtualBox virtual machines through a modern
-          web interface — powered by AI.
-        </p>
-
-        <div className="flex gap-4">
-          <Link
-            href="/signup"
-            className="btn-primary"
-            style={{ padding: "14px 36px", fontSize: "1rem" }}
-          >
-            Get Started
-          </Link>
-          <a
-            href="#features"
-            className="btn-primary"
-            style={{
-              padding: "14px 36px",
-              fontSize: "1rem",
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
-            }}
-          >
-            Learn More
-          </a>
-        </div>
-
-        <div className="mt-16 animate-bounce" style={{ color: "var(--text-muted)", opacity: 0.4 }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M19 12l-7 7-7-7" />
-          </svg>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="relative z-10 max-w-6xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold text-center mb-4" style={{ color: "var(--text)" }}>
-          Everything You Need
-        </h2>
-        <p className="text-center mb-16 max-w-xl mx-auto" style={{ color: "var(--text-muted)" }}>
-          A complete VM management platform with modern tooling and an intuitive interface.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
-            }
-            title="Full VM Lifecycle"
-            description="Create, start, stop, pause, snapshot, clone, export and delete VMs — all from your browser."
-          />
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" /><path d="M12 6v6l4 2" /></svg>
-            }
-            title="Scheduling"
-            description="Automate start/stop with cron-like scheduling. Set it once, let the platform handle the rest."
-          />
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-            }
-            title="AI Assistant"
-            description="Manage VMs using natural language. Just type &quot;create an Ubuntu VM with 4GB RAM&quot; and it happens."
-          />
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-            }
-            title="Real-Time Metrics"
-            description="Monitor CPU load and RAM allocation for running VMs in real time."
-          />
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-            }
-            title="Secure & Isolated"
-            description="Row-Level Security in Supabase ensures each user only accesses their own VMs and data."
-          />
-          <FeatureCard
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" /></svg>
-            }
-            title="Analytics Dashboard"
-            description="Track VM usage, AI command history, and disk consumption with time-series charts."
-          />
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold text-center mb-4" style={{ color: "var(--text)" }}>
-          How It Works
-        </h2>
-        <p className="text-center mb-16 max-w-xl mx-auto" style={{ color: "var(--text-muted)" }}>
-          Get from zero to a running VM in under a minute.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <StepCard step={1} title="Sign Up" description="Create your account in seconds. No credit card needed — just an email and password." />
-          <StepCard step={2} title="Create a VM" description="Choose an OS, set RAM and CPU, and click Create. Or just ask the AI assistant to do it for you." />
-          <StepCard step={3} title="Manage & Monitor" description="Start, stop, attach ISOs, enable RDP, take snapshots, schedule tasks — all from the dashboard." />
-        </div>
-      </section>
-
-      {/* Platform */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold text-center mb-4" style={{ color: "var(--text)" }}>
-          Built On
-        </h2>
-        <p className="text-center mb-16 max-w-xl mx-auto" style={{ color: "var(--text-muted)" }}>
-          Powered by proven, open-source technologies.
-        </p>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <TechBadge name="VirtualBox" sub="Hypervisor" />
-          <TechBadge name="FastAPI" sub="Backend" />
-          <TechBadge name="Next.js" sub="Frontend" />
-          <TechBadge name="Supabase" sub="Auth & DB" />
-          <TechBadge name="Groq" sub="AI Engine" />
-          <TechBadge name="Python" sub="Language" />
-        </div>
-      </section>
-
-      {/* What Can You Do */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold text-center mb-4" style={{ color: "var(--text)" }}>
-          What Can You Do?
-        </h2>
-        <p className="text-center mb-12 max-w-xl mx-auto" style={{ color: "var(--text-muted)" }}>
-          NexVM gives you full control over your VirtualBox infrastructure.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Capability text="Create VMs with custom OS, RAM, CPU, and disk size" />
-          <Capability text="Start, stop, pause, resume, and save VM state" />
-          <Capability text="Attach ISO images to install any operating system" />
-          <Capability text="Enable RDP (VRDE) for remote desktop access" />
-          <Capability text="Take, restore, and delete VM snapshots" />
-          <Capability text="Clone existing VMs or export/import as OVA" />
-          <Capability text="Add NAT port forwarding rules (SSH, HTTP, etc.)" />
-          <Capability text="Schedule automatic start/stop with cron expressions" />
-          <Capability text="Monitor CPU load and RAM in real time" />
-          <Capability text="Manage everything via AI natural language commands" />
-          <Capability text="Track activity with detailed logs and analytics" />
-          <Capability text="Admin panel for managing all users and VMs" />
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative z-10 py-24">
-        <div className="max-w-2xl mx-auto text-center px-6">
-          <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--text)" }}>
-            Ready to Get Started?
-          </h2>
-          <p className="mb-8" style={{ color: "var(--text-muted)" }}>
-            Create your free account and launch your first VM in minutes.
+    <main className="max-w-6xl mx-auto px-5 sm:px-8">
+      {/* Hero: the product itself, a real plan waiting for approval */}
+      <section className="grid gap-12 lg:gap-16 items-center py-14 sm:py-20 lg:grid-cols-[minmax(0,6fr)_minmax(0,7fr)]">
+        <div>
+          <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold tracking-tight text-balance" style={{ color: "var(--text)", lineHeight: 1.05 }}>
+            Describe a VM change. Approve the plan before it runs.
+          </h1>
+          <p className="mt-6 text-lg leading-relaxed max-w-xl" style={{ color: "var(--text-muted)" }}>
+            NexVM is a console for VirtualBox with Autopilot, an agent that turns a request into a plan, checks every
+            step against a simulated copy of your VMs, and changes nothing until you approve.
           </p>
-          <Link
-            href="/signup"
-            className="btn-primary inline-block"
-            style={{ padding: "14px 48px", fontSize: "1rem" }}
-          >
-            Create Account
-          </Link>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/signup" className={buttonClass({ variant: "primary" })} style={{ padding: "10px 18px" }}>Create an account</Link>
+            <Link href="/login" className={buttonClass({ variant: "secondary" })} style={{ padding: "10px 18px" }}>Sign in</Link>
+          </div>
+          <p className="mt-6 text-sm" style={{ color: "var(--text-muted)" }}>
+            Self-hosted. It drives the VirtualBox on the machine it runs on.
+          </p>
+        </div>
+        <div>
+          <PlanPreview />
+          <p className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>
+            A run recorded from the live app. Approve it to replay what happened on the host.
+          </p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer
-        className="relative z-10 py-8 text-center"
-        style={{ borderTop: "1px solid var(--border)" }}
+      <Section title="What happens to a request" lede="Five stages, and the model only takes part in the first one.">
+        <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
+          {STAGES.map((s, i) => (
+            <li key={s.name} className="pt-4" style={{ borderTop: `2px solid ${i === 2 ? "var(--accent)" : "var(--border-strong)"}` }}>
+              <div className="flex items-baseline gap-2">
+                <span className="mono text-sm tabular-nums" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
+                <h3 className="text-base font-semibold" style={{ color: "var(--text)" }}>{s.name}</h3>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{s.text}</p>
+              <div className="mt-3 text-xs" style={{ color: "var(--text)" }}>{s.sample}</div>
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      <Section title="What it won't do">
+        <dl className="grid gap-x-12 sm:grid-cols-2">
+          {GUARANTEES.map(([term, detail]) => (
+            <div key={term} className="py-5" style={{ borderTop: "1px solid var(--border)" }}>
+              <dt className="text-base font-semibold" style={{ color: "var(--text)" }}>{term}</dt>
+              <dd className="mt-1.5 text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{detail}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+
+      <Section
+        title="Tested on 65 scenarios"
+        lede="Scoring is deterministic: each scenario checks the planned tools and arguments, not the wording. CI replays the recorded model responses on every push. On the 49 scenarios recorded so far, openai/gpt-oss-20b passed 48."
       >
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          NexVM — Virtual Machine Management Platform
-        </p>
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
+            <caption className="sr-only">Evaluation scenarios by category</caption>
+            <thead>
+              <tr style={{ color: "var(--text-muted)" }}>
+                <th scope="col" className="text-left font-medium px-4 py-3">Category</th>
+                <th scope="col" className="text-right font-medium px-4 py-3">Scenarios</th>
+                <th scope="col" className="text-left font-medium px-4 py-3 hidden sm:table-cell">What it checks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {EVALS.map(([name, count, what]) => (
+                <tr key={name} style={{ borderTop: "1px solid var(--border)" }}>
+                  <th scope="row" className="text-left font-medium px-4 py-3" style={{ color: "var(--text)" }}>{name}</th>
+                  <td className="text-right px-4 py-3 tabular-nums mono" style={{ color: "var(--text)" }}>{count}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: "var(--text-muted)" }}>{what}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      <Section title="And a full manual console" lede="Everything Autopilot can do is also a button, along with the things it doesn't do.">
+        <dl className="grid gap-x-12 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+          {CONSOLE.map(([term, detail]) => (
+            <div key={term}>
+              <dt className="text-sm font-semibold" style={{ color: "var(--text)" }}>{term}</dt>
+              <dd className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{detail}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+
+      <footer className="py-14 grid gap-6 sm:grid-cols-2 sm:items-end" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Run it yourself</h2>
+          <p className="mt-2 text-sm max-w-md" style={{ color: "var(--text-muted)" }}>
+            NexVM needs VirtualBox, a Supabase project and a Groq API key. The README covers the setup.
+          </p>
+          <pre className="mt-4 text-sm rounded-lg px-4 py-3 overflow-x-auto" style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text)" }}>
+            <code>git clone https://github.com/anassoooo/NexVM</code>
+          </pre>
+        </div>
+        <div className="sm:text-right">
+          <a href="https://github.com/anassoooo/NexVM" className="text-sm nav-link underline underline-offset-4">Source and README on GitHub</a>
+        </div>
       </footer>
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <div className="glass" style={{ padding: "1.5rem" }}>
-      <div className="mb-3" style={{ color: "var(--accent)" }}>{icon}</div>
-      <h3 className="text-base font-semibold mb-2" style={{ color: "var(--text)" }}>{title}</h3>
-      <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{description}</p>
-    </div>
-  );
-}
-
-function StepCard({ step, title, description }: { step: number; title: string; description: string }) {
-  return (
-    <div className="text-center">
-      <div
-        className="mx-auto mb-4 font-bold text-2xl"
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
-          color: "var(--accent)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {step}
-      </div>
-      <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text)" }}>{title}</h3>
-      <p className="text-sm" style={{ color: "var(--text-muted)" }}>{description}</p>
-    </div>
-  );
-}
-
-function TechBadge({ name, sub }: { name: string; sub: string }) {
-  return (
-    <div className="glass text-center" style={{ padding: "1rem" }}>
-      <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{name}</p>
-      <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</p>
-    </div>
-  );
-}
-
-function Capability({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-3" style={{ padding: "0.75rem 0" }}>
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ flexShrink: 0, marginTop: 2 }}
-      >
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-      <span className="text-sm" style={{ color: "var(--text)" }}>{text}</span>
-    </div>
+    </main>
   );
 }

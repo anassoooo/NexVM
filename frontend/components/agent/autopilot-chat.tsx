@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import type { AgentRun, UserAnalytics } from "@/types";
 import Findings from "./findings";
 import PlanCard from "./plan-card";
+import { Button } from "@/components/ui";
 
 type Message =
   | { id: string; kind: "user"; text: string }
@@ -100,23 +101,23 @@ export default function AutopilotChat() {
     <div className="flex flex-col" style={{ height: "calc(100vh - 120px)", minHeight: 400 }}>
       <div className="flex items-center justify-between pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
         <div>
-          <h1 className="text-lg font-bold" style={{ color: "var(--text)" }}>Autopilot</h1>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Plans with real tools · checked in a simulator · runs only after you approve</p>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Autopilot</h1>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Describe a change. You approve the plan before anything runs.</p>
         </div>
-        <Link href="/ai/runs" className="text-xs nav-link">Run history →</Link>
+        <Link href="/ai/runs" className="text-sm nav-link">Run history</Link>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 space-y-4" style={{ scrollbarColor: "var(--border) transparent" }}>
         {messages.map((m) =>
           m.kind === "user" ? (
             <div key={m.id} className="flex justify-end">
-              <div className="max-w-[72%] text-sm font-bold" style={{ background: "var(--success)", color: "var(--on-accent)", borderRadius: 9999, padding: "10px 18px", wordBreak: "break-word" }}>
+              <div className="max-w-[72%] text-sm font-medium" style={{ background: "var(--accent)", color: "var(--on-accent)", borderRadius: "12px 12px 4px 12px", padding: "10px 14px", wordBreak: "break-word" }}>
                 {m.text}
               </div>
             </div>
           ) : (
             <div key={m.id} className="flex justify-start">
-              <div className="max-w-[88%] w-full glass text-sm" style={{ padding: "14px 18px", lineHeight: 1.7, color: m.kind === "bot" && m.error ? "var(--warning)" : "var(--text)" }}>
+              <div className="max-w-[88%] w-full card text-sm" style={{ padding: "14px 16px", lineHeight: 1.65, color: m.kind === "bot" && m.error ? "var(--warning)" : "var(--text)" }}>
                 {m.kind === "bot" ? (
                   <div className="whitespace-pre-wrap">{m.text}</div>
                 ) : (
@@ -126,8 +127,8 @@ export default function AutopilotChat() {
                     <PlanCard run={m.run} busy={busyRun === m.run.id}
                       onApprove={() => act(m.run, "approve")} onCancel={() => act(m.run, "cancel")} />
                     <div className="mt-2 text-xs flex gap-3" style={{ color: "var(--text-muted)" }}>
-                      <span>{(m.run.latency_ms / 1000).toFixed(1)} s · {m.run.total_tokens} tokens</span>
-                      <Link href={`/ai/runs/${m.run.id}`} className="nav-link">trace</Link>
+                      <span>Planned in {(m.run.latency_ms / 1000).toFixed(1)} s with {m.run.total_tokens.toLocaleString()} tokens</span>
+                      <Link href={`/ai/runs/${m.run.id}`} className="nav-link underline underline-offset-2">View trace</Link>
                     </div>
                   </>
                 )}
@@ -137,16 +138,15 @@ export default function AutopilotChat() {
         )}
         {thinking && (
           <div className="flex justify-start">
-            <div className="glass text-sm" style={{ color: "var(--text-muted)", padding: "14px 18px" }}>planning…</div>
+            <div className="card text-sm" style={{ color: "var(--text-muted)", padding: "14px 16px" }}>Planning…</div>
           </div>
         )}
         {messages.length <= 1 && !thinking && (
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
-              <button key={s} type="button" onClick={() => send(s)} className="glass text-xs"
-                style={{ padding: "6px 12px", borderRadius: 9999, color: "var(--text-muted)", cursor: "pointer" }}>
+              <Button key={s} variant="secondary" size="sm" onClick={() => send(s)} style={{ fontWeight: 500 }}>
                 {s}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -156,12 +156,12 @@ export default function AutopilotChat() {
         <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex gap-3 items-end">
           <div className="flex-1">
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)} maxLength={MAX_PROMPT_LENGTH}
-              disabled={thinking} placeholder="Ask Autopilot to set up, fix or explain your VMs…" className="input-dark" />
+              disabled={thinking} placeholder="Ask Autopilot to set up, fix or explain your VMs…" className="field" />
             <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{input.length}/{MAX_PROMPT_LENGTH}</div>
           </div>
-          <button type="submit" disabled={thinking || !input.trim()} className="btn-primary" style={{ padding: "10px 20px", marginBottom: "1.25rem" }}>
+          <Button type="submit" variant="primary" disabled={thinking || !input.trim()} style={{ marginBottom: "1.25rem", height: 40 }}>
             Send
-          </button>
+          </Button>
         </form>
       </div>
     </div>
