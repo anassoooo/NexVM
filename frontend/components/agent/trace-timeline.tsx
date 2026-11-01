@@ -1,8 +1,8 @@
 import type { TraceSpan } from "@/types";
 
 const KIND = {
-  llm: { color: "#b388ff", label: "model" },
-  tool: { color: "#40c4ff", label: "tool" },
+  llm: { color: "var(--violet)", label: "model" },
+  tool: { color: "var(--info)", label: "tool" },
   step: { color: "var(--accent)", label: "step" },
 } as const;
 
@@ -36,7 +36,7 @@ export default function TraceTimeline({ spans }: { spans: TraceSpan[] }) {
               <span className="truncate" title={s.detail} style={{ color: s.ok ? "var(--text)" : "var(--warning)" }}>
                 {s.kind === "llm" ? "model call" : s.name}
               </span>
-              <span className="relative h-3 rounded" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <span className="relative h-3 rounded" style={{ background: "color-mix(in srgb, var(--ink) 4%, transparent)" }}>
                 <span className="absolute top-0 h-3 rounded"
                   style={{ left: `${left}%`, width: `${width}%`, background: color, opacity: 0.85 }} />
               </span>

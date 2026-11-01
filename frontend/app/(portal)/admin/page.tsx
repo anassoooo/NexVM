@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminAnalytics, UserInfo } from "@/types";
-import BackgroundLayer from "@/components/background-layer";
 
 const BASE_URL = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -46,7 +45,6 @@ export default async function AdminPage() {
 
   return (
     <div className="relative min-h-screen" style={{ background: "var(--bg)" }}>
-      <BackgroundLayer />
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
         <div className="mb-8">
@@ -63,7 +61,7 @@ export default async function AdminPage() {
         </p>
         <div className="grid grid-cols-3 gap-4 mb-10">
           {summaryCards.map(({ label, value }) => (
-            <div key={label} className="glass text-center" style={{ padding: "1.5rem 1rem" }}>
+            <div key={label} className="card text-center" style={{ padding: "1.5rem 1rem" }}>
               <p className="text-3xl font-bold" style={{ color: "var(--accent)" }}>{value}</p>
               <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{label}</p>
             </div>
@@ -75,7 +73,7 @@ export default async function AdminPage() {
         </p>
         <div className="grid grid-cols-3 gap-4 mb-10">
           {statusCards.map(({ label, value, color }) => (
-            <div key={label} className="glass text-center" style={{ padding: "1.5rem 1rem" }}>
+            <div key={label} className="card text-center" style={{ padding: "1.5rem 1rem" }}>
               <p className="text-3xl font-bold" style={{ color }}>{value}</p>
               <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{label}</p>
             </div>
@@ -93,19 +91,19 @@ export default async function AdminPage() {
           const quotaGb  = (quotaMb / 1024).toFixed(1);
           const barColor = pct > 90 ? "var(--warning)" : "var(--accent)";
           return (
-            <div className="glass" style={{ padding: "1.5rem" }}>
+            <div className="card" style={{ padding: "1.5rem" }}>
               <div className="flex justify-between text-xs mb-2" style={{ color: "var(--text-muted)" }}>
                 <span>{usedGb} GB used</span>
                 <span>{quotaGb} GB quota</span>
               </div>
-              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
+              <div style={{ background: "color-mix(in srgb, var(--ink) 6%, transparent)", borderRadius: "4px", overflow: "hidden", height: "8px" }}>
                 <div style={{ width: `${pct.toFixed(1)}%`, height: "100%", background: barColor, transition: "width 0.3s" }} />
               </div>
               <p className="text-xs mt-2 text-right" style={{ color: barColor }}>{pct.toFixed(1)}% used</p>
             </div>
           );
         })() : (
-          <div className="glass" style={{ padding: "1.5rem" }}>
+          <div className="card" style={{ padding: "1.5rem" }}>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>Disk data unavailable</p>
           </div>
         )}

@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminVMsClient from "@/components/admin-vms-client";
 import { VM } from "@/types";
-import BackgroundLayer from "@/components/background-layer";
 
 const BASE_URL = process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -31,7 +30,6 @@ export default async function AdminVMsPage() {
 
   return (
     <div className="relative min-h-screen" style={{ background: "var(--bg)" }}>
-      <BackgroundLayer />
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
         <AdminVMsClient initialVms={vms} />
       </div>

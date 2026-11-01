@@ -1,34 +1,26 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/theme-toggle";
+import { buttonClass } from "@/components/ui";
 
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <nav
-        className="flex items-center justify-between px-6"
-        style={{
-          height: 56,
-          background: "rgba(10,15,13,0.85)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid var(--border)",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-        }}
+        className="sticky top-0 z-50"
+        style={{ background: "var(--chrome)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderBottom: "1px solid var(--border)" }}
       >
-        <Logo size="sm" />
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium nav-link">
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className="btn-primary"
-            style={{ padding: "6px 18px", fontSize: "0.8rem" }}
-          >
-            Get Started
-          </Link>
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 px-5 sm:px-8" style={{ height: 60 }}>
+          <Logo size="md" />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <ThemeToggle />
+            <Link href="/login" className={buttonClass({ variant: "ghost" })}>Sign in</Link>
+            {/* Shorter label on phones so the header fits at 320 px. */}
+            <Link href="/signup" className={buttonClass({ variant: "primary" })}>
+              <span className="sm:hidden">Sign up</span>
+              <span className="hidden sm:inline">Create an account</span>
+            </Link>
+          </div>
         </div>
       </nav>
       {children}

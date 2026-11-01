@@ -17,9 +17,9 @@ export function useToast() {
 }
 
 const STYLES: Record<ToastType, { bg: string; border: string; color: string; icon: string }> = {
-  success: { bg: "rgba(0,230,118,0.10)", border: "rgba(0,230,118,0.30)", color: "var(--accent)",  icon: "✓" },
-  error:   { bg: "rgba(255,109,0,0.10)", border: "rgba(255,109,0,0.35)", color: "var(--warning)", icon: "✕" },
-  warning: { bg: "rgba(255,200,0,0.10)", border: "rgba(255,200,0,0.30)", color: "#ffc800",         icon: "⚠" },
+  success: { bg: "color-mix(in srgb, var(--accent) 10%, transparent)", border: "color-mix(in srgb, var(--accent) 30%, transparent)", color: "var(--accent)",  icon: "✓" },
+  error:   { bg: "color-mix(in srgb, var(--warning) 10%, transparent)", border: "color-mix(in srgb, var(--warning) 35%, transparent)", color: "var(--warning)", icon: "✕" },
+  warning: { bg: "color-mix(in srgb, var(--caution) 10%, transparent)", border: "color-mix(in srgb, var(--caution) 30%, transparent)", color: "var(--caution)",         icon: "⚠" },
 };
 
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
@@ -45,7 +45,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
       maxWidth: "380px",
       backdropFilter: "blur(16px)",
       WebkitBackdropFilter: "blur(16px)",
-      boxShadow: "0 6px 32px rgba(0,0,0,0.5)",
+      boxShadow: "var(--shadow-lg)",
       opacity: visible ? 1 : 0,
       transform: visible ? "translateX(0)" : "translateX(24px)",
       transition: "opacity 0.28s ease, transform 0.28s ease",

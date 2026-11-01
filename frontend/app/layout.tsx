@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ToastProvider } from "@/components/toast";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  weight: ["400", "500", "600", "700"],
-});
+// globals.css and tailwind.config.ts use these through --font-sans / --font-mono.
+const plexSans = IBM_Plex_Sans({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600", "700"] });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
 
 export const metadata: Metadata = {
-  title: "NexVM — Virtual Machine Management Platform",
-  description: "Create, manage, and monitor VirtualBox VMs through a modern web interface with AI assistance.",
+  title: "NexVM — plan, approve and run VirtualBox changes",
+  description: "Describe a change to your VirtualBox VMs. Autopilot plans it with typed tools, checks it in a simulator and runs it only after you approve.",
 };
 
 export default function RootLayout({
@@ -20,8 +19,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.variable} antialiased`} style={{ background: "var(--bg)", color: "var(--text)" }}>
+    // The theme script sets data-theme before hydration, hence suppressHydrationWarning.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
         <ToastProvider>
           {children}
         </ToastProvider>

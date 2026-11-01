@@ -1,32 +1,27 @@
-import Image from "next/image";
 import Link from "next/link";
+
+/** The NexVM mark: a machine (solid square) inside a host (outline). Uses currentColor. */
+export function LogoMark({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2.25" y="2.25" width="19.5" height="19.5" rx="5" stroke="currentColor" strokeWidth="2.5" />
+      <rect x="10" y="10" width="8" height="8" rx="2" fill="currentColor" />
+    </svg>
+  );
+}
 
 export default function Logo({ size = "md", collapsed = false }: { size?: "sm" | "md" | "lg"; collapsed?: boolean }) {
   const dim =
-    size === "lg" ? { px: 52, text: "text-3xl" } :
-    size === "md" ? { px: 38, text: "text-xl" } :
-                   { px: 30, text: "text-base" };
+    size === "lg" ? { px: 32, text: "text-2xl" } :
+    size === "md" ? { px: 24, text: "text-lg" } :
+                   { px: 20, text: "text-base" };
 
   return (
-    <Link href="/" className="flex items-center gap-3 nav-logo" style={{ textDecoration: "none" }}>
-      <div
-        className="shrink-0"
-        style={{ width: dim.px, height: dim.px, borderRadius: size === "lg" ? "14px" : "9px", overflow: "hidden", flexShrink: 0 }}
-      >
-        <Image
-          src="/logo.png"
-          alt="NexVM"
-          width={dim.px}
-          height={dim.px}
-          style={{ objectFit: "cover", width: "100%", height: "100%" }}
-          priority
-        />
-      </div>
-      {!collapsed && (
-        <span className={`font-bold ${dim.text}`} style={{ color: "var(--accent)" }}>
-          NexVM
-        </span>
-      )}
+    <Link href="/" aria-label={collapsed ? "NexVM home" : undefined} className="flex items-center gap-2.5" style={{ color: "var(--text)", textDecoration: "none" }}>
+      <span style={{ color: "var(--accent)", display: "inline-flex" }}>
+        <LogoMark size={dim.px} />
+      </span>
+      {!collapsed && <span className={`font-semibold tracking-tight ${dim.text}`}>NexVM</span>}
     </Link>
   );
 }

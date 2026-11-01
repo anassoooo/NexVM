@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { UserInfo } from "@/types";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/theme-toggle";
+import { Button } from "@/components/ui";
 
 const NAV_ITEMS = [
   { href: "/ai", label: "AI Assistant", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
@@ -41,7 +43,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         className="flex flex-col shrink-0 transition-all duration-200"
         style={{
           width: collapsed ? 68 : 240,
-          background: "rgba(8,12,10,0.95)",
+          background: "var(--chrome)",
           borderRight: "1px solid var(--border)",
         }}
       >
@@ -65,13 +67,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 style={{
                   padding: collapsed ? "10px 0" : "10px 12px",
                   justifyContent: collapsed ? "center" : "flex-start",
-                  background: active ? "rgba(0,230,118,0.08)" : "transparent",
-                  color: active ? "var(--accent)" : "var(--text-muted)",
-                  borderLeft: active && !collapsed ? "2px solid var(--accent)" : "2px solid transparent",
+                  background: active ? "color-mix(in srgb, var(--ink) 6%, transparent)" : "transparent",
+                  color: active ? "var(--text)" : "var(--text-muted)",
                 }}
                 title={collapsed ? item.label : undefined}
+                aria-current={active ? "page" : undefined}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--accent)" : "currentColor"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={item.icon} />
                 </svg>
                 {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
@@ -88,9 +90,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 style={{
                   padding: collapsed ? "10px 0" : "10px 12px",
                   justifyContent: collapsed ? "center" : "flex-start",
-                  background: pathname.startsWith("/admin") ? "rgba(255,109,0,0.08)" : "transparent",
+                  background: pathname.startsWith("/admin") ? "color-mix(in srgb, var(--warning) 8%, transparent)" : "transparent",
                   color: pathname.startsWith("/admin") ? "var(--warning)" : "var(--text-muted)",
-                  borderLeft: pathname.startsWith("/admin") && !collapsed ? "2px solid var(--warning)" : "2px solid transparent",
                 }}
                 title={collapsed ? "Admin Panel" : undefined}
               >
@@ -107,6 +108,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="px-2 pb-3 shrink-0">
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="flex items-center gap-2 w-full rounded-lg transition-colors"
             style={{
               padding: "8px 12px",
@@ -141,7 +143,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           className="flex items-center justify-between px-6 shrink-0"
           style={{
             height: 56,
-            background: "rgba(10,15,13,0.8)",
+            background: "var(--chrome)",
             borderBottom: "1px solid var(--border)",
           }}
         >
@@ -152,6 +154,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             {/* User avatar + dropdown */}
             <div className="flex items-center gap-3">
               <Link href="/profile" className="flex items-center gap-3" style={{ textDecoration: "none" }}>
@@ -161,8 +164,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    background: "rgba(0,230,118,0.12)",
-                    border: "1px solid rgba(0,230,118,0.25)",
+                    background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                     color: "var(--accent)",
                   }}
                 >
@@ -179,19 +182,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   </div>
                 )}
               </Link>
-              <button
-                onClick={handleLogout}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                style={{
-                  color: "var(--text-muted)",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Logout
-              </button>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                Log out
+              </Button>
             </div>
           </div>
         </header>
