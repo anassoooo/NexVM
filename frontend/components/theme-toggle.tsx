@@ -24,8 +24,13 @@ export default function ThemeToggle() {
     const onChange = () => {
       if (!document.documentElement.dataset.theme) setTheme(currentTheme());
     };
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
+    // Safari 12–13 only has the older addListener/removeListener API.
+    if (typeof query.addEventListener === "function") {
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    }
+    query.addListener(onChange);
+    return () => query.removeListener(onChange);
   }, []);
 
   function toggle() {

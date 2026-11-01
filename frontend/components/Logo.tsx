@@ -17,7 +17,7 @@ export default function Logo({ size = "md", collapsed = false }: { size?: "sm" |
                    { px: 20, text: "text-base" };
 
   return (
-    <Link href="/" className="flex items-center gap-2.5" style={{ color: "var(--text)", textDecoration: "none" }}>
+    <Link href="/" aria-label={collapsed ? "NexVM home" : undefined} className="flex items-center gap-2.5" style={{ color: "var(--text)", textDecoration: "none" }}>
       <span style={{ color: "var(--accent)", display: "inline-flex" }}>
         <LogoMark size={dim.px} />
       </span>

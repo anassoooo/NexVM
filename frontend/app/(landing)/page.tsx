@@ -98,7 +98,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Section title="What happens to a request" lede="Five stages, and the model only takes part in the first one.">
+      <Section title="What happens to a request" lede="Five stages. The model proposes the plan and revises it when a step is rejected or fails; code simulates it and runs only the approved steps.">
         <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
           {STAGES.map((s, i) => (
             <li key={s.name} className="pt-4" style={{ borderTop: `2px solid ${i === 2 ? "var(--accent)" : "var(--border-strong)"}` }}>
